@@ -1,5 +1,5 @@
-export type NodeType = 'hero' | 'prog' | 'data' | 'asm';
-export type EdgeType = 'call' | 'data' | 'cics' | 'dyn';
+export type NodeType = 'hero' | 'prog' | 'data' | 'asm' | 'jcl' | 'proc' | 'cpy' | 'sys';
+export type EdgeType = 'call' | 'data' | 'cics' | 'dyn' | 'jcl' | 'proc' | 'copy';
 
 export interface GraphNode {
   id: string;
@@ -68,10 +68,21 @@ export interface SpecSection {
 export interface ModernizationSpec {
   title: string;
   subtitle: string;
+  generatedAt?: string;
   sections: SpecSection[];
 }
 
 export interface MetaChip { label: string; val: string; }
+
+export type PipelineStepStatus = 'success' | 'fail' | 'skip' | 'pending';
+
+export interface PipelineStatus {
+  cast: PipelineStepStatus;
+  github: PipelineStepStatus;
+  llm: PipelineStepStatus;
+  docs: PipelineStepStatus;
+  graphSource: 'cast' | 'llm' | 'parser';
+}
 
 export interface ProgramData {
   name: string;
@@ -88,6 +99,21 @@ export interface ProgramData {
   businessRules: BusinessRulesSection[];
   changeImpact: ChangeImpact;
   spec: ModernizationSpec;
+  pipelineStatus?: PipelineStatus;
+  version?: number;
+}
+
+export interface CopybookField {
+  level: number;
+  name: string;
+  pic?: string;
+  occurs?: number;
+}
+
+export interface CopybookDefinition {
+  name: string;
+  source: string;
+  fields: CopybookField[];
 }
 
 export interface ParsedCobolProgram {

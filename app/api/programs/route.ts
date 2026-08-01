@@ -13,24 +13,32 @@ export async function GET(req: NextRequest) {
       loc: p.loc,
       domain: p.domain,
       desc: p.desc,
-      status: 'analyzed',
+      status: 'documented' as const,
+      docStatus: 'documented' as const,
       lastAnalyzedAt: new Date().toISOString(),
     }));
     return NextResponse.json(demo);
   }
 
   try {
-    const { listPrograms } = await import('@/lib/db/queries');
+    const { listPrograms, getDocStatusForPrograms } = await import('@/lib/db/queries');
     const rows = await listPrograms(repoId);
-    const result = rows.map((r) => ({
-      name: r.name,
-      language: r.language,
-      loc: r.loc,
-      domain: r.domain ?? 'Unknown',
-      desc: r.desc ?? '',
-      status: r.lastAnalyzedAt ? 'analyzed' : 'not_analyzed',
-      lastAnalyzedAt: r.lastAnalyzedAt ? r.lastAnalyzedAt.toISOString() : null,
-    }));
+    const ids = rows.map((r) => r.id);
+    const docStatuses = ids.length > 0 ? await getDocStatusForPrograms(ids) : {};
+
+    const result = rows.map((r) => {
+      const ds = docStatuses[r.id] ?? 'not_analyzed';
+      return {
+        name: r.name,
+        language: r.language,
+        loc: r.loc,
+        domain: r.domain ?? 'Unknown',
+        desc: r.desc ?? '',
+        status: ds === 'documented' ? 'analyzed' : ds === 'cast_only' ? 'cast_only' : 'not_analyzed',
+        docStatus: ds,
+        lastAnalyzedAt: r.lastAnalyzedAt ? r.lastAnalyzedAt.toISOString() : null,
+      };
+    });
     return NextResponse.json(result);
   } catch (e) {
     console.error('[/api/programs GET]', e);

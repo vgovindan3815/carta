@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 import type {
   SseLogLine,
   ParsedCobolProgram,
@@ -6,16 +6,19 @@ import type {
   BusinessRule,
   ChangeImpactItem,
   SpecSection,
+  GraphNode,
+  GraphEdge,
+  CircularLayout,
 } from './parser/types';
 
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const MODEL = 'claude-sonnet-4-6';
+const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const MODEL = 'llama-3.3-70b-versatile';
 
-const SYSTEM_PROMPT = `You are MAVEN/ELISA, a COBOL documentation AI embedded in the MAVEN/CARTA modernization platform.
+const SYSTEM_PROMPT = `You are MAVEN, a COBOL analysis and modernization AI embedded in the MAVEN/CARTA platform.
 
 Rules you MUST follow:
 1. Every factual claim about program behavior MUST cite a dependency graph edge in the format [edge: FROM → TO (type)].
@@ -38,25 +41,40 @@ function logLine(
   return { lv, t, d };
 }
 
+interface StreamResult {
+  text: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
 /**
- * Collects the full streamed text from a messages.stream() call,
- * emitting log lines via the provided callback as streaming progresses.
+ * Collects the full streamed text from a Groq chat completion stream.
+ * Captures token usage from the final chunk (requires stream_options.include_usage).
  */
 async function collectStream(
-  stream: ReturnType<typeof client.messages.stream>,
+  stream: AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>,
   onChunk: (chunk: string, totalSoFar: number) => void
-): Promise<string> {
+): Promise<StreamResult> {
   let full = '';
-  for await (const event of stream) {
-    if (
-      event.type === 'content_block_delta' &&
-      event.delta.type === 'text_delta'
-    ) {
-      full += event.delta.text;
-      onChunk(event.delta.text, full.length);
+  let promptTokens = 0;
+  let completionTokens = 0;
+  let totalTokens = 0;
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content ?? '';
+    if (text) {
+      full += text;
+      onChunk(text, full.length);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = (chunk as any).usage;
+    if (u) {
+      promptTokens = u.prompt_tokens ?? 0;
+      completionTokens = u.completion_tokens ?? 0;
+      totalTokens = u.total_tokens ?? 0;
     }
   }
-  return full;
+  return { text: full, promptTokens, completionTokens, totalTokens };
 }
 
 /**
@@ -97,8 +115,8 @@ ${edgeList || '  (none)'}`;
 
 export async function* generateBusinessRules(
   program: ParsedCobolProgram
-): AsyncGenerator<SseLogLine | { done: true; sections: BusinessRulesSection[] }> {
-  yield logLine('LLM', `Sending <span class="hl">${program.name}</span> source + graph to Claude…`, 0);
+): AsyncGenerator<SseLogLine | { done: true; sections: BusinessRulesSection[]; tokensUsed: number }> {
+  yield logLine('LLM', `Sending <span class="hl">${program.name}</span> source + graph to Groq…`, 0);
 
   const graphSummaryText = graphSummary(program);
   const sourceExcerpt = program.source.slice(0, 12000); // cap to avoid token overflow
@@ -117,10 +135,12 @@ ${sourceExcerpt}
 ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkageSection}\n\`\`\`` : ''}
 
 ## Task
-Extract business rules grouped into logical sections. For each rule:
-- Write it as a clear, precise business statement (not a code description)
+Extract business rules grouped into logical sections. For each rule write a detailed explanation (2–4 sentences):
+- Start with what the business outcome is (not a code description)
+- Include specific COBOL field names, DB2 table names, file names, and any key values (e.g. flag values, status codes) found in the source
+- Explain the conditions, logic, or sequence involved so a non-programmer can understand the rule
 - Cite at least one graph edge as evidence using format [edge: FROM → TO (type)]
-- Focus on what the program DOES, not how it is coded
+- Use <strong> tags around important field names and program names for emphasis
 
 Produce a JSON array with exactly these sections (include all that apply, skip empty ones):
 1. "Input Processing" — how data enters the program
@@ -150,27 +170,30 @@ Output schema:
 [your JSON here]
 </output>`;
 
-  let chunkCount = 0;
   let lastLogAt = 0;
 
   yield logLine('LLM', 'Streaming business rules from model…', 100);
 
-  const stream = client.messages.stream({
+  const stream = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 4096,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  });
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    stream: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stream_options: { include_usage: true },
+  } as any) as unknown as AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>;
 
-  const raw = await collectStream(stream, (chunk, total) => {
-    chunkCount++;
-    // Emit a progress log every ~500 chars streamed
+  const { text: raw, promptTokens, completionTokens, totalTokens } = await collectStream(stream, (_chunk, total) => {
     if (total - lastLogAt > 500) {
       lastLogAt = total;
     }
   });
 
   yield logLine('LLM', `Received ${raw.length} chars from model. Parsing…`, 50);
+  yield logLine('INFO', `Tokens — prompt: <span class="hl">${promptTokens.toLocaleString()}</span> · completion: <span class="hl">${completionTokens.toLocaleString()}</span> · total: <span class="hl">${totalTokens.toLocaleString()}</span>`, 0);
 
   let sections: BusinessRulesSection[] = [];
   try {
@@ -202,7 +225,7 @@ Output schema:
     0
   );
 
-  yield { done: true, sections };
+  yield { done: true, sections, tokensUsed: totalTokens };
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +239,7 @@ export async function* generateChangeImpact(
   | SseLogLine
   | {
       done: true;
+      tokensUsed: number;
       impact: {
         items: ChangeImpactItem[];
         coveragePct: number;
@@ -280,16 +304,22 @@ Rules:
 
   yield logLine('LLM', 'Grounding change impact against graph edges…', 100);
 
-  const stream = client.messages.stream({
+  const stream = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 3000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  });
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    stream: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stream_options: { include_usage: true },
+  } as any) as unknown as AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>;
 
-  const raw = await collectStream(stream, () => {});
+  const { text: raw, promptTokens, completionTokens, totalTokens } = await collectStream(stream, () => {});
 
   yield logLine('LLM', `Parsing change impact response (${raw.length} chars)…`, 50);
+  yield logLine('INFO', `Tokens — prompt: <span class="hl">${promptTokens.toLocaleString()}</span> · completion: <span class="hl">${completionTokens.toLocaleString()}</span> · total: <span class="hl">${totalTokens.toLocaleString()}</span>`, 0);
 
   let result: {
     items: ChangeImpactItem[];
@@ -327,7 +357,7 @@ Rules:
     0
   );
 
-  yield { done: true, impact: result };
+  yield { done: true, impact: result, tokensUsed: totalTokens };
 }
 
 // ---------------------------------------------------------------------------
@@ -337,7 +367,7 @@ Rules:
 export async function* generateModSpec(
   program: ParsedCobolProgram,
   businessRules: BusinessRulesSection[]
-): AsyncGenerator<SseLogLine | { done: true; sections: SpecSection[] }> {
+): AsyncGenerator<SseLogLine | { done: true; sections: SpecSection[]; tokensUsed: number }> {
   yield logLine(
     'LLM',
     `Building modernization spec for <span class="hl">${program.name}</span>…`,
@@ -397,18 +427,22 @@ Output JSON array:
 
   yield logLine('LLM', 'Generating modernization specification — section 1/7…', 100);
 
-  const stream = client.messages.stream({
+  const stream = await client.chat.completions.create({
     model: MODEL,
     max_tokens: 6000,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: prompt }],
-  });
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    stream: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stream_options: { include_usage: true },
+  } as any) as unknown as AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>;
 
   let sectionsLogged = 1;
   let lastTotal = 0;
 
-  const raw = await collectStream(stream, (_chunk, total) => {
-    // Approximate section progress: ~850 chars per section
+  const { text: raw, promptTokens, completionTokens, totalTokens } = await collectStream(stream, (_chunk, total) => {
     const approxSection = Math.min(7, Math.floor(total / 850) + 1);
     if (approxSection > sectionsLogged && total - lastTotal > 600) {
       sectionsLogged = approxSection;
@@ -417,6 +451,7 @@ Output JSON array:
   });
 
   yield logLine('LLM', `Parsing specification (${raw.length} chars)…`, 50);
+  yield logLine('INFO', `Tokens — prompt: <span class="hl">${promptTokens.toLocaleString()}</span> · completion: <span class="hl">${completionTokens.toLocaleString()}</span> · total: <span class="hl">${totalTokens.toLocaleString()}</span>`, 0);
 
   let sections: SpecSection[] = [];
 
@@ -448,5 +483,149 @@ Output JSON array:
     0
   );
 
-  yield { done: true, sections };
+  yield { done: true, sections, tokensUsed: totalTokens };
+}
+
+// ---------------------------------------------------------------------------
+// Layout helper — assigns cx/cy/r positions for circular graph rendering
+// ---------------------------------------------------------------------------
+
+export function layoutCircular(
+  nodes: Pick<GraphNode, 'id' | 'label' | 'sub' | 'type'>[],
+  edges: GraphEdge[],
+  W = 580,
+  H = 468
+): CircularLayout {
+  const hero = nodes.find((n) => n.type === 'hero') ?? nodes[0];
+  const progs = nodes.filter((n) => n.type === 'prog' || n.type === 'asm');
+  const datas = nodes.filter((n) => n.type === 'data');
+
+  const cx = W / 2;
+  const cy = H / 2 - 10;
+
+  const laid: GraphNode[] = [];
+
+  if (hero) laid.push({ ...hero, cx, cy, r: 44 });
+
+  const innerR = Math.min(155, (W / 2) - 65);
+  progs.forEach((n, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(progs.length, 1) - Math.PI / 2;
+    laid.push({
+      ...n,
+      cx: Math.round(cx + innerR * Math.cos(angle)),
+      cy: Math.round(cy + innerR * Math.sin(angle)),
+      r: n.type === 'asm' ? 23 : 30,
+    });
+  });
+
+  const outerR = Math.min(230, (W / 2) - 30);
+  datas.forEach((n, i) => {
+    const angle = (2 * Math.PI * i) / Math.max(datas.length, 1) - Math.PI / 6;
+    laid.push({
+      ...n,
+      cx: Math.round(cx + outerR * Math.cos(angle)),
+      cy: Math.round(cy + outerR * Math.sin(angle)),
+      r: 24,
+    });
+  });
+
+  return { w: W, h: H, nodes: laid, edges };
+}
+
+// ---------------------------------------------------------------------------
+// Chain 0: LLM Dependency Graph (used when no CAST reports available)
+// ---------------------------------------------------------------------------
+
+export async function* generateDepGraph(
+  programName: string,
+  source: string
+): AsyncGenerator<
+  SseLogLine | { done: true; nodes: GraphNode[]; edges: GraphEdge[]; coveragePct: number; tokensUsed: number }
+> {
+  yield logLine('LLM', `No CAST reports — running <span class="hl">LLM dependency analysis</span> on ${programName}…`, 0);
+
+  const sourceExcerpt = source.slice(0, 14000);
+
+  const prompt = `Analyze the COBOL source below and extract a complete dependency graph.
+
+## COBOL Source: ${programName}
+\`\`\`cobol
+${sourceExcerpt}
+\`\`\`
+
+## Task
+Extract all dependencies from the source code:
+- CALL statements → type "call" (static literal) or "dyn" (variable/data-name)
+- EXEC SQL ... FROM TABLE → type "data"
+- EXEC CICS LINK/XCTL PROGRAM → type "cics"
+- READ/WRITE file-name → type "data"
+- The program itself is the "hero" node
+
+For each node provide:
+- "id": program or table name (uppercase, no spaces)
+- "label": same as id
+- "sub": brief description (e.g., "DB2 table", "batch module", "CICS transaction")
+- "type": "hero" | "prog" | "data" | "asm"
+
+For each edge:
+- "from": source node id
+- "to": target node id
+- "type": "call" | "data" | "cics" | "dyn"
+- "label": short description (e.g., "CALL — posting", "EXEC SQL SELECT")
+- "confidence": 100 for static, 71 for dynamic calls
+
+Estimate coveragePct (0–100): how confident you are the graph is complete based on the source clarity.
+
+Output JSON:
+\`\`\`json
+{
+  "nodes": [...],
+  "edges": [...],
+  "coveragePct": 85
+}
+\`\`\`
+
+<output>
+{ your JSON here }
+</output>`;
+
+  yield logLine('LLM', 'Extracting CALL, SQL, CICS, and data edges from source…', 200);
+
+  const stream = await client.chat.completions.create({
+    model: MODEL,
+    max_tokens: 3000,
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+    stream: true,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    stream_options: { include_usage: true },
+  } as any) as unknown as AsyncIterable<Groq.Chat.Completions.ChatCompletionChunk>;
+
+  const { text: raw, promptTokens, completionTokens, totalTokens } = await collectStream(stream, () => {});
+
+  yield logLine('LLM', `Parsing LLM graph response (${raw.length} chars)…`, 50);
+  yield logLine('INFO', `Tokens — prompt: <span class="hl">${promptTokens.toLocaleString()}</span> · completion: <span class="hl">${completionTokens.toLocaleString()}</span> · total: <span class="hl">${totalTokens.toLocaleString()}</span>`, 0);
+
+  let nodes: GraphNode[] = [{ id: programName, label: programName, sub: 'in focus', type: 'hero' }];
+  let edges: GraphEdge[] = [];
+  let coveragePct = 70;
+
+  try {
+    const parsed = extractJson<{ nodes: GraphNode[]; edges: GraphEdge[]; coveragePct: number }>(raw);
+    if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) nodes = parsed.nodes;
+    if (Array.isArray(parsed.edges)) edges = parsed.edges;
+    if (typeof parsed.coveragePct === 'number') coveragePct = parsed.coveragePct;
+  } catch (err) {
+    yield logLine('WARN', `LLM graph parse failed — using minimal graph: ${String(err)}`, 0);
+  }
+
+  yield logLine(
+    'DONE',
+    `LLM dependency graph — <span class="hl">${nodes.length} nodes · ${edges.length} edges</span> · coverage ~${coveragePct}%`,
+    0
+  );
+
+  yield { done: true, nodes, edges, coveragePct, tokensUsed: totalTokens };
 }

@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { ScanProvider } from '@/components/ScanContext';
+import { ScanToast } from '@/components/ScanToast';
 
 export const metadata: Metadata = {
   title: 'MAVEN — Mainframe Analysis, Visualization & Engineering iNtelligence',
@@ -9,7 +11,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ScanProvider>
+          {children}
+          <ScanToast />
+        </ScanProvider>
+      </body>
     </html>
   );
 }

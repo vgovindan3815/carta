@@ -218,6 +218,13 @@ export const PROGRAMS: Record<string, ProgramData> = {
         },
       ],
     },
+    pipelineStatus: {
+      cast: 'fail',
+      github: 'success',
+      llm: 'success',
+      docs: 'success',
+      graphSource: 'llm',
+    },
   },
 
   GTMPOST1: {
@@ -372,6 +379,13 @@ export const PROGRAMS: Record<string, ProgramData> = {
           content: `<div><div class="open-question"><div class="oq-num">1</div><div><strong>GLEDGER format lock:</strong> Until the downstream GL system is modernised, the flat-file format must be preserved exactly. Confirm with GL team before changing any field in the GLEDGER writer.</div></div><div class="open-question"><div class="oq-num">2</div><div><strong>Spring Batch chunk size:</strong> COBOL processes one record at a time. A chunk size of 1 replicates semantics but is inefficient. Determine safe chunk size with DBA (DB2 lock granularity on TRANS_PENDING).</div></div><div class="open-question"><div class="oq-num">3</div><div><strong>Restart semantics:</strong> COBOL has no built-in restart — a failed run re-runs from scratch. Confirm with settlement ops whether a mid-run restart is safe (idempotency of GLEDGER writes and POST_AUDIT inserts).</div></div></div>`,
         },
       ],
+    },
+    pipelineStatus: {
+      cast: 'fail',
+      github: 'success',
+      llm: 'success',
+      docs: 'success',
+      graphSource: 'llm',
     },
   },
 };

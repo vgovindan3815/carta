@@ -84,6 +84,50 @@ function langLabel(prog: string): string {
   return 'COBOL';
 }
 
+const STEP_LABELS: Record<string, string> = {
+  success: '✓',
+  fail: '✗',
+  skip: '—',
+  pending: '…',
+};
+const STEP_COLORS: Record<string, string> = {
+  success: '#27AE60',
+  fail: '#C0392B',
+  skip: '#9CA3AF',
+  pending: '#E07B39',
+};
+
+function PipelineFlow({ ps }: { ps: NonNullable<ProgramData['pipelineStatus']> }) {
+  const steps = [
+    { key: 'cast' as const, label: 'CAST Reports', status: ps.cast },
+    { key: 'github' as const, label: 'GitHub Source', status: ps.github },
+    { key: 'llm' as const, label: 'LLM Analysis', status: ps.llm },
+    { key: 'docs' as const, label: 'Docs Generated', status: ps.docs },
+  ];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14, flexWrap: 'wrap', rowGap: 6 }}>
+      {steps.map((s, i) => (
+        <div key={s.key} style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '3px 9px',
+            borderRadius: 20, border: `1.5px solid ${STEP_COLORS[s.status]}`,
+            background: s.status === 'success' ? '#EFF9F3' : s.status === 'fail' ? '#FEF2F2' : s.status === 'pending' ? '#FFF8EC' : '#F3F4F6',
+            fontSize: 11, fontWeight: 600,
+          }}>
+            <span style={{ color: STEP_COLORS[s.status], fontSize: 12, fontWeight: 800 }}>
+              {STEP_LABELS[s.status]}
+            </span>
+            <span style={{ color: '#374151' }}>{s.label}</span>
+          </div>
+          {i < steps.length - 1 && (
+            <div style={{ width: 18, borderTop: '1.5px dashed #CBD5E1', margin: '0 2px' }} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function OverviewDashboard({ program: p, onTabChange }: Props) {
   const d = p.changeImpact;
   const items = d.items;
@@ -92,11 +136,29 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
   const covColor = d.coverage >= 90 ? '#27AE60' : d.coverage >= 70 ? '#E07B39' : '#C0392B';
   const hasWarn = d.coverage < 100;
   const svgHtml = p.cLayout ? buildCircularSVG(p.cLayout) : '';
+  const ps = p.pipelineStatus;
+  const noCast = ps?.cast !== 'success';
 
   // Domain short form
   const domainShort = p.domain.includes('/') ? p.domain.split('/')[1]?.trim() : p.domain;
 
   return (
+    <div>
+      {ps && <PipelineFlow ps={ps} />}
+      {noCast && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 14px',
+          background: '#FFF8EC', border: '1px solid #F59E0B', borderRadius: 8, marginBottom: 12,
+          fontSize: 12, color: '#92400E',
+        }}>
+          <span style={{ fontSize: 14 }}>⚠</span>
+          <span>
+            <strong>No CAST dependency reports available.</strong> The dependency graph was generated
+            by LLM analysis of the COBOL source. Edge confidence may be lower than a deterministic
+            static analysis tool would produce — verify critical paths manually.
+          </span>
+        </div>
+      )}
     <div className="ov-dashboard">
       {/* LEFT PANEL */}
       <div className="ov-left">
@@ -151,9 +213,9 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
       <div className="ov-center">
         <div className="ov-center-top">
           <span className="ov-center-lbl">Dependency Graph — Call &amp; Data Edges</span>
-          <span className="badge badge-deterministic" style={{ fontSize: 10 }}>
+          <span className={`badge ${noCast ? 'badge-llm' : 'badge-deterministic'}`} style={{ fontSize: 10 }}>
             <span className="badge-dot" />
-            Structure: deterministic (CAST)
+            {noCast ? 'LLM-generated · no CAST reports' : 'Structure: deterministic (CAST)'}
           </span>
         </div>
         <div
@@ -224,7 +286,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
           <div className="ov-gate-rev">Reviewed by: — awaiting engineer sign-off —</div>
           <button
             className="ov-gate-btn1"
-            onClick={() => onTabChange('impact')}
+            onClick={() => onTabChange('spec')}
           >
             Generate draft spec for this change
           </button>
@@ -240,6 +302,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }

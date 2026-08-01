@@ -38,14 +38,15 @@ export async function GET(
       try {
         // Load dependencies lazily so module errors don't break the SSE response
         const [
-          { getJob, getProgramById, getRepo, updateJob, listPrograms },
+          { getJob, getProgramById, getRepo, updateJob, listPrograms, getLLMSettings },
           { fetchFileContent },
-          { runAnalysisPipeline },
         ] = await Promise.all([
           import('@/lib/db/queries'),
           import('@/lib/github'),
-          import('@/lib/analysis/orchestrate'),
         ]);
+
+        const llmSettings = await getLLMSettings();
+        const llmConfig = { provider: llmSettings.provider, apiKey: llmSettings.apiKey };
 
         // 1. Look up job
         const job = await getJob(jobId);
@@ -74,35 +75,57 @@ export async function GET(
         // 4. Mark job as running
         await updateJob(jobId, { status: 'running', startedAt: new Date() });
 
-        // 5. Fetch source from GitHub
-        const pat = repo.patEncrypted
-          ? Buffer.from(repo.patEncrypted, 'base64').toString('utf-8')
-          : undefined;
-
-        emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo}…` });
-
-        const source = await fetchFileContent(
-          repo.owner,
-          repo.repo,
-          prog.filePath,
-          repo.branch,
-          pat
-        );
-
-        // 6. Get all other program names in the repo for call-graph resolution
         const allProgs = await listPrograms(prog.repoId);
         const allNames = allProgs.map((p) => p.name);
 
-        // 7. Run analysis pipeline — streams log lines back via callback
-        await runAnalysisPipeline(
-          jobId,
-          prog.id,
-          prog.name,
-          source,
-          prog.filePath,
-          allNames,
-          (line) => emit(line)
-        );
+        // 5. Try to fetch source from GitHub; fall back to CAST pipeline if unavailable
+        const isCastRepo = repo.githubUrl.startsWith('cast://');
+        let source: string | null = null;
+
+        if (!isCastRepo) {
+          const pat = repo.patEncrypted
+            ? Buffer.from(repo.patEncrypted, 'base64').toString('utf-8')
+            : undefined;
+
+          emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo}…` });
+
+          try {
+            source = await fetchFileContent(
+              repo.owner,
+              repo.repo,
+              prog.filePath,
+              repo.branch,
+              pat
+            );
+          } catch {
+            emit({ lv: 'WARN', t: `Source not found in GitHub — checking for existing CAST dep graph…` });
+          }
+        }
+
+        const { runAnalysisPipeline: runFull, runCastLLMPipeline } = await import('@/lib/analysis/orchestrate');
+
+        if (source) {
+          await runFull(
+            jobId,
+            prog.id,
+            prog.name,
+            source,
+            prog.filePath,
+            allNames,
+            (line) => emit(line),
+            llmConfig
+          );
+        } else {
+          // No source available — use existing CAST dep graph and run LLM doc chains only
+          await runCastLLMPipeline(
+            jobId,
+            prog.id,
+            prog.name,
+            allNames,
+            (line) => emit(line),
+            llmConfig
+          );
+        }
 
         // 8. Mark job done
         await updateJob(jobId, { status: 'completed', completedAt: new Date() });

@@ -8,7 +8,7 @@ export interface RepoFile {
   path: string;
   sha: string;
   size: number;
-  language: 'COBOL' | 'HLASM' | 'other';
+  language: 'COBOL' | 'HLASM' | 'JCL' | 'PROC' | 'CPY' | 'other';
 }
 
 // ---------------------------------------------------------------------------
@@ -24,13 +24,10 @@ function makeOctokit(pat?: string): Octokit {
 function classifyFile(path: string): RepoFile['language'] {
   const lower = path.toLowerCase();
   if (lower.endsWith('.asm') || lower.endsWith('.hlasm')) return 'HLASM';
-  if (
-    lower.endsWith('.cbl') ||
-    lower.endsWith('.cob') ||
-    lower.endsWith('.cobol') ||
-    lower.endsWith('.cpy')
-  )
-    return 'COBOL';
+  if (lower.endsWith('.jcl')) return 'JCL';
+  if (lower.endsWith('.proc')) return 'PROC';
+  if (lower.endsWith('.cpy')) return 'CPY';
+  if (lower.endsWith('.cbl') || lower.endsWith('.cob') || lower.endsWith('.cobol')) return 'COBOL';
   return 'other';
 }
 
@@ -69,8 +66,8 @@ async function withRetry<T>(
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches the git tree for `branch` recursively and returns all COBOL / HLASM
- * files (extensions: .cbl, .cob, .cobol, .cpy, .asm, .hlasm).
+ * Fetches the git tree for `branch` recursively and returns all COBOL / HLASM / JCL / PROC / copybook
+ * files (extensions: .cbl, .cob, .cobol, .cpy, .asm, .hlasm, .jcl, .proc).
  */
 export async function listCobolFiles(
   owner: string,

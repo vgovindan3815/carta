@@ -14,6 +14,7 @@ import type {
   BusinessRulesSection,
   ChangeImpactItem,
   SpecSection,
+  CopybookField,
 } from '../parser/types';
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,7 @@ export const validationStatusEnum = pgEnum('validation_status', [
 /** GitHub repositories that MAVEN/CARTA monitors. */
 export const repos = pgTable('repos', {
   id: uuid('id').defaultRandom().primaryKey(),
+  projectName: text('project_name').notNull().default('Default Project'),
   githubUrl: text('github_url').notNull(),
   owner: text('owner').notNull(),
   repo: text('repo').notNull(),
@@ -81,6 +83,7 @@ export const analysisJobs = pgTable('analysis_jobs', {
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
   error: text('error'),
+  tokensUsed: integer('tokens_used').default(0),
 });
 
 /** Dependency graph produced by the deterministic parser. */
@@ -138,6 +141,45 @@ export const modSpecs = pgTable('mod_specs', {
     .notNull(),
   sections: jsonb('sections').notNull().$type<SpecSection[]>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/** Global app settings — key/value store for LLM provider config etc. */
+export const settings = pgTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull().default(''),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+/** Copybook (.cpy) definitions — field registry per repo. */
+export const copybooks = pgTable('copybooks', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  repoId: uuid('repo_id').references(() => repos.id).notNull(),
+  name: text('name').notNull(),
+  source: text('source').notNull(),
+  fields: jsonb('fields').notNull().$type<CopybookField[]>(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/** Domain glossary — field-pattern to plain-English description mapping per repo. */
+export const domainGlossary = pgTable('domain_glossary', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  repoId: uuid('repo_id').references(() => repos.id).notNull(),
+  pattern: text('pattern').notNull(),
+  description: text('description').notNull(),
+  examples: jsonb('examples').$type<string[]>().default([]),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/** Repository scan jobs — tracks async background scanning of GitHub repos. */
+export const scanJobs = pgTable('scan_jobs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  repoId: uuid('repo_id').references(() => repos.id).notNull(),
+  status: text('status').notNull().default('pending'), // pending | running | completed | failed
+  scannedFiles: integer('scanned_files').default(0),
+  totalFiles: integer('total_files').default(0),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
 });
 
 /** Human review / validation records for any generated artifact. */

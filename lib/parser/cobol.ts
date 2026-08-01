@@ -242,6 +242,15 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
         addEdge({ to: id, type: 'data', label: 'FILE', confidence: 100 });
       }
     }
+
+    // COPY copybook-name (may appear with REPLACING clause — just capture the name)
+    const copyRe = /\bCOPY\s+([A-Z][A-Z0-9-]{0,29})\b/g;
+    while ((m = copyRe.exec(up)) !== null) {
+      const id = m[1].trim();
+      if (!COBOL_RESERVED.has(id)) {
+        addEdge({ to: id, type: 'copy', label: 'COPY', confidence: 100 });
+      }
+    }
   }
 
   return edges;
