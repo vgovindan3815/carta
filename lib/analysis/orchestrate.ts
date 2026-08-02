@@ -7,14 +7,12 @@ import {
   saveDepGraph,
   saveBizRules,
   saveChangeImpact,
-  saveModSpec,
   updateJob,
   appendJobLog,
   getProgramById,
   getRepo,
   getCopybooksByNames,
   getJclCallers,
-  updateProgramDesc,
 } from '../db/queries';
 import { buildPortfolioContext } from '../context/portfolio';
 import { matchGlossary } from '../context/glossary';
@@ -76,7 +74,7 @@ export async function runAnalysisPipeline(
   onEvent: (line: SseLogLine) => void,
   llmConfig: LLMConfig = { provider: 'groq', apiKey: process.env.GROQ_API_KEY ?? '' }
 ): Promise<void> {
-  const { generateDepGraph, generateBusinessRules, generateChangeImpact, generateModSpec, providerName, modelName } =
+  const { generateDepGraph, generateBusinessRules, generateChangeImpact, providerName, modelName } =
     createLLMProvider(llmConfig);
   // Mark job as running
   await updateJob(jobId, {
@@ -343,44 +341,9 @@ export async function runAnalysisPipeline(
       onEvent
     );
 
-    await updateJob(jobId, { progressPct: 75 });
+    await updateJob(jobId, { progressPct: 90 });
 
-    // --- Chain 3: Modernization Spec ---
-
-    await emit(
-      jobId,
-      { lv: 'LLM', t: 'Starting Chain 3 — Modernization Spec (10 sections)…', d: 0 },
-      onEvent
-    );
-
-    let specSections: Parameters<typeof saveModSpec>[2] = [];
-
-    for await (const event of generateModSpec(parsed, businessRulesSections, portfolioCtx || undefined, copybookCtx || undefined, glossaryCtx || undefined)) {
-      if ('done' in event && event.done) {
-        specSections = event.sections;
-        totalTokensUsed += event.tokensUsed;
-      } else {
-        await emit(jobId, event as SseLogLine, onEvent);
-      }
-    }
-
-    await saveModSpec(programId, jobId, specSections);
-
-    // Extract a plain-text description from the Executive Summary (section 1)
-    const sec1 = specSections.find((s) => s.num === 1) ?? specSections[0];
-    if (sec1?.content) {
-      const plain = sec1.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      const shortDesc = plain.slice(0, 220).replace(/\s\S*$/, '').trim() + (plain.length > 220 ? '…' : '');
-      if (shortDesc.length > 20) {
-        await updateProgramDesc(programId, shortDesc).catch(() => {});
-      }
-    }
-
-    await emit(
-      jobId,
-      done(`Modernization spec saved — ${specSections.length} sections`),
-      onEvent
-    );
+    // Modernization Brief is generated on-demand via POST /api/programs/[name]/refresh
 
     // -----------------------------------------------------------------------
     // Finalize
@@ -447,7 +410,7 @@ export async function runCastLLMPipeline(
   onEvent: (line: SseLogLine) => void,
   llmConfig: LLMConfig = { provider: 'groq', apiKey: process.env.GROQ_API_KEY ?? '' }
 ): Promise<void> {
-  const { generateBusinessRules, generateChangeImpact, generateModSpec, providerName, modelName } =
+  const { generateBusinessRules, generateChangeImpact, providerName, modelName } =
     createLLMProvider(llmConfig);
 
   await updateJob(jobId, { status: 'running', startedAt: new Date(), phase: 'llm', progressPct: 0 });
@@ -561,25 +524,7 @@ export async function runCastLLMPipeline(
     await emit(jobId, done(`Change impact saved — ${changeImpactResult.items.length} items`), onEvent);
     await updateJob(jobId, { progressPct: 70 });
 
-    // --- Chain 3: Modernization Spec ---
-    await emit(jobId, { lv: 'LLM', t: 'Starting Chain 3 — Modernization Spec (10 sections)…', d: 0 }, onEvent);
-    let specSections: Parameters<typeof saveModSpec>[2] = [];
-    for await (const event of generateModSpec(castParsed, businessRulesSections, portfolioCtx || undefined, copybookCtx || undefined, glossaryCtx || undefined)) {
-      if ('done' in event && event.done) {
-        specSections = event.sections;
-        totalTokensUsed += event.tokensUsed;
-      } else {
-        await emit(jobId, event as SseLogLine, onEvent);
-      }
-    }
-    await saveModSpec(programId, jobId, specSections);
-    const sec1b = specSections.find((s) => s.num === 1) ?? specSections[0];
-    if (sec1b?.content) {
-      const plain = sec1b.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-      const shortDesc = plain.slice(0, 220).replace(/\s\S*$/, '').trim() + (plain.length > 220 ? '…' : '');
-      if (shortDesc.length > 20) await updateProgramDesc(programId, shortDesc).catch(() => {});
-    }
-    await emit(jobId, done(`Modernization spec saved — ${specSections.length} sections`), onEvent);
+    // Modernization Brief is generated on-demand via POST /api/programs/[name]/refresh
 
     await updateJob(jobId, {
       status: 'completed',

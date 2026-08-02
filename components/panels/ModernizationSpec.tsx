@@ -16,6 +16,7 @@ function demoNote() {
 
 export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
   const s = p.spec;
+  const hasSpec = s.sections.length > 0;
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState<string | null>(null);
   const [refreshLog, setRefreshLog] = useState<string | null>(null);
@@ -72,52 +73,63 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
 
   return (
     <>
-      <div className="flex items-center gap-12 mb-16">
-        <div>
-          <div className="panel-title">Modernization Spec — {p.name}</div>
-          <div className="panel-subtitle" style={{ marginBottom: 0 }}>
-            Java-target specification draft. Engineer sign-off required before use.
+      <div style={{ borderBottom: '2px solid var(--navy-dark)', paddingBottom: 16, marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text-3)', fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4 }}>
+              Modernization Brief
+            </div>
+            <div className="panel-title" style={{ marginBottom: 4 }}>
+              {p.name} — {hasSpec ? 'Modernization Brief' : 'Generate Brief'}
+            </div>
+            <div className="panel-subtitle" style={{ marginBottom: 0 }}>
+              {hasSpec
+                ? 'On-demand modernization brief. Engineer review and sign-off required before use.'
+                : 'Generate a Modernization Brief to plan enhancement or migration of this program.'}
+            </div>
           </div>
-        </div>
-        <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          {s.generatedAt && (
-            <span style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic' }}>
-              Last generated: {s.generatedAt}
-            </span>
-          )}
-          {p.version && p.version > 1 && (
-            <span style={{
-              background: '#EDE9FE', color: '#7C3AED',
-              fontSize: 10, fontWeight: 800,
-              padding: '2px 8px', borderRadius: 12,
-              fontFamily: 'Consolas, monospace',
-            }}>
-              v{p.version}
-            </span>
-          )}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={{
-              background: refreshing ? '#E5E7EB' : 'linear-gradient(135deg,#1F3864,#1C7293)',
-              color: refreshing ? '#9CA3AF' : '#fff',
-              border: 'none', borderRadius: 6,
-              padding: '6px 14px', fontSize: 12, fontWeight: 700,
-              cursor: refreshing ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}
-          >
-            {refreshing ? (
-              <>
-                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>↺</span>
-                Refreshing…
-              </>
-            ) : '↺ Refresh Spec'}
-          </button>
-          <span className="badge badge-draft">
-            <span className="badge-dot" />
-            Draft — awaiting engineer validation
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+            {hasSpec && s.generatedAt && (
+              <span style={{ fontSize: 11, color: '#6B7280', fontStyle: 'italic' }}>
+                Generated: {s.generatedAt}
+              </span>
+            )}
+            {hasSpec && p.version && p.version > 1 && (
+              <span style={{
+                background: '#EDE9FE', color: '#7C3AED',
+                fontSize: 10, fontWeight: 800,
+                padding: '2px 8px', borderRadius: 12,
+                fontFamily: 'Consolas, monospace',
+              }}>
+                v{p.version}
+              </span>
+            )}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              style={{
+                background: refreshing ? '#E5E7EB' : 'linear-gradient(135deg,#1F3864,#1C7293)',
+                color: refreshing ? '#9CA3AF' : '#fff',
+                border: 'none', borderRadius: 6,
+                padding: '6px 14px', fontSize: 12, fontWeight: 700,
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              {refreshing ? (
+                <>
+                  <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>↺</span>
+                  Generating…
+                </>
+              ) : hasSpec ? '↺ Regenerate Brief' : '⚡ Generate Modernization Brief'}
+            </button>
+            {hasSpec && (
+              <span className="badge badge-draft">
+                <span className="badge-dot" />
+                Draft — awaiting engineer validation
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -134,55 +146,98 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
         </div>
       )}
 
-      <div className="spec-container">
-        {/* Draft banner */}
-        <div className="draft-banner">
-          <div className="draft-banner-icon">⚠</div>
-          <div className="draft-banner-text">
-            <h3>Draft — requires engineer validation before use</h3>
-            <p>
-              MAVEN-generated from the deterministic dependency graph and existing business
-              rules. An engineer must review, correct, and sign off before this document
-              informs any code change or modernisation task.
-            </p>
+      {!hasSpec ? (
+        /* Empty state CTA */
+        <div style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: '60px 40px', textAlign: 'center',
+          background: '#F8FAFD', border: '2px dashed #C7D2FE', borderRadius: 12,
+        }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>📋</div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--navy-dark)', marginBottom: 10 }}>
+            No Modernization Brief Yet
+          </div>
+          <div style={{ fontSize: 13, color: '#6B7280', maxWidth: 480, lineHeight: 1.7, marginBottom: 24 }}>
+            The Modernization Brief is generated on-demand — it&apos;s most useful when planning
+            a mainframe enhancement or migration. It includes a recommended approach
+            (Uplift / Transform / Reimagine), phased sequence, behavior contract, and approval block.
+          </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
+            {[
+              { icon: '⬆', label: 'Uplift', desc: 'Enhance in-place on mainframe' },
+              { icon: '↔', label: 'Transform', desc: 'Rewrite to Java / Node.js' },
+              { icon: '✦', label: 'Reimagine', desc: 'Greenfield rebuild' },
+            ].map((m) => (
+              <div key={m.label} style={{
+                background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8,
+                padding: '12px 20px', minWidth: 140,
+              }}>
+                <div style={{ fontSize: 20, marginBottom: 4 }}>{m.icon}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy-dark)' }}>{m.label}</div>
+                <div style={{ fontSize: 11, color: '#9CA3AF' }}>{m.desc}</div>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{
+              background: refreshing ? '#E5E7EB' : 'linear-gradient(135deg,#1F3864,#1C7293)',
+              color: refreshing ? '#9CA3AF' : '#fff',
+              border: 'none', borderRadius: 8,
+              padding: '10px 28px', fontSize: 14, fontWeight: 700,
+              cursor: refreshing ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}
+          >
+            {refreshing ? (
+              <>
+                <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>↺</span>
+                Generating Brief…
+              </>
+            ) : '⚡ Generate Modernization Brief'}
+          </button>
+        </div>
+      ) : (
+        <div className="spec-container">
+          {/* Draft banner */}
+          <div className="draft-banner">
+            <div className="draft-banner-icon">⚠</div>
+            <div className="draft-banner-text">
+              <h3>Draft — requires engineer validation before use</h3>
+              <p>
+                MAVEN-generated from the deterministic dependency graph and extracted business
+                rules. An engineer must review and sign off before this brief informs any
+                code change or modernisation task.
+              </p>
+            </div>
+          </div>
+
+          {/* Sections */}
+          {s.sections.map((sec) => (
+            <div key={sec.num} className="spec-section">
+              <h3>
+                <span className="spec-num">{sec.num}</span>
+                {sec.title}
+              </h3>
+              <div dangerouslySetInnerHTML={{ __html: sec.content }} />
+            </div>
+          ))}
+
+          {/* Export row */}
+          <div className="spec-export-row">
+            <button className="btn btn-ghost btn-sm" onClick={demoNote}>
+              Request Engineer Review
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={demoNote}>
+              Export as DOCX
+            </button>
+            <button className="btn btn-navy btn-sm" onClick={demoNote}>
+              Mark as Validated ✓
+            </button>
           </div>
         </div>
-
-        {/* Title card */}
-        <div
-          className="spec-section"
-          style={{ padding: '14px 20px', marginBottom: 16 }}
-        >
-          <div style={{ fontWeight: 700, color: 'var(--navy-dark)', fontSize: 15 }}>
-            {s.title}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{s.subtitle}</div>
-        </div>
-
-        {/* Sections */}
-        {s.sections.map((sec) => (
-          <div key={sec.num} className="spec-section">
-            <h3>
-              <span className="spec-num">{sec.num}</span>
-              {sec.title}
-            </h3>
-            <div dangerouslySetInnerHTML={{ __html: sec.content }} />
-          </div>
-        ))}
-
-        {/* Export row */}
-        <div className="spec-export-row">
-          <button className="btn btn-ghost btn-sm" onClick={demoNote}>
-            Request Engineer Review
-          </button>
-          <button className="btn btn-ghost btn-sm" onClick={demoNote}>
-            Export as DOCX
-          </button>
-          <button className="btn btn-navy btn-sm" onClick={demoNote}>
-            Mark as Validated ✓
-          </button>
-        </div>
-      </div>
+      )}
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

@@ -272,9 +272,9 @@ export function modSpecPrompt(
 
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  return `Generate a comprehensive full-stack application modernization blueprint for the application anchored by ${program.name}.
+  return `You are producing a Modernization Brief for the COBOL program ${program.name}. This document is generated on-demand when an engineer explicitly requests it — it is NOT produced automatically.
 
-IMPORTANT: This is NOT a single-program migration plan. Treat ${program.name} and ALL programs in its dependency portfolio as ONE application to be rebuilt as a modern cloud-native system. Every section must cover the full application scope — do not scope any section to only the focal program.
+The Modernization Brief answers: "What would it take to enhance or modernize this mainframe program?" It follows the code-modernization plugin's brief format.
 ${portfolioSection}
 ${copybookSection}
 ${glossarySection}
@@ -294,94 +294,73 @@ ${program.source}
 ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkageSection}\n\`\`\`` : ''}
 
 ## Task
-Produce a 10-section application modernization blueprint. Section 1 MUST begin with "Generated: ${today}".
 
-For every program listed in the Dependent Module Context, you MUST include it explicitly in sections 2, 3, and 4. Do not leave any program as "to be analyzed later."
+Produce an 8-section Modernization Brief. Read the source carefully and be specific — use actual field names, program names, and edge references throughout.
 
-1. **Application Overview & Modernization Mandate**
-   First line: "Generated: ${today}"
-   - What is the end-to-end business function of this application (not just the focal program)?
-   - Name all programs involved, their collective LOC, and the business domain they serve
-   - Modernization priority (Critical/High/Medium) with business justification
-   - Recommended modernization approach: strangler-fig (incremental) vs. big-bang rewrite, with rationale
+**Section 1 — Objective**
+One paragraph: from what, to what, and why now. State the modernization method:
+- **Uplift** — same-stack enhancement (COBOL stays COBOL, but modernized: structured code, DB2, CICS TS, external APIs). Choose this when the program is actively enhanced and the mainframe is staying.
+- **Transform** — cross-stack rewrite (COBOL → Java/Node.js). Choose this when full technology migration is planned.
+- **Reimagine** — greenfield rebuild of the business function. Choose this when the domain is well-understood but the code is too entangled to port.
+Justify your choice from the source characteristics (LOC, CICS vs batch, SQL vs VSAM, dynamic CALLs, etc.).
 
-2. **Current Architecture Analysis**
-   - Full COBOL application structure: list every program from the portfolio and its role (batch controller, business sub-program, data access layer, JCL orchestrator, copybook library)
-   - Data flows between programs (cite specific call edges and data edges)
-   - Technical debt inventory: dynamic CALLs, undocumented logic, hardcoded values, shared mutable copybooks, missing error handling
+**Section 2 — Target Architecture**
+A plain-text description of the end-state architecture. Map every program and file in the dependency graph to its target component. For Uplift: describe the enhanced COBOL structure (CICS TS queues replacing getmains, DB2 stored procedures replacing inline SQL, structured error handling). For Transform/Reimagine: describe the target stack (Spring Boot, Angular, PostgreSQL, etc.).
 
-3. **Target Full-Stack Architecture**
-   Recommend a specific target stack with justification from the source characteristics:
-   - **Backend**: Java 21 + Spring Boot 3.x (preferred for batch-heavy, transaction-intensive COBOL) OR Node.js 22 + Express/NestJS (preferred for CICS/online, lightweight logic) — state which and why
-   - **Frontend**: Angular 17 (preferred for complex data-entry workflows, CICS terminal replacements) OR React 18 + Next.js (preferred for modern UX, report/dashboard screens) — state which and why
-   - **Data layer**: JPA/Hibernate + PostgreSQL (relational, transactional) or DB2 LUW migration; Redis for CICS state replacement; AWS S3 or object storage for sequential file datasets
-   - **Batch processing**: Spring Batch (for JCL-heavy batch chains) or AWS Step Functions (serverless batch)
-   - **Integration**: REST/JSON over HTTPS with OpenAPI 3.1 for external APIs; gRPC for high-throughput internal service calls replacing static COBOL CALL
+**Section 3 — Phased Sequence**
+Break the work into 3–5 phases. Order leaf dependencies first (programs with no further callees before the programs that call them). For each phase:
+- Scope: which programs or components
+- Entry criteria: what must be ready
+- Exit criteria: what tests prove it's done
+- Scale: S / M / L / XL (relative size, NOT a time estimate)
+- Risk level: Low / Medium / High + top 2 risks + mitigation
 
-4. **Service Decomposition & Portfolio Map**
-   Group the COBOL programs into bounded microservices or modules. For each service:
-   - Service name and responsibility
-   - Programs included (from focal program + all portfolio context programs)
-   - Each program's role within the service (entry point, domain logic, data access, utility)
-   - Recommended Spring Boot module name or Node.js package name
-   - Modernization priority for this service (High/Medium/Low)
-   Every program from the dependency graph and portfolio context MUST appear in exactly one service group.
+**Section 4 — Business Walkthroughs**
+For each major business flow visible in the dependency graph (entry points, call chains, data flows), write a short walkthrough: persona → what they do → which programs execute → which phase modernizes each step. This is the section non-technical approvers read. If no clear personas are visible, derive 2–3 flows from the program's file I/O and call structure and note they need SME confirmation.
 
-5. **API & Interface Design**
-   - For each service from section 4: define the REST API contract
-   - LINKAGE SECTION fields → JSON request/response schema (with field types derived from PIC clauses)
-   - Proposed endpoint: method, path, request body, response body
-   - Error codes mapped from COBOL status fields and SQLCODE values
-   - OpenAPI 3.1 snippet for at least the focal program's primary operation
+**Section 5 — Behavior Contract**
+List the P0 rules — business rules that MUST be proven equivalent before any phase ships:
+- Rules involving monetary calculations, account balances, regulatory codes
+- Rules that touch shared copybooks or external interfaces
+- Rules with error/status codes that downstream programs depend on
+Flag any rule where the source is ambiguous or dynamic (dynamic CALL, EVALUATE with unclear conditions) as requiring SME confirmation.
 
-6. **Copybook-to-DTO Mapping**
-   For each COPY member in the dependency graph (type "copy"):
-   - Java record class definition with field names from PIC clauses (X = String, 9 = Integer/BigDecimal, S9 = signed numeric)
-   - TypeScript interface equivalent
-   - Bean Validation annotations (@NotNull, @Size, @Digits) derived from PIC constraints
-   If no copybook context is provided, derive DTO fields from WORKING-STORAGE section field names in the source.
+**Section 6 — Validation Strategy**
+State which combination applies for this program and justify:
+- Characterization tests (capture COBOL I/O, replay against new code)
+- Contract tests (verify interface payloads match expected schema)
+- Parallel-run / dual-execution diff (run old and new in parallel, compare outputs)
+- Property-based tests (for calculation-heavy programs)
+- Manual UAT (for CICS terminal screens)
 
-7. **Data Layer Migration**
-   - All DB2 tables and VSAM/sequential files from the portfolio → JPA entity classes (cite specific table/file names from graph edges)
-   - Transaction boundary design: which Spring @Transactional methods map to which COBOL COMMIT points
-   - Index recommendations based on COBOL file key fields and SQL WHERE clauses
-   - Data migration scripts: approach (bulk export/import, CDC, dual-write)
+**Section 7 — Open Questions**
+List anything requiring human/SME decision before Phase 1 starts. Format each as a checkbox item the approver must tick. Common questions: undocumented business rules, dynamic CALL targets, shared file ownership, regulatory requirements.
 
-8. **Batch & JCL Migration**
-   - Current JCL job chain structure (steps, step sequencing, DD datasets)
-   - Spring Batch equivalent: Job → Step → ItemReader/ItemProcessor/ItemWriter mapping
-   - OR AWS Step Functions state machine (if serverless batch is recommended)
-   - DD statement → datasource bean or S3 bucket key mapping
-   - Trigger mechanism: replaced JCL scheduler → Spring Batch job launcher, AWS EventBridge, or Quartz
+**Section 8 — Approval Block**
+Include an approval block stating:
+- "Modernization method: [Uplift | Transform | Reimagine]"
+- "Generated: ${today} by MAVEN"
+- "Approved by: ________________  Date: __________"
+- "Approval covers: Phase 1 only | Full plan"
 
-9. **Migration Roadmap**
-   Phase 1 — Foundation (weeks 1–4): API shell, data model, CI/CD pipeline, test harness
-   Phase 2 — Business Logic Port (weeks 5–12): service-by-service migration starting with lowest-risk services
-   Phase 3 — Batch Migration (weeks 13–18): JCL → Spring Batch, data pipeline migration
-   Phase 4 — Decommission (weeks 19–24): shadow-run validation, traffic cutover, COBOL retirement
-   Include estimated effort per phase based on total LOC and dependency count across the portfolio.
-
-10. **Risk & Test Strategy**
-    - Dynamic CALLs (unresolvable targets) — list each and risk level
-    - Shared copybooks used by multiple programs — data structure change impact
-    - Undocumented CICS transactions — discovery approach
-    - Regression test strategy: record/replay of COBOL I/O for golden dataset comparison
-    - Shadow-run approach: run COBOL and Java in parallel, compare outputs before cutover
-    - Go/no-go criteria for each migration phase
-
-For each section write HTML content (use <p>, <ul>, <li>, <table>, <strong>, <code>, <pre> tags). Reference COBOL fields, copybooks, and edges [edge: FROM → TO (type)] throughout. Be specific — name actual field names, table names, program names, and call chains from the provided context.
-
-CRITICAL: The "content" value for every section MUST be valid HTML markup. NEVER put raw JSON, a nested JSON array, or plain untagged text inside "content". The outer structure is a JSON array of section objects; each section's "content" value is an HTML string starting with a tag like <p> or <ul>.
-
-Output JSON array:
-\`\`\`json
-[
-  { "num": 1, "title": "Application Overview & Modernization Mandate", "content": "<p>Generated: ${today}...</p>" },
-  ...
-]
-\`\`\`
+RULES FOR OUTPUT FORMAT:
+- You MUST return a JSON array. The array has exactly 8 objects.
+- Each object has exactly three keys: "num" (integer 1–8), "title" (string), "content" (string).
+- The "content" value MUST be an HTML string. It MUST start with an HTML tag such as <p>, <ul>, or <table>.
+- NEVER put JSON, markdown, raw text, or another array inside "content". Only HTML.
+- Example of correct content: "<p>This program handles...</p><ul><li>Phase 1: ...</li></ul>"
+- Example of WRONG content: "[ { \\"phase\\": 1 } ]" or "Phase 1: scope..." (no HTML tags)
 
 <output>
-[your JSON here]
+[
+  { "num": 1, "title": "Objective", "content": "<p>Generated: ${today}. ..." },
+  { "num": 2, "title": "Target Architecture", "content": "<p>..." },
+  { "num": 3, "title": "Phased Sequence", "content": "<p>..." },
+  { "num": 4, "title": "Business Walkthroughs", "content": "<p>..." },
+  { "num": 5, "title": "Behavior Contract", "content": "<p>..." },
+  { "num": 6, "title": "Validation Strategy", "content": "<p>..." },
+  { "num": 7, "title": "Open Questions", "content": "<ul><li>..." },
+  { "num": 8, "title": "Approval Block", "content": "<p>Modernization method: ..." }
+]
 </output>`;
 }
