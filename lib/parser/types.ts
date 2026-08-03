@@ -130,3 +130,128 @@ export interface SseLogLine {
   t: string; // text (may contain HTML spans)
   d: number; // ms delay from phase start (0 = immediate)
 }
+
+// ---------------------------------------------------------------------------
+// v2.2 — Rule Card (§2.1)
+// ---------------------------------------------------------------------------
+
+export interface RuleCard {
+  id: string; // RULE-NNN
+  name: string;
+  category: 'Calculation' | 'Validation' | 'Lifecycle' | 'Policy';
+  priority: 'P0' | 'P1' | 'P2';
+  source_line_start: number;
+  source_line_end: number;
+  plain_english: string;
+  given: string;
+  when: string;
+  then: string;
+  parameters: Record<string, string>;
+  edge_cases: string[];
+  suspected_defect: string | null;
+  confidence: 'High' | 'Medium' | 'Low';
+  confidence_note: string | null;
+  citationVerified?: boolean; // set by post-extraction verification pass
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — DataObject catalog (§2.2)
+// ---------------------------------------------------------------------------
+
+export interface DataObjectField {
+  name: string;
+  pic?: string;
+  level: number;
+  occurs: number | null;
+}
+
+export interface DataObject {
+  name: string;
+  kind: 'working-storage' | 'copybook' | 'linkage-section' | 'sql-result' | 'file-record';
+  source_line: number;
+  fields: DataObjectField[];
+  consumed_by_rules: string[];
+  produced_by_rules: string[];
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — Persona flows + observations (§2.3)
+// ---------------------------------------------------------------------------
+
+export interface PersonaFlowStep {
+  label: string;
+  nodes: string[];
+}
+
+export interface PersonaFlow {
+  name: string;
+  persona: string;
+  description: string;
+  smePending: boolean;
+  steps: PersonaFlowStep[];
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — InjectionFlag (§2.4)
+// ---------------------------------------------------------------------------
+
+export interface InjectionFlag {
+  source_line: number;
+  content_preview: string;
+  reason: string;
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — ModuleFacts aggregate (§2, new moduleFacts table)
+// ---------------------------------------------------------------------------
+
+export interface ModuleFacts {
+  entryPoints: string[];
+  businessRules: RuleCard[];
+  decisionPoints: Array<{
+    condition: string;
+    outcomes: string[];
+    source_line_start: number;
+    source_line_end: number;
+  }>;
+  dataTransformations: Array<{
+    description: string;
+    source_line_start: number;
+    source_line_end: number;
+  }>;
+  exceptionPaths: Array<{
+    trigger: string;
+    handler: string;
+    source_line: number;
+  }>;
+  dataObjects: DataObject[];
+  outOfScopeRefs: Array<{ name: string; ref_type: string; source_line: number }>;
+  flows: PersonaFlow[];
+  observations: string[];
+  injectionFlags: InjectionFlag[];
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — Graph discrepancy (static parser vs LLM)
+// ---------------------------------------------------------------------------
+
+export interface GraphDiscrepancy {
+  staticEdge: { from: string; to: string; type: string };
+  observation: string;
+  confidence: 'high' | 'medium' | 'low';
+  status?: 'unreviewed' | 'confirmed_static' | 'confirmed_llm' | 'dismissed';
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — Tier 2 capability types
+// ---------------------------------------------------------------------------
+
+export interface AppCapability {
+  id: string;
+  name: string;
+  description: string;
+  memberPrograms: string[];
+  dataDomains: string[];
+  p0RuleCount: number;
+  observations: string[];
+}

@@ -896,6 +896,358 @@ export async function countCompletedJobs(programId: string): Promise<number> {
 }
 
 // ---------------------------------------------------------------------------
+// v2.2 — Program sources
+// ---------------------------------------------------------------------------
+
+import { createHash } from 'crypto';
+
+export function hashSource(sourceText: string): string {
+  return createHash('sha256').update(sourceText, 'utf8').digest('hex');
+}
+
+export async function saveProgramSource(
+  programId: string,
+  sourceText: string,
+  commitSha?: string
+): Promise<void> {
+  const db = getDb();
+  const sourceHash = hashSource(sourceText);
+  const loc = sourceText.split('\n').length;
+  await db.insert(schema.programSources).values({
+    programId,
+    commitSha: commitSha ?? null,
+    sourceText,
+    sourceHash,
+    loc,
+  });
+}
+
+export async function getProgramSource(
+  programId: string
+): Promise<typeof schema.programSources.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.programSources)
+    .where(eq(schema.programSources.programId, programId))
+    .orderBy(desc(schema.programSources.capturedAt))
+    .limit(1);
+  return row;
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — Module facts
+// ---------------------------------------------------------------------------
+
+import type { ModuleFacts, GraphDiscrepancy, AppCapability, SpecSection as _SpecSection } from '../parser/types';
+
+export async function saveModuleFacts(
+  programId: string,
+  jobId: string,
+  sourceHash: string,
+  facts: ModuleFacts
+): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.moduleFacts).values({
+    programId,
+    jobId,
+    sourceHash,
+    entryPoints: facts.entryPoints,
+    businessRules: facts.businessRules,
+    decisionPoints: facts.decisionPoints,
+    dataTransformations: facts.dataTransformations,
+    exceptionPaths: facts.exceptionPaths,
+    dataObjects: facts.dataObjects,
+    outOfScopeRefs: facts.outOfScopeRefs,
+    flows: facts.flows,
+    observations: facts.observations,
+    injectionFlags: facts.injectionFlags,
+  });
+}
+
+export async function getModuleFacts(
+  programId: string
+): Promise<typeof schema.moduleFacts.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.moduleFacts)
+    .where(eq(schema.moduleFacts.programId, programId))
+    .orderBy(desc(schema.moduleFacts.extractedAt))
+    .limit(1);
+  return row;
+}
+
+export async function getModuleFactsForPrograms(
+  programIds: string[]
+): Promise<(typeof schema.moduleFacts.$inferSelect)[]> {
+  if (!programIds.length) return [];
+  const db = getDb();
+  // Fetch the most-recent moduleFacts row per programId
+  const rows = await db
+    .select()
+    .from(schema.moduleFacts)
+    .where(inArray(schema.moduleFacts.programId, programIds))
+    .orderBy(desc(schema.moduleFacts.extractedAt));
+  // Deduplicate: keep first (most recent) per programId
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    if (seen.has(r.programId)) return false;
+    seen.add(r.programId);
+    return true;
+  });
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — Graph discrepancies
+// ---------------------------------------------------------------------------
+
+export async function saveGraphDiscrepancies(
+  programId: string,
+  jobId: string,
+  sourceHash: string,
+  discrepancies: GraphDiscrepancy[]
+): Promise<void> {
+  if (!discrepancies.length) return;
+  const db = getDb();
+  await db.insert(schema.graphDiscrepancies).values(
+    discrepancies.map((d) => ({
+      programId,
+      jobId,
+      sourceHash,
+      staticEdge: d.staticEdge,
+      llmObservation: d.observation,
+      confidence: d.confidence,
+      status: 'unreviewed' as const,
+    }))
+  );
+}
+
+export async function getGraphDiscrepancies(
+  programId: string
+): Promise<(typeof schema.graphDiscrepancies.$inferSelect)[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(schema.graphDiscrepancies)
+    .where(
+      and(
+        eq(schema.graphDiscrepancies.programId, programId),
+        eq(schema.graphDiscrepancies.status, 'unreviewed')
+      )
+    )
+    .orderBy(desc(schema.graphDiscrepancies.createdAt));
+}
+
+// ---------------------------------------------------------------------------
+// v2.2 — App scopes + Tier 2 artifacts
+// ---------------------------------------------------------------------------
+
+export async function createAppScope(data: {
+  repoId: string;
+  name: string;
+  memberProgramIds: string[];
+  seedMethod: 'cluster' | 'job-chain' | 'manual';
+  seedRef?: string;
+  crossesClusters?: boolean;
+  createdBy?: string;
+}): Promise<typeof schema.appScopes.$inferSelect> {
+  const db = getDb();
+  const [row] = await db
+    .insert(schema.appScopes)
+    .values({
+      repoId: data.repoId,
+      name: data.name,
+      memberProgramIds: data.memberProgramIds,
+      seedMethod: data.seedMethod,
+      seedRef: data.seedRef ?? null,
+      crossesClusters: data.crossesClusters ?? false,
+      createdBy: data.createdBy ?? null,
+    })
+    .returning();
+  return row;
+}
+
+export async function listAppScopes(
+  repoId: string
+): Promise<(typeof schema.appScopes.$inferSelect)[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(schema.appScopes)
+    .where(eq(schema.appScopes.repoId, repoId))
+    .orderBy(desc(schema.appScopes.createdAt));
+}
+
+export async function getAppScope(
+  id: string
+): Promise<typeof schema.appScopes.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.appScopes)
+    .where(eq(schema.appScopes.id, id))
+    .limit(1);
+  return row;
+}
+
+export async function saveAppCapabilityMap(
+  scopeId: string,
+  sourceFactsHash: string,
+  capabilities: AppCapability[]
+): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.appCapabilityMaps).values({ scopeId, sourceFactsHash, capabilities });
+}
+
+export async function getAppCapabilityMap(
+  scopeId: string
+): Promise<typeof schema.appCapabilityMaps.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.appCapabilityMaps)
+    .where(eq(schema.appCapabilityMaps.scopeId, scopeId))
+    .orderBy(desc(schema.appCapabilityMaps.generatedAt))
+    .limit(1);
+  return row;
+}
+
+export async function saveAppBrd(
+  scopeId: string,
+  sourceFactsHash: string,
+  sections: (typeof schema.appBrds.$inferInsert)['sections']
+): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.appBrds).values({ scopeId, sourceFactsHash, sections });
+}
+
+export async function getAppBrd(
+  scopeId: string
+): Promise<typeof schema.appBrds.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.appBrds)
+    .where(eq(schema.appBrds.scopeId, scopeId))
+    .orderBy(desc(schema.appBrds.generatedAt))
+    .limit(1);
+  return row;
+}
+
+export async function saveAppModSpec(
+  scopeId: string,
+  sourceFactsHash: string,
+  sections: (typeof schema.appModSpecs.$inferInsert)['sections']
+): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.appModSpecs).values({ scopeId, sourceFactsHash, sections });
+}
+
+export async function getAppModSpec(
+  scopeId: string
+): Promise<typeof schema.appModSpecs.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.appModSpecs)
+    .where(eq(schema.appModSpecs.scopeId, scopeId))
+    .orderBy(desc(schema.appModSpecs.generatedAt))
+    .limit(1);
+  return row;
+}
+
+export async function saveAppImpact(
+  scopeId: string,
+  sourceFactsHash: string,
+  items: (typeof schema.appImpacts.$inferInsert)['items']
+): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.appImpacts).values({ scopeId, sourceFactsHash, items });
+}
+
+export async function getAppImpact(
+  scopeId: string
+): Promise<typeof schema.appImpacts.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.appImpacts)
+    .where(eq(schema.appImpacts.scopeId, scopeId))
+    .orderBy(desc(schema.appImpacts.generatedAt))
+    .limit(1);
+  return row;
+}
+
+/**
+ * Coverage gate (§5.1) — returns fresh/stale/missing/partial counts for all
+ * programs in a scope. Used before any Tier 2 chain runs.
+ */
+export async function getScopeCoverageGate(scopeId: string): Promise<{
+  total: number;
+  fresh: number;
+  stale: number;
+  missing: number;
+  partial: number;
+  programs: Array<{
+    id: string;
+    name: string;
+    status: 'fresh' | 'stale' | 'missing' | 'partial';
+    sourceHash?: string;
+    factsHash?: string;
+  }>;
+}> {
+  const db = getDb();
+  const scope = await getAppScope(scopeId);
+  if (!scope) return { total: 0, fresh: 0, stale: 0, missing: 0, partial: 0, programs: [] };
+
+  const memberIds = scope.memberProgramIds as string[];
+  if (!memberIds.length) return { total: 0, fresh: 0, stale: 0, missing: 0, partial: 0, programs: [] };
+
+  const progRows = await db
+    .select()
+    .from(schema.programs)
+    .where(inArray(schema.programs.id, memberIds));
+
+  const factsRows = await getModuleFactsForPrograms(memberIds);
+  const factsMap = new Map(factsRows.map((f) => [f.programId, f]));
+
+  const sourceRows = await db
+    .select()
+    .from(schema.programSources)
+    .where(inArray(schema.programSources.programId, memberIds));
+  // Keep most recent per program
+  const sourceMap = new Map<string, typeof sourceRows[0]>();
+  for (const s of sourceRows) {
+    const ex = sourceMap.get(s.programId);
+    if (!ex || s.capturedAt > ex.capturedAt) sourceMap.set(s.programId, s);
+  }
+
+  const programs = progRows.map((p) => {
+    const facts = factsMap.get(p.id);
+    const source = sourceMap.get(p.id);
+    if (!facts) return { id: p.id, name: p.name, status: 'missing' as const };
+    const stale = source && source.sourceHash !== facts.sourceHash;
+    return {
+      id: p.id,
+      name: p.name,
+      status: stale ? ('stale' as const) : ('fresh' as const),
+      sourceHash: source?.sourceHash,
+      factsHash: facts.sourceHash,
+    };
+  });
+
+  return {
+    total: programs.length,
+    fresh: programs.filter((p) => p.status === 'fresh').length,
+    stale: programs.filter((p) => p.status === 'stale').length,
+    missing: programs.filter((p) => p.status === 'missing').length,
+    partial: 0, // partial requires scanCompleteness integration
+    programs,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Validations
 // ---------------------------------------------------------------------------
 

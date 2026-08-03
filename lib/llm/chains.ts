@@ -7,6 +7,10 @@ import type {
   SpecSection,
   GraphNode,
   GraphEdge,
+  ModuleFacts,
+  RuleCard,
+  GraphDiscrepancy,
+  AppCapability,
 } from '../parser/types';
 import type { CallLLM } from './types';
 import {
@@ -15,6 +19,10 @@ import {
   changeImpactPrompt,
   modSpecPrompt,
   depGraphPrompt,
+  moduleFactsPrompt,
+  capabilityClusteringPrompt,
+  appBrdPrompt,
+  appModSpecPrompt,
 } from './prompts';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +43,55 @@ function extractJson<T>(raw: string): T {
     if (arrMatch) return JSON.parse(arrMatch[1]) as T;
     throw new Error(`Failed to extract JSON from LLM response. Raw: ${raw.slice(0, 300)}`);
   }
+}
+
+/**
+ * Citation verification pass (§3.1) — deterministic string-match, no LLM.
+ * For each Rule Card, checks that the cited source lines contain at least one
+ * parameter literal, a field name from plain_english, or a category keyword.
+ */
+function verifyCitations(rules: RuleCard[], sourceText: string): RuleCard[] {
+  if (!sourceText || !rules.length) return rules;
+  const lines = sourceText.split('\n');
+  return rules.map((rule) => {
+    const start = Math.max(0, (rule.source_line_start ?? 1) - 1);
+    const end = Math.min(lines.length, rule.source_line_end ?? start + 10);
+    const window = lines.slice(start, end).join('\n').toUpperCase();
+
+    const paramCheck = Object.values(rule.parameters ?? {}).some((v) =>
+      window.includes(String(v).toUpperCase())
+    );
+
+    const fieldWords = (rule.plain_english ?? '').match(/\b[A-Z][A-Z0-9-]{2,}\b/gi) ?? [];
+    const fieldCheck = fieldWords.some((w) => window.includes(w.toUpperCase()));
+
+    const keywordMap: Record<string, string[]> = {
+      Calculation: ['COMPUTE', 'ADD', 'SUBTRACT', 'MULTIPLY', 'DIVIDE'],
+      Validation: ['IF ', 'EVALUATE', 'WHEN '],
+      Lifecycle: ['OPEN ', 'CLOSE ', 'READ ', 'WRITE ', 'DELETE ', 'REWRITE'],
+      Policy: ['IF ', 'EVALUATE', 'PERFORM ', 'CALL '],
+    };
+    const keywords = keywordMap[rule.category] ?? [];
+    const keywordCheck = keywords.some((k) => window.includes(k));
+
+    return { ...rule, citationVerified: paramCheck || fieldCheck || keywordCheck };
+  });
+}
+
+/** Repair HTML content: if a section's content looks like JSON or has no HTML tags, wrap it. */
+function repairHtmlContent(sections: SpecSection[]): SpecSection[] {
+  return sections.flatMap((s) => {
+    const c = s.content ?? '';
+    if (/^\s*[\[\{]/.test(c)) {
+      try {
+        const inner = JSON.parse(c) as SpecSection[];
+        if (Array.isArray(inner) && inner[0]?.num) return inner;
+      } catch { /* fall through */ }
+      s.content = `<p>${c.replace(/[{}\[\]"]/g, ' ').replace(/\s+/g, ' ').slice(0, 2000)}</p>`;
+    }
+    if (!/<[a-z]/i.test(c) && c.length > 0) s.content = `<p>${c}</p>`;
+    return s;
+  });
 }
 
 function tokenLine(promptTokens: number, completionTokens: number, totalTokens: number): SseLogLine {
@@ -253,5 +310,187 @@ export function createChains(callLLM: CallLLM) {
     yield { done: true, sections, tokensUsed: totalTokens };
   }
 
-  return { generateDepGraph, generateBusinessRules, generateChangeImpact, generateModSpec };
+  // -------------------------------------------------------------------------
+  // Chain 0.5: Module Facts Extraction (v2.2 new Chain 1)
+  // Outputs structured ModuleFacts + GraphDiscrepancy[] for the citation
+  // verification pass that runs before DB write.
+  // -------------------------------------------------------------------------
+  async function* generateModuleFacts(
+    programName: string,
+    source: string,
+    staticEdges: string,
+    neighborFacts?: string
+  ): AsyncGenerator<
+    SseLogLine | {
+      done: true;
+      moduleFacts: ModuleFacts;
+      discrepancies: GraphDiscrepancy[];
+      tokensUsed: number;
+    }
+  > {
+    yield logLine('LLM', `Running <span class="hl">Chain 1 — Module Facts Extraction</span> for ${programName}…`, 0);
+    yield logLine('LLM', 'Extracting Rule Cards, DataObjects, flows, observations…', 100);
+
+    const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
+      SYSTEM_PROMPT,
+      moduleFactsPrompt(programName, source, staticEdges, neighborFacts),
+      8192
+    );
+
+    yield logLine('LLM', `Parsing module facts (${raw.length} chars)…`, 50);
+    yield tokenLine(promptTokens, completionTokens, totalTokens);
+
+    const emptyFacts: ModuleFacts = {
+      entryPoints: [], businessRules: [], decisionPoints: [], dataTransformations: [],
+      exceptionPaths: [], dataObjects: [], outOfScopeRefs: [], flows: [], observations: [], injectionFlags: [],
+    };
+    let moduleFacts: ModuleFacts = emptyFacts;
+    let discrepancies: GraphDiscrepancy[] = [];
+
+    try {
+      const parsed = extractJson<{ moduleFacts: ModuleFacts; discrepancies: GraphDiscrepancy[] }>(raw);
+      if (parsed?.moduleFacts) {
+        moduleFacts = { ...emptyFacts, ...parsed.moduleFacts };
+      }
+      if (Array.isArray(parsed?.discrepancies)) {
+        discrepancies = parsed.discrepancies;
+      }
+    } catch (err) {
+      yield logLine('WARN', `Module facts parse failed — using empty facts: ${String(err)}`, 0);
+    }
+
+    // Apply citation verification pass (§3.1) — deterministic, no LLM
+    moduleFacts.businessRules = verifyCitations(moduleFacts.businessRules, source);
+
+    const p0Count = moduleFacts.businessRules.filter((r) => r.priority === 'P0').length;
+    const unverified = moduleFacts.businessRules.filter((r) => r.priority === 'P0' && r.citationVerified === false).length;
+    yield logLine(
+      'DONE',
+      `Module facts complete — <span class="hl">${moduleFacts.businessRules.length} Rule Cards</span> (${p0Count} P0) · ${moduleFacts.dataObjects.length} data objects · ${discrepancies.length} discrepancies${unverified > 0 ? ` · <span style="color:var(--orange)">⚠ ${unverified} P0 unverified</span>` : ''}`,
+      0
+    );
+
+    yield { done: true, moduleFacts, discrepancies, tokensUsed: totalTokens };
+  }
+
+  // -------------------------------------------------------------------------
+  // Chain 5: Capability Clustering (Tier 2)
+  // -------------------------------------------------------------------------
+  async function* generateCapabilityMap(
+    dataDomainClusters: string,
+    moduleFactsText: string,
+    glossary?: string
+  ): AsyncGenerator<
+    SseLogLine | { done: true; capabilities: AppCapability[]; tokensUsed: number }
+  > {
+    yield logLine('LLM', 'Running <span class="hl">Chain 5 — Capability Clustering</span>…', 0);
+
+    const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
+      SYSTEM_PROMPT,
+      capabilityClusteringPrompt(dataDomainClusters, moduleFactsText, glossary),
+      4096
+    );
+
+    yield tokenLine(promptTokens, completionTokens, totalTokens);
+
+    let capabilities: AppCapability[] = [];
+    try {
+      const parsed = extractJson<{ capabilities: AppCapability[] }>(raw);
+      if (Array.isArray(parsed?.capabilities)) capabilities = parsed.capabilities;
+    } catch (err) {
+      yield logLine('WARN', `Capability map parse failed: ${String(err)}`, 0);
+    }
+
+    yield logLine('DONE', `Capability map — <span class="hl">${capabilities.length} capabilities</span>`, 0);
+    yield { done: true, capabilities, tokensUsed: totalTokens };
+  }
+
+  // -------------------------------------------------------------------------
+  // Chain 7: App-Level BRD (Tier 2)
+  // -------------------------------------------------------------------------
+  async function* generateAppBrd(
+    scopeName: string,
+    capabilityMap: string,
+    p0Rules: string
+  ): AsyncGenerator<
+    SseLogLine | { done: true; sections: SpecSection[]; tokensUsed: number }
+  > {
+    yield logLine('LLM', `Running <span class="hl">Chain 7 — App BRD</span> for ${scopeName}…`, 0);
+
+    const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
+      SYSTEM_PROMPT,
+      appBrdPrompt(scopeName, capabilityMap, p0Rules),
+      8192
+    );
+
+    yield tokenLine(promptTokens, completionTokens, totalTokens);
+
+    let sections: SpecSection[] = [];
+    try {
+      sections = extractJson<SpecSection[]>(raw);
+      if (!Array.isArray(sections)) throw new Error('Expected array');
+      sections = sections.filter((s) => s?.num && s?.title).map((s) => ({
+        num: s.num, title: s.title, content: s.content ?? '',
+      }));
+      sections = repairHtmlContent(sections);
+    } catch (err) {
+      yield logLine('WARN', `App BRD parse failed: ${String(err)}`, 0);
+    }
+
+    yield logLine('DONE', `App BRD complete — <span class="hl">${sections.length} sections</span>`, 0);
+    yield { done: true, sections, tokensUsed: totalTokens };
+  }
+
+  // -------------------------------------------------------------------------
+  // Chain 8: App-Level Modernization Spec (Tier 2, strangler-fig / leaf-first)
+  // -------------------------------------------------------------------------
+  async function* generateAppModSpec(
+    scopeName: string,
+    capabilityMap: string,
+    appImpact: string,
+    appBrd: string,
+    scopeConstraints?: string,
+    crossesClusters?: boolean
+  ): AsyncGenerator<
+    SseLogLine | { done: true; sections: SpecSection[]; tokensUsed: number }
+  > {
+    yield logLine('LLM', `Running <span class="hl">Chain 8 — App Modernization Spec</span> for ${scopeName}…`, 0);
+    yield logLine('LLM', 'Determining method (Uplift/Refactor/Transform/Reimagine) + phased sequence…', 100);
+
+    const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
+      SYSTEM_PROMPT,
+      appModSpecPrompt(scopeName, capabilityMap, appImpact, appBrd, scopeConstraints, crossesClusters),
+      10000
+    );
+
+    yield logLine('LLM', `Parsing app spec (${raw.length} chars)…`, 50);
+    yield tokenLine(promptTokens, completionTokens, totalTokens);
+
+    let sections: SpecSection[] = [];
+    try {
+      sections = extractJson<SpecSection[]>(raw);
+      if (!Array.isArray(sections)) throw new Error('Expected array');
+      sections = sections.filter((s) => s?.num && s?.title).map((s) => ({
+        num: s.num, title: s.title, content: s.content ?? '',
+      }));
+      sections = repairHtmlContent(sections);
+    } catch (err) {
+      yield logLine('WARN', `App spec parse failed: ${String(err)}`, 0);
+      sections = [{ num: 1, title: 'Modernization Specification', content: `<p>${raw.replace(/<[^>]+>/g, '').slice(0, 2000)}</p>` }];
+    }
+
+    yield logLine('DONE', `App spec complete — <span class="hl">${sections.length} sections</span>`, 0);
+    yield { done: true, sections, tokensUsed: totalTokens };
+  }
+
+  return {
+    generateDepGraph,
+    generateBusinessRules,
+    generateChangeImpact,
+    generateModSpec,
+    generateModuleFacts,
+    generateCapabilityMap,
+    generateAppBrd,
+    generateAppModSpec,
+  };
 }

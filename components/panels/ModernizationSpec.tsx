@@ -158,13 +158,14 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
             No Modernization Brief Yet
           </div>
           <div style={{ fontSize: 13, color: '#6B7280', maxWidth: 480, lineHeight: 1.7, marginBottom: 24 }}>
-            The Modernization Brief is generated on-demand — it&apos;s most useful when planning
-            a mainframe enhancement or migration. It includes a recommended approach
-            (Uplift / Transform / Reimagine), phased sequence, behavior contract, and approval block.
+            The Modernization Brief is generated on-demand — most useful when planning a
+            mainframe enhancement or migration. It recommends one of four methods, produces
+            a phased sequence (strangler-fig or leaf-first), behavior contract, and approval block.
           </div>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 32 }}>
             {[
-              { icon: '⬆', label: 'Uplift', desc: 'Enhance in-place on mainframe' },
+              { icon: '⬆', label: 'Uplift', desc: 'Same-stack version bump' },
+              { icon: '🔧', label: 'Refactor', desc: 'In-place COBOL restructuring' },
               { icon: '↔', label: 'Transform', desc: 'Rewrite to Java / Node.js' },
               { icon: '✦', label: 'Reimagine', desc: 'Greenfield rebuild' },
             ].map((m) => (

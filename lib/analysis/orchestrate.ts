@@ -13,6 +13,10 @@ import {
   getRepo,
   getCopybooksByNames,
   getJclCallers,
+  saveModuleFacts,
+  saveGraphDiscrepancies,
+  saveProgramSource,
+  hashSource,
 } from '../db/queries';
 import { buildPortfolioContext } from '../context/portfolio';
 import { matchGlossary } from '../context/glossary';
@@ -74,7 +78,7 @@ export async function runAnalysisPipeline(
   onEvent: (line: SseLogLine) => void,
   llmConfig: LLMConfig = { provider: 'groq', apiKey: process.env.GROQ_API_KEY ?? '' }
 ): Promise<void> {
-  const { generateDepGraph, generateBusinessRules, generateChangeImpact, providerName, modelName } =
+  const { generateDepGraph, generateBusinessRules, generateChangeImpact, generateModuleFacts, providerName, modelName } =
     createLLMProvider(llmConfig);
   // Mark job as running
   await updateJob(jobId, {
@@ -276,6 +280,50 @@ export async function runAnalysisPipeline(
         await emit(jobId, info(`Portfolio context: <span class="hl">${analyzedCount} of ${callees.length}</span> callee(s) analyzed`), onEvent);
       } catch { /* non-fatal */ }
     }
+
+    // -----------------------------------------------------------------------
+    // Phase 2.5 — Source Storage (enables click-to-source + staleness detection)
+    // -----------------------------------------------------------------------
+
+    try {
+      await saveProgramSource(programId, source, parsed.graph.edges.find((e) => e.label)?.label);
+      await emit(jobId, info('Source text stored — staleness detection enabled'), onEvent);
+    } catch { /* non-fatal */ }
+
+    // -----------------------------------------------------------------------
+    // Phase 2.6 — Module Facts Extraction (v2.2 Chain 1 — Rule Cards, DataObjects, flows)
+    // -----------------------------------------------------------------------
+
+    await emit(jobId, { lv: 'LLM', t: 'Starting <span class="hl">Module Facts Extraction</span>…', d: 0 }, onEvent);
+
+    const staticEdgesText = parsed.graph.edges
+      .map((e) => `${e.from} → ${e.to} (${e.type})${e.confidence && e.confidence < 100 ? ` confidence:${e.confidence}%` : ''}`)
+      .join('\n') || '(none)';
+
+    const sourceHash = hashSource(source);
+
+    try {
+      for await (const event of generateModuleFacts(programName, source, staticEdgesText)) {
+        if ('done' in event && event.done) {
+          totalTokensUsed += event.tokensUsed;
+          await saveModuleFacts(programId, jobId, sourceHash, event.moduleFacts);
+          if (event.discrepancies.length > 0) {
+            await saveGraphDiscrepancies(programId, jobId, sourceHash, event.discrepancies);
+            await emit(jobId, { lv: 'WARN', t: `${event.discrepancies.length} graph discrepancy(ies) flagged for review`, d: 0 }, onEvent);
+          }
+          const injCount = event.moduleFacts.injectionFlags.length;
+          if (injCount > 0) {
+            await emit(jobId, { lv: 'WARN', t: `⚠ ${injCount} injection flag(s) detected in source — review required`, d: 0 }, onEvent);
+          }
+        } else {
+          await emit(jobId, event as SseLogLine, onEvent);
+        }
+      }
+    } catch (err) {
+      await emit(jobId, warn(`Module facts extraction failed (non-fatal): ${String(err)}`), onEvent);
+    }
+
+    await updateJob(jobId, { progressPct: 40 });
 
     // -----------------------------------------------------------------------
     // Phase 3 — LLM Documentation (3 sequential chains)

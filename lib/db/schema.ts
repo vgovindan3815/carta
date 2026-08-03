@@ -6,6 +6,7 @@ import {
   jsonb,
   uuid,
   real,
+  boolean,
   pgEnum,
 } from 'drizzle-orm/pg-core';
 import type {
@@ -15,6 +16,12 @@ import type {
   ChangeImpactItem,
   SpecSection,
   CopybookField,
+  RuleCard,
+  DataObject,
+  PersonaFlow,
+  InjectionFlag,
+  AppCapability,
+  GraphDiscrepancy,
 } from '../parser/types';
 
 // ---------------------------------------------------------------------------
@@ -157,6 +164,8 @@ export const copybooks = pgTable('copybooks', {
   name: text('name').notNull(),
   source: text('source').notNull(),
   fields: jsonb('fields').notNull().$type<CopybookField[]>(),
+  /** 'business-data' | 'utility' | 'system' — used to exclude utility copybooks from capability clustering */
+  kind: text('kind').notNull().default('business-data'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -181,6 +190,136 @@ export const scanJobs = pgTable('scan_jobs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
 });
+
+// ---------------------------------------------------------------------------
+// v2.2 — Source storage (§2, program_sources)
+// ---------------------------------------------------------------------------
+
+/** Stores the raw source text + hash for each program (enables click-to-source + staleness detection). */
+export const programSources = pgTable('program_sources', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').references(() => programs.id).notNull(),
+  commitSha: text('commit_sha'),
+  sourceText: text('source_text').notNull(),
+  sourceHash: text('source_hash').notNull(), // sha256 of sourceText
+  loc: integer('loc').notNull().default(0),
+  capturedAt: timestamp('captured_at').defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// v2.2 — Module facts (§2, moduleFacts table — Chain 1 output)
+// ---------------------------------------------------------------------------
+
+/** Structured extraction facts: Rule Cards, DataObjects, flows, observations, injectionFlags. */
+export const moduleFacts = pgTable('module_facts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').references(() => programs.id).notNull(),
+  jobId: uuid('job_id').references(() => analysisJobs.id).notNull(),
+  sourceHash: text('source_hash').notNull(),
+  entryPoints: jsonb('entry_points').notNull().$type<string[]>().default([]),
+  businessRules: jsonb('business_rules').notNull().$type<RuleCard[]>().default([]),
+  decisionPoints: jsonb('decision_points').notNull().$type<unknown[]>().default([]),
+  dataTransformations: jsonb('data_transformations').notNull().$type<unknown[]>().default([]),
+  exceptionPaths: jsonb('exception_paths').notNull().$type<unknown[]>().default([]),
+  dataObjects: jsonb('data_objects').notNull().$type<DataObject[]>().default([]),
+  outOfScopeRefs: jsonb('out_of_scope_refs').notNull().$type<unknown[]>().default([]),
+  flows: jsonb('flows').notNull().$type<PersonaFlow[]>().default([]),
+  observations: jsonb('observations').notNull().$type<string[]>().default([]),
+  injectionFlags: jsonb('injection_flags').notNull().$type<InjectionFlag[]>().default([]),
+  extractedAt: timestamp('extracted_at').defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// v2.2 — Graph discrepancies (§3)
+// ---------------------------------------------------------------------------
+
+/** Static parser vs LLM disagreements — static graph is authoritative until human confirms. */
+export const graphDiscrepancies = pgTable('graph_discrepancies', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').references(() => programs.id).notNull(),
+  jobId: uuid('job_id').references(() => analysisJobs.id).notNull(),
+  sourceHash: text('source_hash').notNull(),
+  staticEdge: jsonb('static_edge').notNull().$type<GraphDiscrepancy['staticEdge']>(),
+  llmObservation: text('llm_observation').notNull(),
+  confidence: text('confidence').notNull().default('medium'),
+  status: text('status').notNull().default('unreviewed'),
+  reviewedBy: text('reviewed_by'),
+  reviewedAt: timestamp('reviewed_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// v2.2 — Scan completeness report (§2.5)
+// ---------------------------------------------------------------------------
+
+/** Source completeness report per scan job — unresolved COPY refs, missing JCL DDs. */
+export const scanCompleteness = pgTable('scan_completeness', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  scanJobId: uuid('scan_job_id').references(() => scanJobs.id).notNull(),
+  repoId: uuid('repo_id').references(() => repos.id).notNull(),
+  unresolvedCopyRefs: jsonb('unresolved_copy_refs').notNull().$type<Array<{ program: string; copybook: string; line: number }>>().default([]),
+  missingJclDDs: jsonb('missing_jcl_dds').notNull().$type<Array<{ job: string; dd: string; dsn: string }>>().default([]),
+  binaryOnlyRefs: jsonb('binary_only_refs').notNull().$type<Array<{ program: string; note: string }>>().default([]),
+  capturedAt: timestamp('captured_at').defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// v2.2 — Tier 2 tables (§1, §5.1)
+// ---------------------------------------------------------------------------
+
+/** User-defined modernization scope — a named set of programs for Tier 2 analysis. */
+export const appScopes = pgTable('app_scopes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  repoId: uuid('repo_id').references(() => repos.id).notNull(),
+  name: text('name').notNull(),
+  memberProgramIds: jsonb('member_program_ids').notNull().$type<string[]>().default([]),
+  /** 'cluster' | 'job-chain' | 'manual' */
+  seedMethod: text('seed_method').notNull().default('manual'),
+  seedRef: text('seed_ref'),
+  crossesClusters: boolean('crosses_clusters').notNull().default(false),
+  createdBy: text('created_by'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/** Capability map produced by Chain 5 — one row per scope generation. */
+export const appCapabilityMaps = pgTable('app_capability_maps', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  scopeId: uuid('scope_id').references(() => appScopes.id).notNull(),
+  sourceFactsHash: text('source_facts_hash').notNull(),
+  capabilities: jsonb('capabilities').notNull().$type<AppCapability[]>().default([]),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+});
+
+/** App-level BRD produced by Chain 7. */
+export const appBrds = pgTable('app_brds', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  scopeId: uuid('scope_id').references(() => appScopes.id).notNull(),
+  sourceFactsHash: text('source_facts_hash').notNull(),
+  sections: jsonb('sections').notNull().$type<SpecSection[]>().default([]),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+});
+
+/** App-level modernization spec produced by Chain 8. */
+export const appModSpecs = pgTable('app_mod_specs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  scopeId: uuid('scope_id').references(() => appScopes.id).notNull(),
+  sourceFactsHash: text('source_facts_hash').notNull(),
+  sections: jsonb('sections').notNull().$type<SpecSection[]>().default([]),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+});
+
+/** App-level impact (cross-module blast radius) produced by Chain 6. */
+export const appImpacts = pgTable('app_impacts', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  scopeId: uuid('scope_id').references(() => appScopes.id).notNull(),
+  sourceFactsHash: text('source_facts_hash').notNull(),
+  items: jsonb('items').notNull().$type<ChangeImpactItem[]>().default([]),
+  generatedAt: timestamp('generated_at').defaultNow().notNull(),
+});
+
+// ---------------------------------------------------------------------------
+// Validations
+// ---------------------------------------------------------------------------
 
 /** Human review / validation records for any generated artifact. */
 export const validations = pgTable('validations', {
