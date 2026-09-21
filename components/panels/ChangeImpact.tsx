@@ -39,8 +39,9 @@ function isNavigable(it: ChangeImpactItem): boolean {
     && !rel.includes('file') && !rel.includes('data') && it.severity !== 'unknown';
 }
 
-function ItemCard({ it, onNav }: { it: ChangeImpactItem; onNav: () => void }) {
+function ItemCard({ it, onNav, loading }: { it: ChangeImpactItem; onNav: () => void; loading: boolean }) {
   const nav = isNavigable(it);
+  const isTransitive = (it.rel ?? '').toLowerCase().includes('transitive');
   return (
     <div style={{
       background: '#fff', border: '1px solid #E5E7EB', borderRadius: 8,
@@ -50,14 +51,17 @@ function ItemCard({ it, onNav }: { it: ChangeImpactItem; onNav: () => void }) {
         {nav ? (
           <button
             onClick={onNav}
+            disabled={loading}
             style={{
               fontFamily: 'Consolas, monospace', fontWeight: 700, fontSize: 13,
-              color: 'var(--navy-dark)', background: 'none', border: 'none',
-              padding: 0, cursor: 'pointer', textDecoration: 'underline',
+              color: loading ? '#9CA3AF' : 'var(--navy-dark)', background: 'none', border: 'none',
+              padding: 0, cursor: loading ? 'wait' : 'pointer',
+              textDecoration: loading ? 'none' : 'underline',
               textUnderlineOffset: 3,
+              display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
-            {it.prog}
+            {loading ? '…' : null}{it.prog}
           </button>
         ) : (
           <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 700, fontSize: 13, color: '#374151' }}>
@@ -67,6 +71,15 @@ function ItemCard({ it, onNav }: { it: ChangeImpactItem; onNav: () => void }) {
         <span className={`severity ${SEV_CLASS[it.severity] ?? 'sev-medium'}`}>
           {SEV_LABEL[it.severity] ?? it.severity.toUpperCase()}
         </span>
+        {isTransitive && (
+          <span style={{
+            fontSize: 10, fontWeight: 600, color: '#92400E',
+            background: '#FEF3C7', border: '1px solid #FDE68A',
+            padding: '2px 7px', borderRadius: 10,
+          }}>
+            Inferred — may need analysis
+          </span>
+        )}
         <span className="rel-tag">{it.rel}</span>
       </div>
       <p style={{ margin: '0 0 8px 0', fontSize: 12, color: '#374151', lineHeight: 1.65 }}>
@@ -84,6 +97,8 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
   const d = p.changeImpact;
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
+  const [loadingProg, setLoadingProg] = useState<string | null>(null);
+  const [notFoundProg, setNotFoundProg] = useState<string | null>(null);
   const [reviewer, setReviewer] = useState('');
   const [showReviewer, setShowReviewer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -97,6 +112,30 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
   };
 
   const covColor = d.coverage >= 90 ? '#27AE60' : d.coverage >= 70 ? '#E07B39' : '#C0392B';
+
+  async function handleNavigation(prog: string) {
+    setLoadingProg(prog);
+    setNotFoundProg(null);
+    try {
+      const res = await fetch(`/api/programs/${encodeURIComponent(prog)}`);
+      if (!res.ok) {
+        // Program not in registry — show inline message instead of navigating to error page
+        setNotFoundProg(prog);
+        return;
+      }
+      const json = await res.json();
+      if (json.status === 'not_found') {
+        setNotFoundProg(prog);
+        return;
+      }
+      // Program exists (may have full docs or just CAST) — navigate to hub
+      router.push(`/programs/${encodeURIComponent(prog)}`);
+    } catch {
+      router.push(`/programs/${encodeURIComponent(prog)}`);
+    } finally {
+      setLoadingProg(null);
+    }
+  }
 
   async function handleValidate(artifactType: string) {
     if (!reviewer.trim()) { setShowReviewer(true); return; }
@@ -117,6 +156,20 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
 
   return (
     <>
+      {/* Not-in-registry inline notice */}
+      {notFoundProg && (
+        <div style={{
+          background: '#FFF7ED', border: '1.5px solid #FDE68A', borderRadius: 8,
+          padding: '10px 16px', marginBottom: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        }}>
+          <div style={{ fontSize: 12, color: '#92400E' }}>
+            <strong>{notFoundProg}</strong> was identified through analysis but is not yet in the MAVEN registry.
+            Upload its CAST report or connect a GitHub repository to add it.
+          </div>
+          <button onClick={() => setNotFoundProg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#92400E', flexShrink: 0 }}>✕</button>
+        </div>
+      )}
       {/* Document header */}
       <div style={{ borderBottom: '2px solid var(--navy-dark)', paddingBottom: 16, marginBottom: 20 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
@@ -205,7 +258,8 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
                 <ItemCard
                   key={i}
                   it={it}
-                  onNav={() => router.push(`/programs/${encodeURIComponent(it.prog)}`)}
+                  loading={loadingProg === it.prog}
+                  onNav={() => handleNavigation(it.prog)}
                 />
               ))}
             </div>

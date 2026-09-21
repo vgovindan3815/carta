@@ -24,12 +24,14 @@ export async function POST(
   const {
     getProgram, createJob, updateJob, getLLMSettings, listPrograms,
     getMostRecentDepGraph, saveBizRules, saveChangeImpact, saveModSpec,
-    getCopybooksByNames, getJclCallers,
+    getCopybooksByNames, getJclCallers, getRepo, saveProgramSource,
+    getProgramSource,
   } = await import('@/lib/db/queries');
   const { buildPortfolioContext } = await import('@/lib/context/portfolio');
   const { matchGlossary } = await import('@/lib/context/glossary');
   const { formatCopybookContext } = await import('@/lib/parser/copybook');
   const { createLLMProvider } = await import('@/lib/llm/index');
+  const { findProgramSource } = await import('@/lib/github');
 
   const prog = await getProgram(name);
   if (!prog) return NextResponse.json({ error: 'Program not found' }, { status: 404 });
@@ -48,11 +50,34 @@ export async function POST(
   // Build the ParsedCobolProgram shell from the stored dep graph
   const { GraphNode: _GN, GraphEdge: _GE } = { GraphNode: null, GraphEdge: null };
   void _GN; void _GE;
+
+  // Try to load existing stored source; if absent and GitHub is connected, fetch it now
+  let sourceText = `* Refresh — no source stored. LOC: ${prog.loc ?? 0}`;
+  try {
+    const storedSrc = await getProgramSource(prog.id);
+    if (storedSrc?.sourceText) {
+      sourceText = storedSrc.sourceText;
+    } else if (prog.repoId) {
+      const repoRecord = await getRepo(prog.repoId);
+      if (repoRecord?.owner && repoRecord?.repo) {
+        const fetched = await findProgramSource(
+          repoRecord.owner, repoRecord.repo,
+          repoRecord.branch ?? 'main',
+          prog.name, process.env.GITHUB_PAT
+        );
+        if (fetched) {
+          sourceText = fetched;
+          await saveProgramSource(prog.id, fetched);
+        }
+      }
+    }
+  } catch { /* non-fatal */ }
+
   const parsedShell = {
     name: prog.name,
     language: (prog.language as 'COBOL' | 'HLASM'),
     loc: prog.loc ?? 0,
-    source: `* Refresh — no source stored. LOC: ${prog.loc ?? 0}`,
+    source: sourceText,
     graph: {
       nodes: depGraph.nodes as Parameters<typeof saveBizRules>[2] extends never ? never : any,
       edges: depGraph.edges as any,
@@ -90,6 +115,7 @@ export async function POST(
   (async () => {
     try {
       let businessRulesSections: any = null;
+      let impactItems: Array<{ prog: string; severity: string; rel: string; reason: string }> = [];
 
       if (artifact === 'rules' || artifact === 'all') {
         for await (const event of generateBusinessRules(parsedShell as any, copybookCtx || undefined, glossaryCtx || undefined, jclCallers.length ? jclCallers : undefined)) {
@@ -105,13 +131,19 @@ export async function POST(
         for await (const event of generateChangeImpact(parsedShell as any, allNames, jclCallers.length ? jclCallers : undefined)) {
           if ('done' in event && event.done) {
             tokensUsed += event.tokensUsed;
+            impactItems = (event.impact.items ?? []).map((it) => ({
+              prog: it.prog,
+              severity: it.severity,
+              rel: it.rel ?? '',
+              reason: it.reason,
+            }));
             await saveChangeImpact(prog.id, job.id, event.impact);
           }
         }
       }
 
       if (artifact === 'spec' || artifact === 'all') {
-        for await (const event of generateModSpec(parsedShell as any, businessRulesSections ?? [], portfolioCtx || undefined, copybookCtx || undefined)) {
+        for await (const event of generateModSpec(parsedShell as any, businessRulesSections ?? [], portfolioCtx || undefined, copybookCtx || undefined, glossaryCtx || undefined, impactItems.length ? impactItems : undefined)) {
           if ('done' in event && event.done) {
             tokensUsed += event.tokensUsed;
             await saveModSpec(prog.id, job.id, event.sections);

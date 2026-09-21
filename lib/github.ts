@@ -208,3 +208,47 @@ export async function parseGithubUrl(
 
   return null;
 }
+
+/**
+ * Searches for a COBOL program's source file in a GitHub repo by program name.
+ * Tries the git tree index so it costs only 1-2 API calls (no per-file fetches until a match).
+ * Returns the source text if found, or null if not found.
+ */
+export async function findProgramSource(
+  owner: string,
+  repo: string,
+  branch: string,
+  programName: string,
+  pat?: string
+): Promise<string | null> {
+  try {
+    const octokit = makeOctokit(pat);
+
+    // Resolve branch to tree SHA
+    const { data: refData } = await withRetry(() =>
+      octokit.git.getRef({ owner, repo, ref: `heads/${branch}` })
+    );
+    const { data: treeData } = await withRetry(() =>
+      octokit.git.getTree({ owner, repo, tree_sha: refData.object.sha, recursive: 'true' })
+    );
+
+    // Look for a file whose base name (without extension) matches the program name (case-insensitive)
+    const nameUpper = programName.toUpperCase();
+    const COBOL_EXTS = ['.cbl', '.cob', '.cobol', '.CBL', '.COB', '.COBOL'];
+    const match = treeData.tree.find((item) => {
+      if (item.type !== 'blob' || !item.path) return false;
+      const base = item.path.split('/').pop() ?? '';
+      const dotIdx = base.lastIndexOf('.');
+      if (dotIdx === -1) return false;
+      const ext = base.slice(dotIdx);
+      const stem = base.slice(0, dotIdx).toUpperCase();
+      return stem === nameUpper && COBOL_EXTS.some((e) => e.toLowerCase() === ext.toLowerCase());
+    });
+
+    if (!match?.path) return null;
+
+    return await fetchFileContent(owner, repo, match.path, refData.object.sha, pat);
+  } catch {
+    return null;
+  }
+}

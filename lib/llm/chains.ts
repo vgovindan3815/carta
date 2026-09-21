@@ -36,13 +36,40 @@ function logLine(lv: SseLogLine['lv'], t: string, d = 0): SseLogLine {
 function extractJson<T>(raw: string): T {
   const match = /<output>([\s\S]*?)<\/output>/i.exec(raw);
   const jsonStr = match ? match[1].trim() : raw.trim();
-  try {
-    return JSON.parse(jsonStr) as T;
-  } catch {
-    const arrMatch = /(\[[\s\S]*\]|\{[\s\S]*\})/.exec(jsonStr);
-    if (arrMatch) return JSON.parse(arrMatch[1]) as T;
-    throw new Error(`Failed to extract JSON from LLM response. Raw: ${raw.slice(0, 300)}`);
+
+  // Normal parse
+  try { return JSON.parse(jsonStr) as T; } catch { /* fall through */ }
+
+  // Regex fallback for complete array/object
+  const arrMatch = /(\[[\s\S]*\]|\{[\s\S]*\})/.exec(jsonStr);
+  if (arrMatch) { try { return JSON.parse(arrMatch[1]) as T; } catch { /* fall through */ } }
+
+  // Truncated-JSON recovery: parse complete objects one-by-one from a partial array
+  const trimmed = jsonStr.trimStart();
+  if (trimmed.startsWith('[')) {
+    const objects: unknown[] = [];
+    let pos = 1;
+    while (pos < trimmed.length) {
+      while (pos < trimmed.length && /[\s,]/.test(trimmed[pos])) pos++;
+      if (pos >= trimmed.length || trimmed[pos] === ']') break;
+      if (trimmed[pos] !== '{') break;
+      let depth = 0; let inStr = false; let esc = false; let end = -1;
+      for (let i = pos; i < trimmed.length; i++) {
+        const ch = trimmed[i];
+        if (esc) { esc = false; continue; }
+        if (ch === '\\' && inStr) { esc = true; continue; }
+        if (ch === '"') { inStr = !inStr; continue; }
+        if (inStr) continue;
+        if (ch === '{') depth++;
+        else if (ch === '}') { if (--depth === 0) { end = i; break; } }
+      }
+      if (end === -1) break; // incomplete object — stop here
+      try { objects.push(JSON.parse(trimmed.slice(pos, end + 1))); pos = end + 1; } catch { break; }
+    }
+    if (objects.length > 0) return objects as unknown as T;
   }
+
+  throw new Error(`Failed to extract JSON from LLM response. Raw: ${raw.slice(0, 300)}`);
 }
 
 /**
@@ -260,7 +287,8 @@ export function createChains(callLLM: CallLLM) {
     businessRules: BusinessRulesSection[],
     portfolioContext?: string,
     copybookContext?: string,
-    glossaryContext?: string
+    glossaryContext?: string,
+    impactedPrograms?: Array<{ prog: string; severity: string; rel: string; reason: string }>
   ): AsyncGenerator<SseLogLine | { done: true; sections: SpecSection[]; tokensUsed: number }> {
     const ctxParts: string[] = [];
     if (portfolioContext) ctxParts.push('portfolio context');
@@ -273,8 +301,8 @@ export function createChains(callLLM: CallLLM) {
 
     const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
       SYSTEM_PROMPT,
-      modSpecPrompt(program, businessRules, portfolioContext, copybookContext, glossaryContext),
-      10000
+      modSpecPrompt(program, businessRules, portfolioContext, copybookContext, glossaryContext, impactedPrograms),
+      6000
     );
 
     yield logLine('LLM', `Parsing specification (${raw.length} chars)…`, 50);

@@ -537,7 +537,8 @@ export function modSpecPrompt(
   businessRules: BusinessRulesSection[],
   portfolioContext?: string,
   copybookContext?: string,
-  glossaryContext?: string
+  glossaryContext?: string,
+  impactedPrograms?: Array<{ prog: string; severity: string; rel: string; reason: string }>
 ): string {
   const graphText = graphSummary(program);
   const rulesText = businessRules
@@ -556,14 +557,19 @@ export function modSpecPrompt(
     ? `\n## Domain Glossary\n\`\`\`\n${glossaryContext}\n\`\`\``
     : '';
 
+  const impactSection = impactedPrograms?.length
+    ? `\n## Blast Radius — Programs Within Impact Scope\n${impactedPrograms
+        .map((it) => `- **${it.prog}** [${it.severity.toUpperCase()}] — ${it.rel}: ${it.reason.slice(0, 120)}`)
+        .join('\n')}`
+    : '';
+
   const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-  return `You are producing a Modernization Brief for the COBOL program ${program.name}. This document is generated on-demand when an engineer explicitly requests it — it is NOT produced automatically.
-
-The Modernization Brief answers: "What would it take to enhance or modernize this mainframe program?" It follows the code-modernization plugin's brief format.
+  return `You are producing a **production-quality Application Modernization Blueprint** for the COBOL program ${program.name}. This document is generated on-demand when an engineer explicitly requests it — it is NOT produced automatically.
 ${portfolioSection}
 ${copybookSection}
 ${glossarySection}
+${impactSection}
 
 ## Dependency Graph for ${program.name}
 \`\`\`
@@ -581,73 +587,107 @@ ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkage
 
 ## Task
 
-Produce an 8-section Modernization Brief. Read the source carefully and be specific — use actual field names, program names, and edge references throughout.
+You are producing a **production-quality Application Modernization Blueprint** — not a single-program migration plan. Treat ${program.name} as the entry point into a business application. ALL programs in the blast radius (above) are co-modernized in this spec. Every section must cover the full application scope.
 
-**Section 1 — Objective**
-One paragraph: from what, to what, and why now. State the modernization method:
-- **Uplift** — same-stack version bump only. COBOL stays COBOL. Modernized runtime APIs (CICS TS, DB2 LUW), structured error handling. Minimal diff. Choose when mainframe is staying and the problem is outdated runtime APIs only.
-- **Refactor** — in-place COBOL restructuring, no runtime or stack change. Paragraph decomposition, dead code removal, copybook consolidation, eliminating ALTER statements. Choose when code is entangled but the mainframe and COBOL are both staying.
-- **Transform** — cross-stack rewrite (COBOL → Java/Node.js, JCL → Spring Batch). Choose this when leaving the mainframe or the target technology is decided.
-- **Reimagine** — greenfield rebuild of the business function. Choose this when the domain is well-understood but the code is too entangled to port (spaghetti PERFORM chains, hundreds of GOTO, shared global copybooks with no ownership).
-Justify your choice from the source characteristics (LOC, CICS vs batch, SQL vs VSAM, dynamic CALLs, ALTER usage, etc.).
+Produce exactly 10 sections. Return a JSON array with 10 objects. Each object has keys: "num" (int 1-10), "title" (string), "content" (string of HTML only).
 
-**Section 2 — Target Architecture**
-A plain-text description of the end-state architecture. Map every program and file in the dependency graph to its target component. For Uplift: describe the enhanced COBOL structure (CICS TS queues replacing getmains, DB2 stored procedures replacing inline SQL, structured error handling). For Transform/Reimagine: describe the target stack (Spring Boot, Angular, PostgreSQL, etc.).
+**Section 1 — Executive Summary & Business Context**
+- What business function does this application serve? (derive from program names, rules, domain)
+- Who are the users/stakeholders? What breaks if this isn't modernized?
+- Recommended modernization method: one of Uplift / Refactor / Transform / Reimagine. Justify from code characteristics (LOC, CICS vs batch, SQL, dynamic CALLs, entanglement).
+- First line of content: "Generated: ${today} · MAVEN Application Modernization Blueprint"
+- Include all programs in scope: ${program.name} + each program from the blast radius list.
 
-**Section 3 — Phased Sequence**
-Break the work into 3–5 phases. Order leaf dependencies first (programs with no further callees before the programs that call them). For each phase:
-- Scope: which programs or components
-- Entry criteria: what must be ready
-- Exit criteria: what tests prove it's done
-- Scale: S / M / L / XL (relative size, NOT a time estimate)
-- Risk level: Low / Medium / High + top 2 risks + mitigation
+**Section 2 — Current Architecture Analysis**
+- Describe the full COBOL application structure: all programs, their roles (batch controller, screen handler, sub-program, data access layer).
+- Key technical debt: spaghetti PERFORM chains, hardcoded literals, shared global copybooks, dynamic CALLs without contracts.
+- CICS transactions, DB2 tables, VSAM files, sequential files — full inventory from the dep graph.
+- Quantify the problem: LOC per program, edge count, coupling metrics from the graph.
 
-**Section 4 — Business Walkthroughs**
-For each major business flow visible in the dependency graph (entry points, call chains, data flows), write a short walkthrough: persona → what they do → which programs execute → which phase modernizes each step. This is the section non-technical approvers read. If no clear personas are visible, derive 2–3 flows from the program's file I/O and call structure and note they need SME confirmation.
+**Section 3 — Recommended Target Architecture**
+Provide a concrete full-stack architecture recommendation. For Transform/Reimagine:
+- **Backend**: Java 21 + Spring Boot 3.x (or Node.js 22 + Express/Fastify — justify the choice based on batch vs OLTP nature)
+  - Package structure: org.maven.[domain].service / controller / repository / model
+  - For batch programs (JCL/COBOL batch): Spring Batch 5 jobs replacing JCL steps
+  - For CICS programs: REST microservices replacing CICS transactions
+- **Frontend**: React 18 + TypeScript (for user-facing CICS screens) OR Angular 17 (for enterprise admin portals — choose based on screen count and complexity)
+- **Database**: PostgreSQL 16 (replacing DB2) + Redis (replacing CICS shared memory/queues) + AWS S3 / MinIO (replacing VSAM/sequential files)
+- **API**: OpenAPI 3.1 REST + gRPC for internal service-to-service calls replacing COBOL CALL
+- **Infrastructure**: Docker + Kubernetes, cloud-agnostic (AWS EKS or Azure AKS)
+Include a simple ASCII architecture diagram in the HTML as a \`<pre>\` block.
 
-**Section 5 — Behavior Contract**
-List the P0 rules — business rules that MUST be proven equivalent before any phase ships:
-- Rules involving monetary calculations, account balances, regulatory codes
-- Rules that touch shared copybooks or external interfaces
-- Rules with error/status codes that downstream programs depend on
-Flag any rule where the source is ambiguous or dynamic (dynamic CALL, EVALUATE with unclear conditions) as requiring SME confirmation.
+**Section 4 — Portfolio Dependency Map & Service Decomposition**
+Map each COBOL program in the portfolio (${program.name} + all blast-radius programs) to a target bounded microservice or module:
+- Service Name | Programs Included | Their Role | Target Spring Boot Module / React Component
+- Show which programs merge into a single service and which need their own
+- Explain data-domain boundaries (group by shared copybooks / DB2 tables)
+Format as an HTML \`<table>\` with columns: Program | Current Role | Target Service | Technology
 
-**Section 6 — Validation Strategy**
-State which combination applies for this program and justify:
-- Characterization tests (capture COBOL I/O, replay against new code)
-- Contract tests (verify interface payloads match expected schema)
-- Parallel-run / dual-execution diff (run old and new in parallel, compare outputs)
-- Property-based tests (for calculation-heavy programs)
-- Manual UAT (for CICS terminal screens)
+**Section 5 — API & Interface Design**
+For each COBOL program's LINKAGE SECTION (or CALL interface), define the REST/gRPC equivalent:
+- HTTP method + path + request/response schema (JSON)
+- Map PIC clauses to Java/TypeScript types (PIC X(n) → String, PIC 9(n) → Long/Integer, PIC 9(n)V9(m) → BigDecimal)
+- COBOL return codes → HTTP status codes (e.g. 00=200, 01=404, 99=500)
 
-**Section 7 — Open Questions**
-List anything requiring human/SME decision before Phase 1 starts. Format each as a checkbox item the approver must tick. Common questions: undocumented business rules, dynamic CALL targets, shared file ownership, regulatory requirements.
+**Section 6 — Copybook → DTO / Entity Mapping**
+For each COPY member referenced in the dep graph, produce the Java record / TypeScript interface equivalent:
+- Show field name mapping: COBOL-FIELD-NAME → camelCase javaFieldName
+- PIC clauses → Java type + Jakarta Validation annotation (e.g. \`@NotNull @Size(max=30) String accountId\`)
+- 88-level condition names → Java enum constants
 
-**Section 8 — Approval Block**
-Include an approval block stating:
-- "Modernization method: [Uplift | Transform | Reimagine]"
-- "Generated: ${today} by MAVEN"
-- "Approved by: ________________  Date: __________"
-- "Approval covers: Phase 1 only | Full plan"
+**Section 7 — Data Layer Migration**
+- DB2 tables → JPA @Entity classes with field mappings
+- VSAM KSDS/ESDS → Spring Data JPA repository pattern with PostgreSQL equivalent
+- Sequential/flat files → S3 objects with Spring Batch ItemReader/ItemWriter
+- Transaction boundaries: CICS syncpoints → @Transactional annotations
+- Index strategy: translate VSAM ALTERNATE INDEX → PostgreSQL composite index
 
-RULES FOR OUTPUT FORMAT:
-- You MUST return a JSON array. The array has exactly 8 objects.
-- Each object has exactly three keys: "num" (integer 1–8), "title" (string), "content" (string).
-- The "content" value MUST be an HTML string. It MUST start with an HTML tag such as <p>, <ul>, or <table>.
-- NEVER put JSON, markdown, raw text, or another array inside "content". Only HTML.
-- Example of correct content: "<p>This program handles...</p><ul><li>Phase 1: ...</li></ul>"
-- Example of WRONG content: "[ { \\"phase\\": 1 } ]" or "Phase 1: scope..." (no HTML tags)
+**Section 8 — Batch & JCL Migration**
+For each JCL job and PROC in scope:
+- JCL JOB + STEP sequence → Spring Batch Job + Step chain
+- DD DSN statements → DataSource beans or S3 bucket references
+- JCL conditional execution (COND=) → Spring Batch FlowDecision / ExitStatus
+- If no JCL in scope, describe how the batch main program maps to a scheduled service (@Scheduled or Quartz)
+
+**Section 9 — Migration Roadmap**
+Phased delivery plan. Each phase must include: Scope (which programs), Entry Criteria, Exit Criteria, Effort (S/M/L/XL), Risk.
+
+Phase sequencing rule:
+- For Transform/Reimagine: strangler-fig — start with low-fan-in leaf programs; replace piecemeal, keeping old interface alive until fully cut over
+- For Uplift/Refactor: leaf-first — libraries before callers
+
+Recommended phases (4):
+1. Foundation — API shell + data model + CI/CD pipeline
+2. Business Logic Port — core COBOL programs → Java services (strangler-fig)
+3. Batch Migration — JCL → Spring Batch jobs
+4. Decommission — cut over, remove mainframe dependency, final regression
+
+**Section 10 — Risk Register & Test Strategy**
+- Risk table: Risk | Likelihood | Impact | Mitigation (HTML table)
+- Key risks: dynamic CALLs, shared global copybooks, undocumented CICS transactions, assembler modules, regulatory/audit fields
+- Test strategy: characterization tests (capture COBOL I/O at boundaries), contract tests, parallel-run shadow execution, regression suite targeting P0 business rules from the BRD
+- Sign-off block: "Reviewed by: ____________ Date: __________ · Approved for: Phase 1 only | Full roadmap"
+
+OUTPUT RULES:
+- MUST return exactly a JSON array of 10 objects inside <output>...</output> tags
+- Each "content" value MUST be valid HTML starting with an HTML tag (<p>, <ul>, <table>, <pre>, <h4>)
+- NEVER put JSON, markdown, or raw text inside "content"
+- Use <table> for comparisons, <ul><li> for lists, <p> for prose, <pre> for code/diagrams
+- Be specific: use actual program names, field names, table names from the source and graph
+- Total output length: 75-150 words per section — concise and precise; this is a production document not a narrative essay
 
 <output>
 [
-  { "num": 1, "title": "Objective", "content": "<p>Generated: ${today}. ..." },
-  { "num": 2, "title": "Target Architecture", "content": "<p>..." },
-  { "num": 3, "title": "Phased Sequence", "content": "<p>..." },
-  { "num": 4, "title": "Business Walkthroughs", "content": "<p>..." },
-  { "num": 5, "title": "Behavior Contract", "content": "<p>..." },
-  { "num": 6, "title": "Validation Strategy", "content": "<p>..." },
-  { "num": 7, "title": "Open Questions", "content": "<ul><li>..." },
-  { "num": 8, "title": "Approval Block", "content": "<p>Modernization method: ..." }
+  { "num": 1, "title": "Executive Summary & Business Context", "content": "<p>Generated: ${today} · MAVEN Application Modernization Blueprint...</p>" },
+  { "num": 2, "title": "Current Architecture Analysis", "content": "<p>..." },
+  { "num": 3, "title": "Recommended Target Architecture", "content": "<p>..." },
+  { "num": 4, "title": "Portfolio Dependency Map & Service Decomposition", "content": "<table>..." },
+  { "num": 5, "title": "API & Interface Design", "content": "<p>..." },
+  { "num": 6, "title": "Copybook → DTO / Entity Mapping", "content": "<p>..." },
+  { "num": 7, "title": "Data Layer Migration", "content": "<p>..." },
+  { "num": 8, "title": "Batch & JCL Migration", "content": "<p>..." },
+  { "num": 9, "title": "Migration Roadmap", "content": "<p>..." },
+  { "num": 10, "title": "Risk Register & Test Strategy", "content": "<table>..." }
 ]
 </output>`;
 }

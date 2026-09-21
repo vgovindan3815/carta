@@ -1,6 +1,6 @@
 'use client';
 
-import type { ProgramData, GraphNode, GraphEdge } from '@/lib/parser/types';
+import type { ProgramData, GraphNode, GraphEdge, ChangeImpactItem } from '@/lib/parser/types';
 
 type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec';
 
@@ -10,28 +10,99 @@ interface Props {
 }
 
 const EC: Record<string, string> = {
-  call: '#065A82',
-  data: '#1C7293',
-  cics: '#E07B39',
-  dyn: '#9CA3AF',
+  call:   '#065A82',
+  data:   '#1C7293',
+  cics:   '#E07B39',
+  dyn:    '#9CA3AF',
+  impact: '#E07B39', // blast-radius edge colour
 };
 
 const NC: Record<string, { fill: string; stroke: string; sw: number; da: string; tc: string; sc: string }> = {
-  hero: { fill: '#1F3864', stroke: '#1C7293', sw: 3,   da: 'none', tc: '#FFFFFF',              sc: 'rgba(255,255,255,.6)' },
-  prog: { fill: '#EBF4FF', stroke: '#065A82', sw: 1.8, da: 'none', tc: '#1F3864',              sc: '#4A6080' },
-  data: { fill: '#E8F5EE', stroke: '#1C7293', sw: 1.8, da: 'none', tc: '#1D5E30',              sc: '#2E7D5E' },
-  asm:  { fill: '#F0E8FF', stroke: '#9CA3AF', sw: 1.8, da: '4,3',  tc: '#4B2D80',              sc: '#7C6AAA' },
+  hero:   { fill: '#1F3864', stroke: '#1C7293', sw: 3,   da: 'none',  tc: '#FFFFFF',             sc: 'rgba(255,255,255,.6)' },
+  prog:   { fill: '#EBF4FF', stroke: '#065A82', sw: 1.8, da: 'none',  tc: '#1F3864',             sc: '#4A6080' },
+  data:   { fill: '#E8F5EE', stroke: '#1C7293', sw: 1.8, da: 'none',  tc: '#1D5E30',             sc: '#2E7D5E' },
+  asm:    { fill: '#F0E8FF', stroke: '#9CA3AF', sw: 1.8, da: '4,3',   tc: '#4B2D80',             sc: '#7C6AAA' },
+  impact: { fill: '#FFF7ED', stroke: '#E07B39', sw: 2,   da: '4,3',   tc: '#92400E',             sc: '#D97706' },
 };
+
+/**
+ * Augment the circular layout with any impacted programs (from change impact items)
+ * that are NOT already in the dep graph. They are placed in an outer ring with
+ * 'impact' node styling and dashed edges from the hero node.
+ * Only critical + high severity items are added to avoid clutter.
+ */
+function augmentLayoutWithImpacts(
+  cLayout: ProgramData['cLayout'],
+  items: ChangeImpactItem[]
+): ProgramData['cLayout'] {
+  const existingIds = new Set(cLayout.nodes.map((n) => n.id.toUpperCase()));
+
+  // Keep only program-type impact items not already in the graph
+  const impactProgs = items.filter((it) => {
+    if (existingIds.has(it.prog.toUpperCase())) return false;
+    if (it.prog === cLayout.nodes.find((n) => n.type === 'hero')?.id) return false;
+    const rel = (it.rel ?? '').toLowerCase();
+    if (rel.includes('dataset') || rel.includes('table') || rel.includes('jcl') || rel.includes('file') || rel.includes('data store')) return false;
+    return it.severity === 'critical' || it.severity === 'high' || it.severity === 'medium';
+  });
+
+  if (!impactProgs.length) return cLayout;
+
+  // Expand the viewBox to create an outer ring zone
+  const expand = 110;
+  const newW = cLayout.w + expand * 2;
+  const newH = cLayout.h + expand * 2;
+
+  // Shift all existing nodes by (expand, expand)
+  const shiftedNodes: GraphNode[] = cLayout.nodes.map((n) => ({
+    ...n,
+    cx: (n.cx ?? 0) + expand,
+    cy: (n.cy ?? 0) + expand,
+  }));
+
+  const cxCenter = newW / 2;
+  const cyCenter = newH / 2;
+  const outerRadius = Math.min(newW, newH) * 0.44;
+
+  const impactNodes: GraphNode[] = impactProgs.map((it, i) => {
+    const angle = (2 * Math.PI * i / impactProgs.length) - Math.PI / 2;
+    return {
+      id: it.prog,
+      label: it.prog.length > 11 ? it.prog.slice(0, 10) + '…' : it.prog,
+      sub: it.severity === 'critical' ? 'Critical Impact' : it.severity === 'high' ? 'High Impact' : 'Transitive',
+      type: 'impact' as GraphNode['type'],
+      cx: cxCenter + outerRadius * Math.cos(angle),
+      cy: cyCenter + outerRadius * Math.sin(angle),
+      r: 26,
+    };
+  });
+
+  const heroId = shiftedNodes.find((n) => n.type === 'hero')?.id ?? '';
+  const impactEdges: GraphEdge[] = impactProgs.map((it) => ({
+    from: heroId,
+    to: it.prog,
+    type: 'impact' as GraphEdge['type'],
+    label: it.severity,
+  }));
+
+  return {
+    w: newW,
+    h: newH,
+    nodes: [...shiftedNodes, ...impactNodes],
+    edges: [...cLayout.edges, ...impactEdges],
+  };
+}
 
 function buildCircularSVG(cl: ProgramData['cLayout']): string {
   const nm: Record<string, typeof cl.nodes[0]> = {};
   cl.nodes.forEach((n) => { nm[n.id] = n; });
 
   const defs = `<defs>
-    <marker id="oc-call" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.call}"/></marker>
-    <marker id="oc-data" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.data}"/></marker>
-    <marker id="oc-cics" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.cics}"/></marker>
-    <marker id="oc-dyn"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.dyn}"/></marker>
+    <marker id="oc-call"   markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.call}"/></marker>
+    <marker id="oc-data"   markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.data}"/></marker>
+    <marker id="oc-cics"   markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.cics}"/></marker>
+    <marker id="oc-dyn"    markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.dyn}"/></marker>
+    <marker id="oc-impact" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.impact}"/></marker>
     <filter id="oc-sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.14"/></filter>
   </defs>`;
 
@@ -46,8 +117,9 @@ function buildCircularSVG(cl: ProgramData['cLayout']): string {
     const x2 = tn.cx - ((tn.r ?? 30) + 6) * dx / dist;
     const y2 = tn.cy - ((tn.r ?? 30) + 6) * dy / dist;
     const col = EC[e.type] ?? '#999';
-    const da = e.type === 'dyn' ? '5,3' : e.type === 'cics' ? '6,3' : 'none';
-    edges += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="1.8" stroke-dasharray="${da}" marker-end="url(#oc-${e.type})" opacity=".85"/>`;
+    const da = (e.type === 'dyn' || e.type === 'impact') ? '5,3' : e.type === 'cics' ? '6,3' : 'none';
+    const markerType = ['call','data','cics','dyn','impact'].includes(e.type) ? e.type : 'call';
+    edges += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="1.8" stroke-dasharray="${da}" marker-end="url(#oc-${markerType})" opacity=".85"/>`;
   });
 
   let nodes = '';
@@ -135,7 +207,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
 
   const covColor = d.coverage >= 90 ? '#27AE60' : d.coverage >= 70 ? '#E07B39' : '#C0392B';
   const hasWarn = d.coverage < 100;
-  const svgHtml = p.cLayout ? buildCircularSVG(p.cLayout) : '';
+  const svgHtml = p.cLayout ? buildCircularSVG(augmentLayoutWithImpacts(p.cLayout, items)) : '';
   const ps = p.pipelineStatus;
   const noCast = ps?.cast !== 'success';
 
@@ -238,6 +310,10 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
           <div className="ov-leg-item">
             <div className="ov-leg-dot" style={{ background: '#F0E8FF', border: '2px dashed #9CA3AF' }} />
             Partial (Assembler)
+          </div>
+          <div className="ov-leg-item">
+            <div className="ov-leg-dot" style={{ background: '#FFF7ED', border: '2px dashed #E07B39' }} />
+            Impacted (blast radius)
           </div>
         </div>
       </div>

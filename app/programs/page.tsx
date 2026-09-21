@@ -55,13 +55,15 @@ export default function ProgramsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
-  const [newFormTab, setNewFormTab] = useState<'github' | 'cast'>('github');
+  const [newFormTab, setNewFormTab] = useState<'github' | 'cast' | 'upload'>('github');
   const [projectName, setProjectName] = useState('');
   const [connectUrl, setConnectUrl] = useState('');
   const [connectPat, setConnectPat] = useState('');
   const [castFile, setCastFile] = useState<File | null>(null);
   const [castProjectName, setCastProjectName] = useState('');
   const [sidebarCastFile, setSidebarCastFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
+  const [uploadProjectName, setUploadProjectName] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState('');
   const [connectSuccess, setConnectSuccess] = useState('');
@@ -180,6 +182,32 @@ export default function ProgramsPage() {
     }
   }
 
+  async function handleFileUpload() {
+    if (!uploadFiles || uploadFiles.length === 0) return;
+    setConnecting(true);
+    setConnectError('');
+    setConnectSuccess('');
+    try {
+      const fd = new FormData();
+      fd.append('projectName', uploadProjectName || 'Uploaded Project');
+      for (let i = 0; i < uploadFiles.length; i++) {
+        fd.append('files', uploadFiles[i]);
+      }
+      const res = await fetch('/api/programs/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      setConnectSuccess(`Imported ${data.imported} of ${data.total} file(s) into "${uploadProjectName || 'Uploaded Project'}"`);
+      setUploadFiles(null);
+      setUploadProjectName('');
+      setShowNewForm(false);
+      await fetchProjects();
+    } catch (err: unknown) {
+      setConnectError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   async function handleDelete(project: Project) {
     if (!confirm(`Delete project "${project.projectName}"?\n\nThis will permanently remove all programs, analysis jobs, dependency graphs, and documentation for this project. This cannot be undone.`)) return;
     setDeletingId(project.id);
@@ -225,6 +253,7 @@ export default function ProgramsPage() {
         <div style={{ flex: 1 }} />
         <span style={{ background: 'rgba(224,123,57,0.25)', border: '1px solid rgba(224,123,57,0.6)', color: '#FCD58A', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>DEMO · {llmProvider} API</span>
         <Link href="/context" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🧠 Context</Link>
+        <Link href="/agents" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🤖 Agents</Link>
         <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>⚙ LLM</Link>
         <Link href="/admin" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>Admin</Link>
       </header>
@@ -251,7 +280,7 @@ export default function ProgramsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                 {/* Tab switcher */}
                 <div style={{ display: 'flex', border: '1.5px solid #E5E7EB', borderRadius: 8, overflow: 'hidden', marginBottom: 10 }}>
-                  {(['github', 'cast'] as const).map((tab) => (
+                  {(['github', 'cast', 'upload'] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
@@ -263,7 +292,7 @@ export default function ProgramsPage() {
                         transition: 'all 0.12s',
                       }}
                     >
-                      {tab === 'github' ? '🐙 GitHub' : '📤 CAST Reports'}
+                      {tab === 'github' ? '🐙 GitHub' : tab === 'cast' ? '📤 CAST Reports' : '📁 Upload Files'}
                     </button>
                   ))}
                 </div>
@@ -306,7 +335,7 @@ export default function ProgramsPage() {
                         {connecting ? 'Scanning repo…' : 'Connect & Scan →'}
                       </button>
                     </>
-                  ) : (
+                  ) : newFormTab === 'cast' ? (
                     <>
                       <div style={{ background: '#FFFBEB', border: '1px solid #FCD34D', borderRadius: 6, padding: '8px 10px', fontSize: 11, color: '#92400E', lineHeight: 1.5 }}>
                         <strong>Path A — Deterministic mode.</strong> Upload output from CAST Highlight, CAST Imaging, or the MAVEN static analyzer. Supported formats: <code>.xml</code>, <code>.json</code>
@@ -342,6 +371,51 @@ export default function ProgramsPage() {
                         style={{ background: (!castFile || connecting) ? '#F3F4F6' : 'linear-gradient(135deg, #1F3864, #1C7293)', border: '1px solid #E5E7EB', color: (!castFile || connecting) ? '#9CA3AF' : '#fff', borderRadius: 6, padding: '8px', fontSize: 12, fontWeight: 700, cursor: (!castFile || connecting) ? 'not-allowed' : 'pointer' }}
                       >
                         {connecting ? 'Uploading…' : 'Upload CAST Report →'}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 6, padding: '8px 10px', fontSize: 11, color: '#1E40AF', lineHeight: 1.5 }}>
+                        <strong>Direct Upload.</strong> Drop a <code>.zip</code> containing your whole module set — COBOL, JCL, copybooks, all at once. Or select individual <code>.cbl</code> / <code>.jcl</code> / <code>.cpy</code> files. No GitHub connection needed.
+                      </div>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>Project name</span>
+                        <input
+                          type="text"
+                          value={uploadProjectName}
+                          onChange={(e) => setUploadProjectName(e.target.value)}
+                          placeholder="e.g. CardDemo COBOL"
+                          style={{ fontSize: 11, border: '1.5px solid #D1D5DB', borderRadius: 6, padding: '7px 10px', background: '#F9FAFB' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: '#6B7280', fontWeight: 600 }}>ZIP archive or individual files *</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept=".zip,.cbl,.cob,.cobol,.jcl,.cpy,.pli,.plo"
+                          onChange={(e) => setUploadFiles(e.target.files)}
+                          style={{ fontSize: 11, border: '1.5px dashed #D1D5DB', borderRadius: 6, padding: '8px', background: '#F9FAFB', cursor: 'pointer' }}
+                        />
+                      </label>
+                      {uploadFiles && uploadFiles.length > 0 && (
+                        <div style={{ fontSize: 11, color: '#059669', background: '#F0FDF4', padding: '5px 8px', borderRadius: 4, wordBreak: 'break-all' }}>
+                          ✓ {Array.from(uploadFiles).map(f => f.name).join(', ')}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        disabled={!uploadFiles || uploadFiles.length === 0 || connecting}
+                        onClick={handleFileUpload}
+                        style={{
+                          background: (!uploadFiles || uploadFiles.length === 0 || connecting) ? '#F3F4F6' : 'linear-gradient(135deg, #1F3864, #1C7293)',
+                          border: '1px solid #E5E7EB',
+                          color: (!uploadFiles || uploadFiles.length === 0 || connecting) ? '#9CA3AF' : '#fff',
+                          borderRadius: 6, padding: '8px', fontSize: 12, fontWeight: 700,
+                          cursor: (!uploadFiles || uploadFiles.length === 0 || connecting) ? 'not-allowed' : 'pointer',
+                        }}
+                      >
+                        {connecting ? 'Uploading…' : 'Upload & Import →'}
                       </button>
                     </>
                   )}

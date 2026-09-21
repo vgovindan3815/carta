@@ -78,11 +78,22 @@ export async function GET(
         const allProgs = await listPrograms(prog.repoId);
         const allNames = allProgs.map((p) => p.name);
 
-        // 5. Try to fetch source from GitHub; fall back to CAST pipeline if unavailable
-        const isCastRepo = repo.githubUrl.startsWith('cast://');
+        // 5. Try to fetch source from GitHub; fall back to stored source for local repos
+        const isLocalRepo =
+          repo.githubUrl.startsWith('cast://') || repo.githubUrl.startsWith('upload://');
         let source: string | null = null;
 
-        if (!isCastRepo) {
+        if (repo.githubUrl.startsWith('upload://')) {
+          // Source was stored at upload time — load it from DB
+          const { getProgramSource } = await import('@/lib/db/queries');
+          const srcRow = await getProgramSource(prog.id);
+          source = srcRow?.sourceText ?? null;
+          if (!source) {
+            emit({ lv: 'WARN', t: `No stored source for ${prog.name} — running doc chains only…` });
+          }
+        }
+
+        if (!isLocalRepo) {
           const pat = repo.patEncrypted
             ? Buffer.from(repo.patEncrypted, 'base64').toString('utf-8')
             : undefined;

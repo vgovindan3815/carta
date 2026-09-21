@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { ProgramData, GraphNode, GraphEdge } from '@/lib/parser/types';
+import type { ProgramData, GraphNode, GraphEdge, ChangeImpactItem } from '@/lib/parser/types';
 
 interface Props {
   program: ProgramData;
@@ -30,13 +30,14 @@ const SYSTEM_PROGRAMS = new Map<string, string>([
 
 // Edge type → colour
 const EC: Record<string, string> = {
-  call:  '#1F3864',
-  data:  '#1C7293',
-  cics:  '#E07B39',
-  dyn:   '#9CA3AF',
-  jcl:   '#7C3AED',
-  proc:  '#0891B2',
-  copy:  '#059669',
+  call:   '#1F3864',
+  data:   '#1C7293',
+  cics:   '#E07B39',
+  dyn:    '#9CA3AF',
+  jcl:    '#7C3AED',
+  proc:   '#0891B2',
+  copy:   '#059669',
+  impact: '#E07B39', // blast-radius edge
 };
 
 // Node type → colours
@@ -47,25 +48,93 @@ const NC: Record<string, { fill: string; stroke: string; tx: string; sub: string
   asm:  { fill: '#F5F3FF', stroke: '#7C3AED',  tx: '#5B21B6', sub: '#7C3AED' },
   jcl:  { fill: '#FFF7ED', stroke: '#E07B39',  tx: '#92400E', sub: '#D97706' },
   proc: { fill: '#E0F2FE', stroke: '#0891B2',  tx: '#0C4A6E', sub: '#0891B2' },
-  cpy:  { fill: '#F0FDF4', stroke: '#059669',  tx: '#065F46', sub: '#059669' },
-  sys:  { fill: '#F9FAFB', stroke: '#9CA3AF',  tx: '#6B7280', sub: '#9CA3AF' },
+  cpy:    { fill: '#F0FDF4', stroke: '#059669',  tx: '#065F46', sub: '#059669' },
+  sys:    { fill: '#F9FAFB', stroke: '#9CA3AF',  tx: '#6B7280', sub: '#9CA3AF' },
+  impact: { fill: '#FFF7ED', stroke: '#E07B39',  tx: '#92400E', sub: '#D97706' },
 };
 
 const EDGE_LABELS: Record<string, string> = {
   call: 'CALL', data: 'DATA', cics: 'CICS', dyn: 'DYN CALL',
-  jcl: 'JCL', proc: 'PROC', copy: 'COPY',
+  jcl: 'JCL', proc: 'PROC', copy: 'COPY', impact: 'IMPACT',
 };
 
 const NODE_TYPE_LABELS: Record<string, string> = {
-  hero: 'Hero program (this document)',
-  prog: 'COBOL program',
-  data: 'DB2 / dataset',
-  asm:  'Assembler module',
-  jcl:  'JCL job',
-  proc: 'JCL procedure',
-  cpy:  'Copybook',
-  sys:  'IBM system utility',
+  hero:   'Hero program (this document)',
+  prog:   'COBOL program',
+  data:   'DB2 / dataset',
+  asm:    'Assembler module',
+  jcl:    'JCL job',
+  proc:   'JCL procedure',
+  cpy:    'Copybook',
+  sys:    'IBM system utility',
+  impact: 'Impacted program (blast radius)',
 };
+
+/**
+ * Adds impacted programs from change-impact analysis as an outer ring of nodes.
+ * Programs already in the dep graph are skipped (they're already shown).
+ * Only critical / high / medium severity items are added to keep the graph readable.
+ */
+function augmentLayoutWithImpacts(
+  cLayout: ProgramData['cLayout'],
+  items: ChangeImpactItem[]
+): ProgramData['cLayout'] {
+  const existingIds = new Set(cLayout.nodes.map((n) => n.id.toUpperCase()));
+
+  const impactProgs = items.filter((it) => {
+    if (existingIds.has(it.prog.toUpperCase())) return false;
+    const rel = (it.rel ?? '').toLowerCase();
+    if (rel.includes('dataset') || rel.includes('table') || rel.includes('jcl') ||
+        rel.includes('file') || rel.includes('data store')) return false;
+    return it.severity === 'critical' || it.severity === 'high' || it.severity === 'medium';
+  });
+
+  if (!impactProgs.length) return cLayout;
+
+  const expand = 120;
+  const newW = cLayout.w + expand * 2;
+  const newH = cLayout.h + expand * 2;
+
+  const shiftedNodes: GraphNode[] = cLayout.nodes.map((n) => ({
+    ...n,
+    cx: (n.cx ?? 0) + expand,
+    cy: (n.cy ?? 0) + expand,
+  }));
+
+  const cxCenter = newW / 2;
+  const cyCenter = newH / 2;
+  const outerRadius = Math.min(newW, newH) * 0.43;
+
+  const impactNodes: GraphNode[] = impactProgs.map((it, i) => {
+    const angle = (2 * Math.PI * i / impactProgs.length) - Math.PI / 2;
+    return {
+      id: it.prog,
+      label: it.prog.length > 11 ? it.prog.slice(0, 10) + '…' : it.prog,
+      sub: it.severity === 'critical' ? 'Critical Impact'
+         : it.severity === 'high'     ? 'High Impact'
+         : 'Transitive',
+      type: 'impact' as GraphNode['type'],
+      cx: cxCenter + outerRadius * Math.cos(angle),
+      cy: cyCenter + outerRadius * Math.sin(angle),
+      r: 30,
+    };
+  });
+
+  const heroId = shiftedNodes.find((n) => n.type === 'hero')?.id ?? '';
+  const impactEdges: GraphEdge[] = impactProgs.map((it) => ({
+    from: heroId,
+    to: it.prog,
+    type: 'impact' as GraphEdge['type'],
+    label: it.severity,
+  }));
+
+  return {
+    w: newW,
+    h: newH,
+    nodes: [...shiftedNodes, ...impactNodes],
+    edges: [...cLayout.edges, ...impactEdges],
+  };
+}
 
 /** Compute the point on the circle boundary toward (tx, ty). */
 function circleEdgePoint(cx: number, cy: number, r: number, tx: number, ty: number): [number, number] {
@@ -204,13 +273,27 @@ export default function DependencyView({ program: p }: Props) {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
-  const cNodes = p.cLayout?.nodes?.length
-    ? p.cLayout.nodes
-    : p.graph.nodes.filter((n) => n.cx !== undefined);
+  const isCast = p.pipelineStatus?.graphSource === 'cast';
+  // Default: structural view when CAST is available; impact view when LLM-only
+  const [viewMode, setViewMode] = useState<'structural' | 'impact'>(
+    isCast ? 'structural' : 'impact'
+  );
 
-  const cEdges = p.cLayout?.edges?.length ? p.cLayout.edges : p.graph.edges;
-  const w = Math.max(p.cLayout?.w ?? 560, 560);
-  const h = Math.max(p.cLayout?.h ?? 460, 460);
+  const baseLayout: ProgramData['cLayout'] = p.cLayout ?? {
+    w: 560, h: 460,
+    nodes: p.graph.nodes.filter((n) => n.cx !== undefined),
+    edges: p.graph.edges,
+  };
+
+  const activeLayout =
+    viewMode === 'impact'
+      ? augmentLayoutWithImpacts(baseLayout, p.changeImpact?.items ?? [])
+      : baseLayout;
+
+  const cNodes = activeLayout.nodes;
+  const cEdges = activeLayout.edges;
+  const w = Math.max(activeLayout.w, 560);
+  const h = Math.max(activeLayout.h, 460);
 
   const svgHtml = buildCircularSVG(cNodes, cEdges, w, h);
 
@@ -231,6 +314,8 @@ export default function DependencyView({ program: p }: Props) {
         if (sysDesc) {
           html += `<em style="opacity:.8;font-size:10px;display:block;max-width:220px;white-space:normal;margin-top:4px">${sysDesc}</em>`;
         } else if (type === 'prog') {
+          html += `<em style="opacity:.55;font-size:10px">Click to open program hub</em>`;
+        } else if (type === 'impact') {
           html += `<em style="opacity:.55;font-size:10px">Click to open program hub</em>`;
         } else {
           html += `<em style="opacity:.55;font-size:10px">${typeLbl}</em>`;
@@ -257,7 +342,7 @@ export default function DependencyView({ program: p }: Props) {
         const type = el.dataset.type ?? '';
         // System programs, data nodes, and copybooks are not navigable
         if (SYSTEM_PROGRAMS.has(id.toUpperCase()) || type === 'data' || type === 'cpy' || type === 'sys') return;
-        if (type === 'hero' || type === 'prog' || type === 'asm') {
+        if (type === 'hero' || type === 'prog' || type === 'asm' || type === 'impact') {
           router.push(`/programs/${encodeURIComponent(id)}`);
         }
       });
@@ -279,10 +364,39 @@ export default function DependencyView({ program: p }: Props) {
       <div className="dep-container">
         <div className="dep-header">
           <h2>{p.graph.title ?? `${p.name} Dependency Graph`}</h2>
-          <span className="badge badge-deterministic">
-            <span className="badge-dot" />
-            {p.pipelineStatus?.graphSource === 'cast' ? 'CAST — deterministic' : 'Static analysis'}
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className={`badge ${isCast ? 'badge-deterministic' : 'badge-llm'}`}>
+              <span className="badge-dot" />
+              {isCast ? 'CAST — deterministic' : 'LLM — inferred'}
+            </span>
+            {/* View mode toggle */}
+            <div style={{
+              display: 'flex', borderRadius: 6, overflow: 'hidden',
+              border: '1.5px solid #E5E7EB', fontSize: 11, fontWeight: 700,
+            }}>
+              <button
+                onClick={() => setViewMode('structural')}
+                style={{
+                  padding: '4px 10px', border: 'none', cursor: 'pointer',
+                  background: viewMode === 'structural' ? '#1F3864' : '#F9FAFB',
+                  color: viewMode === 'structural' ? '#fff' : '#6B7280',
+                }}
+              >
+                {isCast ? 'CAST Structural' : 'Structural'}
+              </button>
+              <button
+                onClick={() => setViewMode('impact')}
+                style={{
+                  padding: '4px 10px', border: 'none', cursor: 'pointer',
+                  background: viewMode === 'impact' ? '#E07B39' : '#F9FAFB',
+                  color: viewMode === 'impact' ? '#fff' : '#6B7280',
+                  borderLeft: '1.5px solid #E5E7EB',
+                }}
+              >
+                + Impact Radius
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Graph canvas */}

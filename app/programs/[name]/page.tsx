@@ -10,7 +10,7 @@ import ChangeImpact from '@/components/panels/ChangeImpact';
 import ModernizationSpec from '@/components/panels/ModernizationSpec';
 import type { ProgramData } from '@/lib/parser/types';
 
-type Phase = 'processing' | 'hub';
+type Phase = 'processing' | 'hub' | 'not-found';
 type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec';
 
 interface LogLine {
@@ -76,16 +76,17 @@ export default function ProgramHubPage() {
   const castFallbackRef = useRef<ProgramData | null>(null);
 
   // Fetch program data from API — returns raw JSON including castOnly flag
-  async function fetchProgramRaw(): Promise<{ data: ProgramData | null; castOnly: boolean }> {
+  async function fetchProgramRaw(): Promise<{ data: ProgramData | null; castOnly: boolean; notFound: boolean }> {
     try {
       const res = await fetch(`/api/programs/${name}`);
-      if (!res.ok) return { data: null, castOnly: false };
+      if (!res.ok) return { data: null, castOnly: false, notFound: true };
       const json = await res.json();
-      if (json.status === 'not_analyzed' || json.status === 'not_found') return { data: null, castOnly: false };
+      if (json.status === 'not_found') return { data: null, castOnly: false, notFound: true };
+      if (json.status === 'not_analyzed') return { data: null, castOnly: false, notFound: false };
       const castOnly = json.castOnly === true;
-      return { data: json as ProgramData, castOnly };
+      return { data: json as ProgramData, castOnly, notFound: false };
     } catch {
-      return { data: null, castOnly: false };
+      return { data: null, castOnly: false, notFound: false };
     }
   }
 
@@ -264,9 +265,12 @@ export default function ProgramHubPage() {
     if (!name) return;
     let cancelled = false;
 
-    fetchProgramRaw().then(({ data: existing, castOnly }) => {
+    fetchProgramRaw().then(({ data: existing, castOnly, notFound }) => {
       if (cancelled) return;
-      if (existing && !castOnly) {
+      if (notFound) {
+        // Program doesn't exist in registry — don't run analysis
+        setPhase('not-found');
+      } else if (existing && !castOnly) {
         // Full data available — open hub directly
         setProgramData(existing);
         setIsFromCache(true);
@@ -274,11 +278,10 @@ export default function ProgramHubPage() {
         setActiveTab('overview');
       } else if (existing && castOnly) {
         // CAST dep graph exists but no LLM analysis yet — run LLM chains
-        // Store CAST data for fallback if LLM fails
         castFallbackRef.current = existing;
         startProcessing();
       } else {
-        // No data at all — run full pipeline
+        // Program exists but not yet analyzed — run full pipeline
         startProcessing();
       }
     });
@@ -371,6 +374,23 @@ export default function ProgramHubPage() {
     );
   }
 
+  // Not-found view — program not in registry
+  if (phase === 'not-found') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F4F7FA', gap: 16, padding: 32 }}>
+        <div style={{ fontSize: 48 }}>🔍</div>
+        <div style={{ fontWeight: 800, fontSize: 20, color: '#1F3864' }}>Program not in registry</div>
+        <div style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', maxWidth: 460, lineHeight: 1.6 }}>
+          <strong>{name}</strong> was identified in an impact or dependency analysis but has not been imported into MAVEN yet.
+          Upload its CAST report or connect a GitHub repository that contains this program to add it.
+        </div>
+        <a href="/programs" style={{ marginTop: 8, background: 'linear-gradient(135deg,#1F3864,#1C7293)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+          ← All Programs
+        </a>
+      </div>
+    );
+  }
+
   // Hub view — analysis failed or results unavailable
   if (phase === 'hub' && !programData) {
     const isRateLimit = analysisError?.toLowerCase().includes('rate limit') || analysisError?.toLowerCase().includes('token limit');
@@ -443,6 +463,7 @@ export default function ProgramHubPage() {
           <span className="crumb-current">{programData.name}</span>
         </div>
         <div className="header-spacer" />
+        <Link href="/agents" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, marginRight: 4 }}>🤖 Agents</Link>
         <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>⚙ LLM</Link>
         <span className="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
       </header>

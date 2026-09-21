@@ -21,6 +21,7 @@ import {
 import { buildPortfolioContext } from '../context/portfolio';
 import { matchGlossary } from '../context/glossary';
 import { formatCopybookContext } from '../parser/copybook';
+import { findProgramSource } from '../github';
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { eq, and, desc } from 'drizzle-orm';
@@ -504,8 +505,33 @@ export async function runCastLLMPipeline(
       await emit(jobId, { lv: 'CALL', t: `CALL <span class="hl">${e.to}</span>`, d: 0 }, onEvent);
     }
 
-    // --- Context assembly ---
+    // --- Attempt GitHub source fetch for CAST programs ---
     const repoId = prog?.repoId ?? '';
+    if (repoId) {
+      try {
+        const repoRecord = await getRepo(repoId);
+        if (repoRecord?.owner && repoRecord?.repo) {
+          await emit(jobId, info(`Searching GitHub for <span class="hl">${programName}</span> source…`), onEvent);
+          const githubSource = await findProgramSource(
+            repoRecord.owner,
+            repoRecord.repo,
+            repoRecord.branch ?? 'main',
+            programName,
+            process.env.GITHUB_PAT
+          );
+          if (githubSource) {
+            castParsed.source = githubSource;
+            castParsed.loc = githubSource.split('\n').length;
+            await saveProgramSource(programId, githubSource);
+            await emit(jobId, info(`GitHub source found — <span class="hl">${castParsed.loc} LOC</span> · source viewer enabled`), onEvent);
+          } else {
+            await emit(jobId, info(`GitHub source not found for ${programName} — proceeding with CAST graph only`), onEvent);
+          }
+        }
+      } catch { /* non-fatal — proceed with stub source */ }
+    }
+
+    // --- Context assembly ---
     const copyNames = castParsed.graph.edges.filter((e) => e.type === 'copy').map((e) => e.to);
     let copybookCtx = '';
     if (copyNames.length && repoId) {

@@ -40,13 +40,25 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
 
       setRefreshLog('Generating updated specification… this may take 30–60 s');
 
-      // Poll program endpoint until version increments
+      // Poll both the program endpoint (for success) and the job endpoint (for failure)
       const prevVersion = p.version ?? 1;
+      const { jobId } = await res.json();
       const deadline = Date.now() + 120_000;
 
       while (Date.now() < deadline) {
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 4000));
         try {
+          // Check job status for early failure detection
+          if (jobId) {
+            const jr = await fetch(`/api/jobs/${jobId}/status`);
+            if (jr.ok) {
+              const jd = await jr.json();
+              if (jd.status === 'failed') {
+                throw new Error(jd.error ?? 'Spec generation failed — check your LLM provider settings');
+              }
+            }
+          }
+          // Check if spec version incremented (success)
           const pr = await fetch(`/api/programs/${p.name}`);
           if (pr.ok) {
             const updated: ProgramData = await pr.json();
@@ -57,12 +69,13 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
               return;
             }
           }
-        } catch {
-          // keep polling
+        } catch (pollErr) {
+          if (pollErr instanceof Error && pollErr.message.includes('failed')) throw pollErr;
+          // network hiccup — keep polling
         }
       }
 
-      throw new Error('Refresh timed out — check server logs');
+      throw new Error('Spec generation timed out. The LLM may be under load — try again shortly.');
     } catch (e) {
       setRefreshError(e instanceof Error ? e.message : String(e));
       setRefreshLog(null);

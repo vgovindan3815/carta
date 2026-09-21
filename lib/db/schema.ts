@@ -334,3 +334,25 @@ export const validations = pgTable('validations', {
   notes: text('notes'),
   status: validationStatusEnum('status').notNull().default('pending'),
 });
+
+// ---------------------------------------------------------------------------
+// Agent runs — agentic chat session records
+// ---------------------------------------------------------------------------
+
+/** Records of MAVEN Agent chat sessions and autonomous analysis runs. */
+export const agentRuns = pgTable('agent_runs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  repoId: uuid('repo_id').references(() => repos.id),
+  programName: text('program_name'),           // null = portfolio-level
+  query: text('query').notNull(),
+  status: text('status').notNull().default('running'), // running | completed | failed
+  messages: jsonb('messages').$type<object[]>().notNull().default([]),
+  toolCalls: jsonb('tool_calls').$type<object[]>().notNull().default([]),
+  response: text('response'),                  // final assistant text
+  tokensUsed: integer('tokens_used').default(0),
+  provider: text('provider'),
+  model: text('model'),
+  error: text('error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+});
