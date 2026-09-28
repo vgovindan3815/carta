@@ -586,9 +586,10 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     .orderBy(desc(schema.modSpecs.createdAt))
     .limit(1);
 
-  // 7. Guard — dep graph + biz rules + change impact are required; mod spec is optional (on-demand)
+  // 7. Guard — dep graph is the minimum requirement; LLM docs are optional
+  // If dep graph exists, show the hub with whatever docs are available rather
+  // than forcing a re-run every time the user opens a partially-analyzed program.
   if (!depGraph) return null;
-  if (!bizRule || !changeImpact) return null;
 
   // 8. Fetch associated jobs to determine tokensUsed per artifact
   const [depGraphJob] = await db
@@ -600,12 +601,12 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
   const [docsJob] = await db
     .select()
     .from(schema.analysisJobs)
-    .where(eq(schema.analysisJobs.id, bizRule.jobId))
+    .where(eq(schema.analysisJobs.id, (bizRule ?? changeImpact)?.jobId ?? mainJob.id))
     .limit(1);
 
   // 9. Determine pipeline source
   const hasCastDepGraph = depGraphJob?.tokensUsed === 0;
-  const hasFullLLM = (docsJob?.tokensUsed ?? 0) > 0;
+  const hasFullLLM = (docsJob?.tokensUsed ?? 0) > 0 && !!(bizRule && changeImpact);
 
   // 10. Set pipelineStatus
   const pipelineStatus = {
@@ -650,14 +651,20 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     .slice(0, 5)
     .map((e) => `${e.from} → ${e.to} (${e.type})`);
 
-  // Change impact assembly
-  const ciItems = changeImpact.items as typeof changeImpact.items;
-  const ciObj: ChangeImpact = {
-    query: `What is the impact of modifying ${prog.name}?`,
-    coverage: changeImpact.coveragePct,
-    coverageNote: changeImpact.coverageNote ?? '',
-    items: ciItems as ChangeImpact['items'],
-  };
+  // Change impact assembly — may be absent if only partial analysis ran
+  const ciObj: ChangeImpact = changeImpact
+    ? {
+        query: `What is the impact of modifying ${prog.name}?`,
+        coverage: changeImpact.coveragePct,
+        coverageNote: changeImpact.coverageNote ?? '',
+        items: changeImpact.items as ChangeImpact['items'],
+      }
+    : {
+        query: `What is the impact of modifying ${prog.name}?`,
+        coverage: 0,
+        coverageNote: 'Not yet analyzed',
+        items: [],
+      };
 
   // Modernization spec assembly — optional, may not exist yet (on-demand generation)
   const generatedAt = modSpec
@@ -695,14 +702,15 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
       nodes: allNodes,
       edges: allEdges,
     },
-    businessRules: bizRule.sections as ProgramData['businessRules'],
+    businessRules: (bizRule?.sections ?? []) as ProgramData['businessRules'],
     changeImpact: ciObj,
     spec: modernSpec,
     pipelineStatus,
   };
 
-  // 11. castOnly: CAST dep graph exists but no LLM docs yet
-  const castOnly = hasCastDepGraph && !hasFullLLM;
+  // 11. castOnly: CAST dep graph exists and NO LLM docs at all yet
+  // Partial docs (some artifacts present) still open the hub — no re-run.
+  const castOnly = hasCastDepGraph && !bizRule && !changeImpact;
 
   // 12. version = number of completed jobs (for living document indicator)
   const [versionRow] = await db
