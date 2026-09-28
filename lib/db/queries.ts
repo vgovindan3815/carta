@@ -362,12 +362,17 @@ export async function getProgram(
   name: string
 ): Promise<typeof schema.programs.$inferSelect | undefined> {
   const db = getDb();
-  const [row] = await db
+  // When a data file and a COBOL program share the same name, prefer the
+  // executable program (COBOL/JCL/PLI/COPYBOOK) over a raw DATA node.
+  const rows = await db
     .select()
     .from(schema.programs)
     .where(eq(schema.programs.name, name))
-    .limit(1);
-  return row;
+    .orderBy(
+      sql`CASE WHEN ${schema.programs.language} IN ('COBOL','JCL','PLI','PROC','COPYBOOK') THEN 0 ELSE 1 END`
+    )
+    .limit(2);
+  return rows[0];
 }
 
 export async function getProgramById(
@@ -530,11 +535,15 @@ export async function saveModSpec(
 export async function getProgramFullData(name: string): Promise<(ProgramData & { castOnly: boolean }) | null> {
   const db = getDb();
 
-  // 1. Fetch the program record
+  // 1. Fetch the program record — prefer executable programs over data files
+  //    when both share the same name (name collision between COBOL module and dataset).
   const [prog] = await db
     .select()
     .from(schema.programs)
     .where(eq(schema.programs.name, name))
+    .orderBy(
+      sql`CASE WHEN ${schema.programs.language} IN ('COBOL','JCL','PLI','PROC','COPYBOOK') THEN 0 ELSE 1 END`
+    )
     .limit(1);
 
   if (!prog) return null;
