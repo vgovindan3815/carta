@@ -614,15 +614,28 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     .limit(1);
 
   // 9. Determine pipeline source
-  const hasCastDepGraph = depGraphJob?.tokensUsed === 0;
-  const hasFullLLM = (docsJob?.tokensUsed ?? 0) > 0 && !!(bizRule && changeImpact);
+  // Use the repo's githubUrl as the source of truth — not token counts.
+  // cast:// and upload:// repos never went through GitHub; everything else did.
+  const [repo] = await db
+    .select({ githubUrl: schema.repos.githubUrl })
+    .from(schema.repos)
+    .where(eq(schema.repos.id, prog.repoId))
+    .limit(1);
+
+  const repoUrl = repo?.githubUrl ?? '';
+  const isCastRepo   = repoUrl.startsWith('cast://');
+  const isUploadRepo = repoUrl.startsWith('upload://');
+  const isGitHubRepo = !isCastRepo && !isUploadRepo;
+
+  const hasCastDepGraph = isCastRepo || depGraphJob?.tokensUsed === 0;
+  const hasFullLLM = !!(bizRule && changeImpact);
 
   // 10. Set pipelineStatus
   const pipelineStatus = {
-    cast: hasCastDepGraph ? 'success' : 'fail',
-    github: hasCastDepGraph ? 'skip' : 'success',
-    llm: hasFullLLM ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
-    docs: hasFullLLM ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
+    cast:        isCastRepo   ? 'success' : 'fail',
+    github:      isGitHubRepo ? 'success' : 'skip',
+    llm:         hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
+    docs:        hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
     graphSource: hasCastDepGraph ? 'cast' : 'llm',
   } as ProgramData['pipelineStatus'];
 
