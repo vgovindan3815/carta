@@ -41,7 +41,7 @@ const PATH_A = [
   { icon: '📤', label: 'Upload CAST Reports', sub: 'Import deterministic dependency output from CAST static analysis (.xml or .json). This is the gold-standard source of truth.', badge: 'Required for full accuracy', badgeColor: '#059669' },
   { icon: '🐙', label: 'Connect GitHub Repo', sub: 'Link the repository holding your COBOL / HLASM source. MAVEN fetches files automatically via the GitHub REST API.', badge: 'REST v3', badgeColor: '#1C7293' },
   { icon: '🕸️', label: 'Deterministic Graph', sub: 'CAST provides a 100%-accurate call tree, SQL table deps, CICS transactions, and file I/O edges. No inference needed.', badge: '100% verified', badgeColor: '#059669' },
-  { icon: '🤖', label: 'Groq LLM Analysis', sub: 'Three sequential Llama 3.3-70B chains generate Business Rules, Change Impact, and Mod Spec — fully grounded in the deterministic graph.', badge: 'Llama 3.3-70B', badgeColor: '#7C3AED' },
+  { icon: '🤖', label: 'LLM Analysis', sub: 'Three sequential LLM chains generate Business Rules, Change Impact, and Mod Spec — fully grounded in the deterministic graph. Provider is configurable (Groq, Anthropic, and others).', badge: 'Configurable Provider', badgeColor: '#7C3AED' },
   { icon: '📑', label: 'Four Artifacts', sub: 'Clean, reviewer-ready documentation with no disclaimers. Each claim cites a graph edge. Engineer sign-off gates any action.', badge: '✓ Production-ready', badgeColor: '#059669' },
 ];
 
@@ -49,20 +49,20 @@ const PATH_B = [
   { icon: '⊘', label: 'No CAST Reports', sub: 'CAST output is not available. MAVEN falls back to LLM-based graph inference from source code.', badge: 'Skipped', badgeColor: '#9CA3AF', skip: true },
   { icon: '🐙', label: 'Connect GitHub Repo', sub: 'Same as Path A — MAVEN fetches COBOL / HLASM source files from the connected repository.', badge: 'REST v3', badgeColor: '#1C7293' },
   { icon: '🔍', label: 'LLM-Inferred Graph', sub: 'Regex extraction + Groq LLM reasoning builds a best-effort dependency graph. Dynamic CALLs ~71% coverage, static CALLs ~95%.', badge: '⚠ ~75% accuracy', badgeColor: '#D97706', warn: true },
-  { icon: '🤖', label: 'Groq LLM Analysis', sub: 'Same LLM chains as Path A, but grounded in the inferred graph. Reduced confidence on dynamic call paths.', badge: 'Llama 3.3-70B', badgeColor: '#7C3AED', warn: true },
+  { icon: '🤖', label: 'LLM Analysis', sub: 'Same LLM chains as Path A, but grounded in the inferred graph. Reduced confidence on dynamic call paths.', badge: 'Configurable Provider', badgeColor: '#7C3AED', warn: true },
   { icon: '📑', label: 'Four Artifacts', sub: 'All four documents are generated with an amber disclaimer banner. Upload CAST reports at any time to upgrade to deterministic.', badge: '⚠ Review required', badgeColor: '#D97706', warn: true },
 ];
 
 const LIMITATIONS = [
   { icon: '⚠', text: 'No CAST static analysis — dependency graphs are LLM-inferred from source, not deterministically computed. Accuracy ~70–85%; verify critical paths manually.' },
   { icon: '📏', text: 'Program size: recommended ≤ 1,500 LOC per file for reliable LLM extraction. Larger programs are truncated to the first 12–14 k characters.' },
-  { icon: '⏱', text: 'Groq free tier rate limits apply. Analysis of one program takes 20–60 seconds. Parallel analysis is not supported in demo mode.' },
+  { icon: '⏱', text: 'LLM provider rate limits apply. Analysis of one program takes 20–60 seconds. Parallel analysis is not supported in the current prototype.' },
   { icon: '🔗', text: 'Dynamic CALL targets (variable-name CALLs) are resolved at ~71% confidence. Assembler dependencies are partially covered.' },
   { icon: '🗄', text: 'Results are persisted to Neon PostgreSQL. Each project is isolated; delete a project to reclaim storage.' },
 ];
 
 const TECH_STACK = [
-  { name: 'Groq API', detail: 'Llama 3.3 70B', color: '#F55036', desc: 'LLM engine — free tier, OpenAI-compatible, ~200 token/s throughput' },
+  { name: 'LLM Engine', detail: 'Groq · Anthropic · configurable', color: '#7C3AED', desc: 'Multi-provider — Groq (Llama 3.3 70B) and Anthropic (Claude) selectable in LLM Settings' },
   { name: 'Next.js 14', detail: 'App Router + SSE', color: '#000000', desc: 'React framework — SSE streaming, API routes, server components' },
   { name: 'Neon', detail: 'Serverless Postgres', color: '#00A67E', desc: 'Stores all programs, graphs, and analysis results' },
   { name: 'GitHub API', detail: 'REST v3', color: '#24292F', desc: 'Source discovery — lists COBOL files, fetches content by SHA' },
@@ -84,8 +84,8 @@ export default function HomePage() {
           </div>
         </div>
         <div style={{ flex: 1 }} />
-        <span style={{ background: 'rgba(224,123,57,0.25)', border: '1px solid rgba(224,123,57,0.6)', color: '#FCD58A', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
-          DEMO · Groq API
+        <span style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.5)', color: '#C4B5FD', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
+          PROTOTYPE · Multi-LLM
         </span>
         <Link href="/admin" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>
           Admin
@@ -96,7 +96,7 @@ export default function HomePage() {
       <section style={{ background: 'linear-gradient(160deg, #0F1E3A 0%, #1F3864 50%, #1a4a6a 100%)', padding: '72px 32px 80px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(28,114,147,0.25)', border: '1px solid rgba(77,170,199,0.4)', borderRadius: 20, padding: '5px 14px', marginBottom: 28, fontSize: 12, color: '#4DAAC7', fontWeight: 600 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4DAAC7', display: 'inline-block' }} />
-          Demo Mode · Groq Llama 3.3 70B · LLM Dependency Analysis · No CAST Reports
+          Prototype · Groq / Anthropic · LLM Dependency Analysis · CAST Integration
         </div>
         <h1 style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 800, color: '#fff', margin: '0 0 18px', lineHeight: 1.15, letterSpacing: -1 }}>
           COBOL Intelligence Platform
@@ -107,7 +107,7 @@ export default function HomePage() {
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
           <Link href="/programs" style={{ background: 'linear-gradient(135deg, #1C7293, #4DAAC7)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 4px 20px rgba(28,114,147,0.5)' }}>
-            Launch Demo →
+            Explore Prototype →
           </Link>
           <Link href="/architecture" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Architecture →
@@ -226,7 +226,7 @@ export default function HomePage() {
             {[
               { label: 'GitHub', sub: 'REST API', bg: '#24292F', icon: '🐙', arrow: 'fetch' },
               { label: 'Ingest', sub: 'File fetch + parse', bg: '#1F3864', icon: '⬇', arrow: 'stream' },
-              { label: 'Groq LLM', sub: 'Llama 3.3 70B', bg: '#1C7293', icon: '🤖', arrow: 'save' },
+              { label: 'LLM Engine', sub: 'Groq · Anthropic', bg: '#1C7293', icon: '🤖', arrow: 'save' },
               { label: 'Neon DB', sub: 'PostgreSQL', bg: '#00875A', icon: '🗄', arrow: 'render' },
               { label: 'Hub UI', sub: 'Next.js', bg: '#2E4D7B', icon: '📊', arrow: '' },
             ].map((box, i, arr) => (
@@ -260,9 +260,9 @@ export default function HomePage() {
       <section style={{ background: '#FFF8EC', borderTop: '1px solid #FDE68A', borderBottom: '1px solid #FDE68A', padding: '60px 32px' }}>
         <div style={{ maxWidth: 860, margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: '#92400E', textTransform: 'uppercase', marginBottom: 10 }}>Demo Mode Constraints</div>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: '#92400E', textTransform: 'uppercase', marginBottom: 10 }}>Prototype Constraints</div>
             <h2 style={{ fontSize: 28, fontWeight: 800, color: '#78350F', margin: 0 }}>Current Limitations</h2>
-            <p style={{ fontSize: 14, color: '#92400E', marginTop: 8 }}>This demo uses Groq API without a CAST static analysis engine. Understand these constraints before relying on output.</p>
+            <p style={{ fontSize: 14, color: '#92400E', marginTop: 8 }}>This prototype does not include a CAST static analysis engine. Understand these constraints before relying on output.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 14 }}>
             {LIMITATIONS.map((l, i) => (
@@ -307,7 +307,7 @@ export default function HomePage() {
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', margin: '0 0 32px' }}>Connect a GitHub repository and get dependency maps, business rules, and modernization specs in under 60 seconds.</p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/programs" style={{ background: '#fff', color: '#1F3864', padding: '14px 40px', borderRadius: 8, fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-            Launch Demo →
+            Explore Prototype →
           </Link>
           <Link href="/admin" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '14px 32px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Admin / Maintenance
@@ -322,7 +322,7 @@ export default function HomePage() {
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>— Illustrative Prototype · Not for production use</span>
         </div>
         <div style={{ display: 'flex', gap: 20 }}>
-          {([['Demo', '/programs'], ['Architecture', '/architecture'], ['Admin', '/admin']] as const).map(([label, href]) => (
+          {([['Prototype', '/programs'], ['Architecture', '/architecture'], ['Admin', '/admin']] as const).map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{label}</Link>
           ))}
         </div>
