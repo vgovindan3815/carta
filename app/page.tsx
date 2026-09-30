@@ -109,7 +109,10 @@ export default function HomePage() {
           <Link href="/programs" style={{ background: 'linear-gradient(135deg, #1C7293, #4DAAC7)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 4px 20px rgba(28,114,147,0.5)' }}>
             Launch Demo →
           </Link>
-          <a href="#how-it-works" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+          <Link href="/architecture" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
+            Architecture →
+          </Link>
+          <a href="#how-it-works" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', color: 'rgba(255,255,255,0.75)', padding: '14px 28px', borderRadius: 8, fontWeight: 500, fontSize: 14, textDecoration: 'none' }}>
             How it works ↓
           </a>
         </div>
@@ -319,7 +322,7 @@ export default function HomePage() {
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>— Illustrative Prototype · Not for production use</span>
         </div>
         <div style={{ display: 'flex', gap: 20 }}>
-          {([['Demo', '/programs'], ['Admin', '/admin']] as const).map(([label, href]) => (
+          {([['Demo', '/programs'], ['Architecture', '/architecture'], ['Admin', '/admin']] as const).map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{label}</Link>
           ))}
         </div>
