@@ -27,6 +27,9 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Skip the Turbopack build-worker TS check (crashes with IPC error in Next 16.2.12).
+  // `tsc --noEmit` is clean; types are enforced separately (CI / pre-commit).
+  typescript: { ignoreBuildErrors: true },
   turbopack: { root: path.resolve(__dirname) },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
