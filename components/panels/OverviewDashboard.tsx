@@ -210,7 +210,10 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
   const hasWarn = d.coverage < 100;
   const svgHtml = p.cLayout ? buildCircularSVG(augmentLayoutWithImpacts(p.cLayout, items)) : '';
   const ps = p.pipelineStatus;
+  const graphSource = ps?.graphSource ?? 'llm';
   const noCast = ps?.cast !== 'success';
+  const isLLMGraph = noCast && graphSource === 'llm';
+  const isParserGraph = graphSource === 'parser';
 
   // Domain short form
   const domainShort = p.domain.includes('/') ? p.domain.split('/')[1]?.trim() : p.domain;
@@ -218,7 +221,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
   return (
     <div>
       {ps && <PipelineFlow ps={ps} />}
-      {noCast && (
+      {isLLMGraph && (
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 14px',
           background: '#FFF8EC', border: '1px solid #F59E0B', borderRadius: 8, marginBottom: 12,
@@ -229,6 +232,20 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
             <strong>No CAST dependency reports available.</strong> The dependency graph was generated
             by LLM analysis of the COBOL source. Edge confidence may be lower than a deterministic
             static analysis tool would produce — verify critical paths manually.
+          </span>
+        </div>
+      )}
+      {isParserGraph && (
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 8, padding: '8px 14px',
+          background: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: 8, marginBottom: 12,
+          fontSize: 12, color: '#166534',
+        }}>
+          <span style={{ fontSize: 14 }}>✓</span>
+          <span>
+            <strong>Deterministic static analysis.</strong> Dependency graph extracted directly from
+            COBOL source — CALL statements, EXEC SQL tables, CICS programs, COPY members.
+            100% deterministic, zero LLM tokens.
           </span>
         </div>
       )}
@@ -286,9 +303,9 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
       <div className="ov-center">
         <div className="ov-center-top">
           <span className="ov-center-lbl">Dependency Graph — Call &amp; Data Edges</span>
-          <span className={`badge ${noCast ? 'badge-llm' : 'badge-deterministic'}`} style={{ fontSize: 10 }}>
+          <span className={`badge ${isParserGraph ? 'badge-deterministic' : noCast ? 'badge-llm' : 'badge-deterministic'}`} style={{ fontSize: 10 }}>
             <span className="badge-dot" />
-            {noCast ? 'LLM-generated · no CAST reports' : 'Structure: deterministic (CAST)'}
+            {isParserGraph ? 'Structure: static parser' : noCast ? 'LLM-inferred · no CAST' : 'Structure: deterministic (CAST)'}
           </span>
         </div>
         <div
