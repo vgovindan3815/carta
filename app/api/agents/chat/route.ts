@@ -2,7 +2,30 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 300;
 
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_PER_HOUR = 20;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(ip, { count: 1, resetAt: now + 3_600_000 });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_PER_HOUR) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Maximum 20 agent requests per hour per IP.' },
+      { status: 429, headers: { 'Retry-After': '3600' } }
+    );
+  }
+
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
   }

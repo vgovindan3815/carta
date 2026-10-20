@@ -70,13 +70,14 @@ export async function POST(req: NextRequest) {
   let repoId: string | null = null;
   if (db) {
     try {
+      const { encrypt } = await import('@/lib/crypto');
       const repoRecord = await db.createRepo({
         projectName: projectName || parsed.repo,
         githubUrl,
         owner: parsed.owner,
         repo: parsed.repo,
         branch: parsed.branch,
-        patEncrypted: pat ? Buffer.from(pat).toString('base64') : undefined,
+        patEncrypted: pat ? encrypt(pat) : undefined,
       });
       repoId = repoRecord.id;
     } catch (e) {

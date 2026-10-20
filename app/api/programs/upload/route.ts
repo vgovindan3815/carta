@@ -89,17 +89,37 @@ interface ExtractedFile {
  * Extract all source files from a ZIP buffer.
  * Handles extensionless legacy files via content detection.
  */
+const MAX_ZIP_ENTRIES = 10_000;
+const MAX_DECOMPRESSED_BYTES = 200 * 1024 * 1024; // 200 MB
+const MAX_SINGLE_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB
+
 function extractFromZip(buffer: Buffer): ExtractedFile[] {
   const zip = new AdmZip(buffer);
-  const results: ExtractedFile[] = [];
+  const entries = zip.getEntries();
 
-  for (const entry of zip.getEntries()) {
+  if (entries.length > MAX_ZIP_ENTRIES) {
+    throw new Error(`ZIP contains too many entries (${entries.length}; limit ${MAX_ZIP_ENTRIES})`);
+  }
+
+  const results: ExtractedFile[] = [];
+  let totalDecompressed = 0;
+
+  for (const entry of entries) {
     if (entry.isDirectory) continue;
 
     const fullPath = entry.entryName;
-    // Skip macOS metadata and hidden files
+    // Reject path traversal attempts
+    if (fullPath.includes('..') || fullPath.startsWith('/')) continue;
     if (fullPath.includes('__MACOSX') || fullPath.includes('.DS_Store')) continue;
     if (fullPath.split('/').some((part) => part.startsWith('.'))) continue;
+
+    const uncompressedSize = entry.header.size;
+    if (uncompressedSize > MAX_SINGLE_FILE_BYTES) continue; // skip oversized individual files
+
+    totalDecompressed += uncompressedSize;
+    if (totalDecompressed > MAX_DECOMPRESSED_BYTES) {
+      throw new Error('ZIP decompressed size exceeds the 200 MB limit');
+    }
 
     const basename = fullPath.split('/').pop() ?? fullPath;
     let source: string;
@@ -131,6 +151,11 @@ export async function POST(req: NextRequest) {
 
     if (!rawFiles || rawFiles.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
+    }
+
+    const totalBytes = rawFiles.reduce((sum, f) => sum + f.size, 0);
+    if (totalBytes > 50 * 1024 * 1024) {
+      return NextResponse.json({ error: 'Total upload exceeds the 50 MB limit' }, { status: 413 });
     }
 
     // Expand ZIPs; classify everything else

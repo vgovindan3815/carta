@@ -439,18 +439,12 @@ export async function appendJobLog(
   line: { lv: string; t: string; ts: number }
 ): Promise<void> {
   const db = getDb();
-  // Fetch existing log, append, then update.
-  // Note: For high-throughput scenarios, prefer a jsonb_array_append DB function.
-  const [job] = await db
-    .select({ log: schema.analysisJobs.log })
-    .from(schema.analysisJobs)
-    .where(eq(schema.analysisJobs.id, id))
-    .limit(1);
-
-  const existing = (job?.log as { lv: string; t: string; ts: number }[]) ?? [];
+  // Atomic jsonb append — avoids read-then-write race condition under concurrent SSE consumers
   await db
     .update(schema.analysisJobs)
-    .set({ log: [...existing, line] })
+    .set({
+      log: sql`COALESCE(${schema.analysisJobs.log}, '[]'::jsonb) || ${JSON.stringify([line])}::jsonb`,
+    })
     .where(eq(schema.analysisJobs.id, id));
 }
 
@@ -880,28 +874,33 @@ export async function getJclCallers(
   repoId: string
 ): Promise<string[]> {
   const db = getDb();
-  // Find all JCL programs in this repo
   const jclProgs = await db
     .select()
     .from(schema.programs)
-    .where(
-      and(
-        eq(schema.programs.repoId, repoId),
-        inArray(schema.programs.language, ['JCL', 'PROC'])
-      )
-    );
+    .where(and(eq(schema.programs.repoId, repoId), inArray(schema.programs.language, ['JCL', 'PROC'])));
 
-  const callers: string[] = [];
+  if (!jclProgs.length) return [];
+
+  // Batch-fetch all dep graphs in one query instead of one per program
+  const jclProgIds = jclProgs.map((p) => p.id);
+  const depGraphRows = await db
+    .select()
+    .from(schema.depGraphs)
+    .where(inArray(schema.depGraphs.programId, jclProgIds));
+
+  // Keep only the latest dep graph per program
+  const latestByProg = new Map<string, typeof depGraphRows[0]>();
+  for (const dg of depGraphRows) {
+    const existing = latestByProg.get(dg.programId);
+    if (!existing || dg.createdAt > existing.createdAt) {
+      latestByProg.set(dg.programId, dg);
+    }
+  }
+
   const upperName = programName.toUpperCase();
-
+  const callers: string[] = [];
   for (const jclProg of jclProgs) {
-    const [dg] = await db
-      .select()
-      .from(schema.depGraphs)
-      .where(eq(schema.depGraphs.programId, jclProg.id))
-      .orderBy(desc(schema.depGraphs.createdAt))
-      .limit(1);
-
+    const dg = latestByProg.get(jclProg.id);
     if (!dg) continue;
     const edges = dg.edges as Array<{ from: string; to: string; type: string }>;
     if (edges.some((e) => e.to.toUpperCase() === upperName)) {

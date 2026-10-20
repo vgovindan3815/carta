@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 import type { ProgramData } from '@/lib/parser/types';
 
 interface Props {
@@ -234,7 +235,7 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
                 <span className="spec-num">{sec.num}</span>
                 {sec.title}
               </h3>
-              <div dangerouslySetInnerHTML={{ __html: sec.content }} />
+              <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(sec.content) }} />
             </div>
           ))}
 

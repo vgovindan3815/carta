@@ -14,6 +14,10 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'No database configured' }, { status: 503 });
+  }
+
   const { id: scopeId } = await params;
 
   const stream = new ReadableStream({

@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { checkAdminAuth, unauthorizedResponse } from '@/lib/auth';
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -7,12 +8,13 @@ export async function GET() {
   try {
     const { getAdminStats } = await import('@/lib/db/queries');
     return NextResponse.json(await getAdminStats());
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  if (!checkAdminAuth(req)) return unauthorizedResponse();
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({ error: 'No database configured' }, { status: 503 });
   }
@@ -20,7 +22,7 @@ export async function DELETE() {
     const { clearAllProjects } = await import('@/lib/db/queries');
     await clearAllProjects();
     return NextResponse.json({ ok: true });
-  } catch (e) {
-    return NextResponse.json({ error: String(e) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

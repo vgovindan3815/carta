@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { XMLParser } from 'fast-xml-parser';
 import { createRepo, upsertProgram, createJob, updateJob, saveDepGraph, saveBizRules, saveChangeImpact, saveModSpec } from '@/lib/db/queries';
 import { layoutCircular } from '@/lib/llm';
 import type { GraphNode, GraphEdge, CircularLayout } from '@/lib/parser/types';
@@ -11,13 +12,22 @@ import type { GraphNode, GraphEdge, CircularLayout } from '@/lib/parser/types';
 // Parses the report, upserts programs and dep graphs in the DB.
 // ---------------------------------------------------------------------------
 
+const MAX_CAST_FILE_BYTES = 20 * 1024 * 1024; // 20 MB
+
 export async function POST(req: NextRequest) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'No database configured' }, { status: 503 });
+  }
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const projectName = (formData.get('name') as string | null) || 'CAST Import';
 
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+
+    if (file.size > MAX_CAST_FILE_BYTES) {
+      return NextResponse.json({ error: 'File exceeds the 20 MB limit' }, { status: 413 });
+    }
 
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!['json', 'xml'].includes(ext ?? '')) {
@@ -191,65 +201,51 @@ function parseJson(text: string): CastProgram[] {
 }
 
 // ---------------------------------------------------------------------------
-// XML parser — minimal hand-rolled parser for the CAST-compatible XML format
+// XML parser — uses fast-xml-parser (safe, no ReDoS risk)
 // ---------------------------------------------------------------------------
 
 function parseXml(text: string): CastProgram[] {
-  const programs: CastProgram[] = [];
-  const progRx = /<program\b[^>]*>([\s\S]*?)<\/program>/gi;
-  let pm: RegExpExecArray | null;
-
-  while ((pm = progRx.exec(text)) !== null) {
-    const block = pm[1];
-    const get = (tag: string) => {
-      const m = new RegExp(`<${tag}>([^<]*)</${tag}>`, 'i').exec(block);
-      return m ? m[1].trim() : undefined;
-    };
-
-    const name = get('name') ?? '';
-    if (!name) continue;
-
-    const nodes: CastProgram['nodes'] = [];
-    const edges: CastProgram['edges'] = [];
-
-    const nodeRx = /<node\b[^>]*>([\s\S]*?)<\/node>/gi;
-    let nm: RegExpExecArray | null;
-    while ((nm = nodeRx.exec(block)) !== null) {
-      const nb = nm[1];
-      const nget = (t: string) => new RegExp(`<${t}>([^<]*)</${t}>`, 'i').exec(nb)?.[1].trim();
-      const id = nget('id') ?? '';
-      if (id) nodes.push({ id, label: nget('label') ?? id, sub: nget('sub'), type: nget('type') });
-    }
-
-    const edgeRx = /<edge\b[^>]*>([\s\S]*?)<\/edge>/gi;
-    let em: RegExpExecArray | null;
-    while ((em = edgeRx.exec(block)) !== null) {
-      const eb = em[1];
-      const eget = (t: string) => new RegExp(`<${t}>([^<]*)</${t}>`, 'i').exec(eb)?.[1].trim();
-      const to = eget('to') ?? '';
-      if (to) edges.push({
-        from: eget('from'),
-        to,
-        type: eget('type') ?? 'call',
-        label: eget('label'),
-        confidence: eget('confidence') ? Number(eget('confidence')) : 100,
-      });
-    }
-
-    programs.push({
-      name,
-      language: get('language') ?? 'COBOL',
-      loc: Number(get('loc') ?? 0),
-      filePath: get('filePath'),
-      domain: get('domain'),
-      desc: get('desc'),
-      coveragePct: get('coveragePct') ? Number(get('coveragePct')) : 100,
-      nodes,
-      edges,
-    });
+  const parser = new XMLParser({ ignoreAttributes: false, isArray: (name) => ['program', 'node', 'edge'].includes(name) });
+  let root: Record<string, unknown>;
+  try {
+    root = parser.parse(text) as Record<string, unknown>;
+  } catch {
+    return [];
   }
 
-  return programs;
+  const report = (root.report ?? root) as Record<string, unknown>;
+  const rawPrograms = (report.programs as Record<string, unknown>)?.program ??
+    report.program ?? [];
+  if (!Array.isArray(rawPrograms)) return [];
+
+  return (rawPrograms as Record<string, unknown>[]).map((p) => {
+    const str = (v: unknown) => (v !== undefined && v !== null ? String(v).trim() : undefined);
+    const rawNodes = ((p.nodes as Record<string, unknown>)?.node ?? []) as Record<string, unknown>[];
+    const rawEdges = ((p.edges as Record<string, unknown>)?.edge ?? []) as Record<string, unknown>[];
+
+    return {
+      name: str(p.name) ?? '',
+      language: str(p.language) ?? 'COBOL',
+      loc: Number(p.loc ?? 0),
+      filePath: str(p.filePath),
+      domain: str(p.domain),
+      desc: str(p.desc),
+      coveragePct: p.coveragePct !== undefined ? Number(p.coveragePct) : 100,
+      nodes: rawNodes.map((n) => ({
+        id: str(n.id) ?? '',
+        label: str(n.label) ?? str(n.id) ?? '',
+        sub: str(n.sub),
+        type: str(n.type),
+      })).filter((n) => n.id),
+      edges: rawEdges.map((e) => ({
+        from: str(e.from),
+        to: str(e.to) ?? '',
+        type: str(e.type) ?? 'call',
+        label: str(e.label),
+        confidence: e.confidence !== undefined ? Number(e.confidence) : 100,
+      })).filter((e) => e.to),
+    };
+  }).filter((p) => p.name);
 }
 
 // ---------------------------------------------------------------------------

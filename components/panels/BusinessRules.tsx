@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import DOMPurify from 'isomorphic-dompurify';
 import type { ProgramData } from '@/lib/parser/types';
 
 interface Props {
@@ -175,7 +176,7 @@ export default function BusinessRules({ program: p }: Props) {
                         }}>
                           {reqId}
                         </div>
-                        <div dangerouslySetInnerHTML={{ __html: rule.text }} />
+                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rule.text) }} />
                         {(rule.citations ?? []).length > 0 && (
                           <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                             {(rule.citations ?? []).map((c, ci) => (

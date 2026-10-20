@@ -1,5 +1,6 @@
 'use client';
 
+import DOMPurify from 'isomorphic-dompurify';
 import type { ProgramData, GraphNode, GraphEdge, ChangeImpactItem } from '@/lib/parser/types';
 
 type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec';
@@ -292,7 +293,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
         </div>
         <div
           className="ov-graph-area"
-          dangerouslySetInnerHTML={{ __html: svgHtml }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(svgHtml, { USE_PROFILES: { svg: true, svgFilters: true } }) }}
         />
         <div className="ov-center-legend">
           <div className="ov-leg-item">
@@ -341,7 +342,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
 
         <div
           className="ov-narrative"
-          dangerouslySetInnerHTML={{ __html: p.overviewNarrative ?? '' }}
+          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(p.overviewNarrative ?? '') }}
         />
 
         <div className="ov-edge-list">

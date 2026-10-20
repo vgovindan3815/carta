@@ -49,9 +49,8 @@ export async function GET(
           return;
         }
 
-        const pat = repo.patEncrypted
-          ? Buffer.from(repo.patEncrypted, 'base64').toString('utf-8')
-          : undefined;
+        const { decrypt } = await import('@/lib/crypto');
+        const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
 
         await updateScanJob(jobId, { status: 'running' });
 
