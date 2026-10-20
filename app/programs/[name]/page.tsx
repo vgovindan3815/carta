@@ -71,6 +71,7 @@ export default function ProgramHubPage() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [processingMode, setProcessingMode] = useState<'full' | 'graph-only'>('full');
   const [staleness, setStaleness] = useState<{ isStale: boolean; lastAnalyzedAt: string | null } | null>(null);
+  const [graphOnlyMode, setGraphOnlyMode] = useState(false); // dep graph exists but no LLM docs
   const terminalRef = useRef<HTMLDivElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -188,7 +189,7 @@ export default function ProgramHubPage() {
           const raw = String(d.error);
           if (raw.includes('rate_limit_exceeded') || raw.includes('Rate limit reached')) {
             const retry = raw.match(/try again in ([\w\d ]+)\./i);
-            errMsg = `Groq API daily token limit reached.${retry ? ` Try again in ${retry[1].trim()}.` : ' Try again later (resets in ~24h).'}`;
+            errMsg = `LLM API rate limit or billing issue.${retry ? ` Try again in ${retry[1].trim()}.` : ' Check your LLM provider settings.'}`;
           } else if (raw.includes('context_length_exceeded') || raw.includes('context window')) {
             errMsg = 'Program exceeds LLM context window. Try a smaller file (< 1,500 LOC).';
           } else {
@@ -198,14 +199,23 @@ export default function ProgramHubPage() {
       } catch {}
       const uid = logIdRef.current++;
       setLogs((prev) => [...prev, { lv: 'ERROR', t: `<span style="color:#FCA5A5">${errMsg}</span>`, id: uid }]);
-      setStatusText('Analysis failed');
+      setStatusText('LLM failed — showing dependency graph');
       setProgress(100);
       setAnalysisError(errMsg);
-      const t2 = setTimeout(() => {
-        // If we have CAST dep graph data, show it in the hub even after LLM failure
-        setProgramData(castFallbackRef.current);
-        setPhase('hub');
-      }, 2000);
+      const t2 = setTimeout(async () => {
+        // Try to fetch whatever was saved (dep graph from Phase 1 is still in DB)
+        let data = await fetchWithRetry(3, 800);
+        if (!data) data = castFallbackRef.current;
+        if (data) {
+          setProgramData(data);
+          setGraphOnlyMode(!data.businessRules?.length && !data.changeImpact?.items?.length);
+          setPhase('hub');
+          setActiveTab('dependency');
+        } else {
+          // Nothing in DB — keep error screen
+          setPhase('hub');
+        }
+      }, 1500);
       timerRefs.current.push(t2);
     });
 
@@ -313,9 +323,12 @@ export default function ProgramHubPage() {
         setActiveTab('overview');
         fetchStaleness();
       } else if (existing && castOnly) {
-        // CAST dep graph exists but no LLM analysis yet — run LLM chains
-        castFallbackRef.current = existing;
-        startProcessing();
+        // Dep graph exists but no LLM docs yet — show hub, let user trigger LLM explicitly
+        setProgramData(existing);
+        setIsFromCache(false);
+        setGraphOnlyMode(true);
+        setPhase('hub');
+        setActiveTab('dependency');
       } else {
         // Program exists but not yet analyzed — run full pipeline
         startProcessing();
@@ -508,6 +521,51 @@ export default function ProgramHubPage() {
         <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>⚙ LLM</Link>
         <span className="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
       </header>
+
+      {/* Banner: dep graph exists but LLM docs not yet generated */}
+      {graphOnlyMode && (
+        <div style={{
+          background: 'linear-gradient(90deg, #EEF2FF 0%, #F0F9FF 100%)',
+          borderBottom: '1px solid #C7D2FE',
+          padding: '10px 20px',
+          display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 16 }}>🔗</span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <span style={{ fontSize: 13, color: '#1F3864', fontWeight: 700 }}>
+              Dependency graph ready — LLM documentation not yet generated
+            </span>
+            <span style={{ fontSize: 12, color: '#6B7280', marginLeft: 10 }}>
+              Business rules, change impact and modernization spec require LLM analysis
+            </span>
+          </div>
+          <button
+            onClick={runGraphOnly}
+            title="Re-run static parser to refresh the dependency graph"
+            style={{
+              background: '#fff', color: '#4F46E5',
+              border: '1.5px solid #C7D2FE', borderRadius: 6,
+              padding: '6px 16px', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <span style={{ fontSize: 11, background: '#EEF2FF', color: '#6366F1', padding: '1px 5px', borderRadius: 3, fontWeight: 800, marginRight: 5 }}>0 tokens</span>
+            Refresh Graph
+          </button>
+          <button
+            onClick={() => { setGraphOnlyMode(false); reanalyze(); }}
+            title="Run full analysis: static parser + business rules + change impact + modernization spec"
+            style={{
+              background: 'linear-gradient(135deg, #1F3864, #1C7293)',
+              color: '#fff', border: 'none', borderRadius: 6,
+              padding: '6px 18px', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            ✦ Generate Documentation
+          </button>
+        </div>
+      )}
 
       {isFromCache && (
         <div style={{
