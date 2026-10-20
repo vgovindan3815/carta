@@ -69,6 +69,8 @@ export default function ProgramHubPage() {
   const [statusText, setStatusText] = useState('Initialising analysis engine…');
   const [isFromCache, setIsFromCache] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [processingMode, setProcessingMode] = useState<'full' | 'graph-only'>('full');
+  const [staleness, setStaleness] = useState<{ isStale: boolean; lastAnalyzedAt: string | null } | null>(null);
   const terminalRef = useRef<HTMLDivElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -255,10 +257,43 @@ export default function ProgramHubPage() {
     setIsFromCache(false);
     setProgramData(null);
     setPhase('processing');
+    setProcessingMode('full');
     setLogs([]);
     setProgress(0);
     setStatusText('Initialising analysis engine…');
     startProcessing();
+  }
+
+  async function runGraphOnly() {
+    logIdRef.current = 0;
+    setAnalysisError(null);
+    setIsFromCache(false);
+    setProgramData(null);
+    setPhase('processing');
+    setProcessingMode('graph-only');
+    setLogs([]);
+    setProgress(0);
+    setStatusText('Running static analysis…');
+
+    try {
+      const res = await fetch(`/api/programs/${name}/graph-only`, { method: 'POST' });
+      if (res.ok) {
+        const { jobId } = await res.json();
+        if (jobId) { openSSE(jobId); return; }
+      }
+    } catch { /* fall through */ }
+
+    runDemoSimulation();
+  }
+
+  async function fetchStaleness() {
+    try {
+      const res = await fetch(`/api/programs/${name}/staleness`);
+      if (res.ok) {
+        const data = await res.json();
+        setStaleness({ isStale: data.isStale, lastAnalyzedAt: data.lastAnalyzedAt });
+      }
+    } catch { /* non-fatal */ }
   }
 
   useEffect(() => {
@@ -276,6 +311,7 @@ export default function ProgramHubPage() {
         setIsFromCache(true);
         setPhase('hub');
         setActiveTab('overview');
+        fetchStaleness();
       } else if (existing && castOnly) {
         // CAST dep graph exists but no LLM analysis yet — run LLM chains
         castFallbackRef.current = existing;
@@ -317,7 +353,12 @@ export default function ProgramHubPage() {
                 <div>
                   <div className="proc-prog-name">{name}</div>
                   <div className="proc-subtitle">
-                    MAVEN Analysis Engine &nbsp;·&nbsp; {analysisError ? <span style={{ color: '#FCA5A5' }}>Pipeline failed</span> : 'Running analysis'}
+                    MAVEN Analysis Engine &nbsp;·&nbsp;{' '}
+                    {analysisError
+                      ? <span style={{ color: '#FCA5A5' }}>Pipeline failed</span>
+                      : processingMode === 'graph-only'
+                        ? 'Static dependency analysis (no LLM)'
+                        : 'Full analysis — static parser + LLM'}
                   </div>
                 </div>
                 <button className="btn-ghost-light" onClick={skipProcessing}>
@@ -469,16 +510,53 @@ export default function ProgramHubPage() {
       </header>
 
       {isFromCache && (
-        <div style={{ background: '#EBF4FF', borderBottom: '1px solid #BFDBFE', padding: '8px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 14 }}>💾</span>
-          <span style={{ fontSize: 12, color: '#1D4ED8', flex: 1 }}>
-            Showing previously generated analysis. Source code changes since last scan will not be reflected until you refresh.
-          </span>
+        <div style={{
+          background: staleness?.isStale ? '#FFFBEB' : '#EBF4FF',
+          borderBottom: `1px solid ${staleness?.isStale ? '#FDE68A' : '#BFDBFE'}`,
+          padding: '8px 20px',
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        }}>
+          <span style={{ fontSize: 13 }}>{staleness?.isStale ? '⚠️' : '💾'}</span>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <span style={{ fontSize: 12, color: staleness?.isStale ? '#92400E' : '#1D4ED8', fontWeight: 600 }}>
+              {staleness?.isStale
+                ? 'Source has changed since last analysis'
+                : 'Showing cached analysis'}
+            </span>
+            {staleness?.lastAnalyzedAt && (
+              <span style={{ fontSize: 11, color: '#6B7280', marginLeft: 8 }}>
+                Last run: {new Date(staleness.lastAnalyzedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+          {/* Graph-only refresh — fast, free, static parser only */}
+          <button
+            onClick={runGraphOnly}
+            title="Re-run static COBOL parser only — fast, zero tokens, updates dependency graph"
+            style={{
+              background: '#fff',
+              color: '#1F3864',
+              border: '1.5px solid #C7D2FE',
+              borderRadius: 6, padding: '5px 14px',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}
+          >
+            <span style={{ fontSize: 11, background: '#EEF2FF', color: '#6366F1', padding: '1px 5px', borderRadius: 3, fontWeight: 800 }}>0 tokens</span>
+            ↺ Refresh Graph
+          </button>
+          {/* Full re-analysis — static parser + all LLM chains */}
           <button
             onClick={reanalyze}
-            style={{ background: '#1D4ED8', color: '#fff', border: 'none', borderRadius: 6, padding: '5px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}
+            title="Re-run full pipeline: static parser + business rules + change impact + modernization spec"
+            style={{
+              background: '#1D4ED8', color: '#fff',
+              border: 'none', borderRadius: 6,
+              padding: '5px 14px', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', flexShrink: 0,
+            }}
           >
-            ↺ Refresh Analysis
+            ↺ Full Re-analysis
           </button>
         </div>
       )}
