@@ -31,6 +31,7 @@ export async function GET(
         const { listCobolFiles, fetchFileContent } = await import('@/lib/github');
         const { parseCobolFile } = await import('@/lib/parser/cobol');
         const { parseJclFile } = await import('@/lib/parser/jcl');
+        const { parsePliFile } = await import('@/lib/parser/pli');
         const { parseCopybook } = await import('@/lib/parser/copybook');
 
         // Load the repo record to get owner/repo/branch/pat
@@ -102,7 +103,7 @@ export async function GET(
                   file.path
                     .split('/')
                     .pop()
-                    ?.replace(/\.(cbl|cob|cobol|asm|hlasm|jcl|proc)$/i, '')
+                    ?.replace(/\.(cbl|cob|cobol|asm|hlasm|jcl|proc|pl1|pli)$/i, '')
                     .toUpperCase() ?? file.path;
                 let loc = content.split('\n').length;
                 const language: string =
@@ -112,10 +113,16 @@ export async function GET(
                     ? 'JCL'
                     : file.language === 'PROC'
                     ? 'PROC'
+                    : file.language === 'PLI'
+                    ? 'PLI'
                     : 'COBOL';
 
                 try {
-                  if (file.language === 'COBOL' || file.language === 'HLASM') {
+                  if (file.language === 'PLI') {
+                    const parsed = parsePliFile(file.path, content);
+                    name = parsed.name || name;
+                    loc = parsed.loc || loc;
+                  } else if (file.language === 'COBOL' || file.language === 'HLASM') {
                     const parsed = parseCobolFile(file.path, content);
                     name = parsed.name || name;
                     loc = parsed.loc || loc;

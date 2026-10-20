@@ -41,6 +41,7 @@ export async function GET(
         } = await import('@/lib/db/queries');
         const { parseCobolFile } = await import('@/lib/parser/cobol');
         const { parseJclFile } = await import('@/lib/parser/jcl');
+        const { parsePliFile } = await import('@/lib/parser/pli');
         const { findProgramSource } = await import('@/lib/github');
         const { decrypt } = await import('@/lib/crypto');
 
@@ -101,11 +102,20 @@ export async function GET(
         await saveProgramSource(prog.id, sourceText);
 
         // Run static parser
-        const isJcl = /\.(jcl|proc)$/i.test(filename) ||
+        const isPli = /\.(pl1|pli)$/i.test(filename) ||
+          prog.language?.toUpperCase() === 'PLI' ||
+          /^\s*\w+\s*:\s*(?:PROCEDURE|PROC)\b/i.test(sourceText.slice(0, 500));
+        const isJcl = !isPli && (
+          /\.(jcl|proc)$/i.test(filename) ||
           prog.language?.toUpperCase() === 'JCL' || prog.language?.toUpperCase() === 'PROC' ||
-          /^\/\//.test(sourceText.trimStart());
+          /^\/\//.test(sourceText.trimStart())
+        );
 
-        const parsed = isJcl ? parseJclFile(filename, sourceText) : parseCobolFile(filename, sourceText);
+        const parsed = isPli
+          ? parsePliFile(filename, sourceText)
+          : isJcl
+          ? parseJclFile(filename, sourceText)
+          : parseCobolFile(filename, sourceText);
 
         await persist('INFO', `Language: <span class="hl">${parsed.language}</span> · LOC: <span class="hl">${parsed.loc.toLocaleString()}</span>`);
 

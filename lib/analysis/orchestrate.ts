@@ -1,5 +1,6 @@
 import type { SseLogLine, ParsedCobolProgram, GraphNode, GraphEdge } from '../parser/types';
 import { parseCobolFile } from '../parser/cobol';
+import { parsePliFile } from '../parser/pli';
 import { createLLMProvider } from '../llm/index';
 
 import type { LLMConfig } from '../llm/types';
@@ -99,7 +100,8 @@ export async function runAnalysisPipeline(
     await emit(jobId, info(`LLM provider: <span class="hl">${providerName}</span> · Model: <span class="hl">${modelName}</span>`), onEvent);
     await emit(jobId, info(`Starting deterministic analysis of <span class="hl">${programName}</span>…`), onEvent);
 
-    const parsed = parseCobolFile(filename, source);
+    const isPli = /\.(pl1|pli)$/i.test(filename) || (await getProgramById(programId))?.language?.toUpperCase() === 'PLI';
+    const parsed = isPli ? parsePliFile(filename, source) : parseCobolFile(filename, source);
 
     await emit(jobId, info(`Detected language: <span class="hl">${parsed.language}</span> · LOC: <span class="hl">${parsed.loc.toLocaleString()}</span>`), onEvent);
 

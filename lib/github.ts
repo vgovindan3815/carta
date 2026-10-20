@@ -8,7 +8,7 @@ export interface RepoFile {
   path: string;
   sha: string;
   size: number;
-  language: 'COBOL' | 'HLASM' | 'JCL' | 'PROC' | 'CPY' | 'other';
+  language: 'COBOL' | 'HLASM' | 'JCL' | 'PROC' | 'CPY' | 'PLI' | 'other';
 }
 
 // ---------------------------------------------------------------------------
@@ -27,6 +27,7 @@ function classifyFile(path: string): RepoFile['language'] {
   if (lower.endsWith('.jcl')) return 'JCL';
   if (lower.endsWith('.proc')) return 'PROC';
   if (lower.endsWith('.cpy')) return 'CPY';
+  if (lower.endsWith('.pl1') || lower.endsWith('.pli')) return 'PLI';
   if (lower.endsWith('.cbl') || lower.endsWith('.cob') || lower.endsWith('.cobol')) return 'COBOL';
   return 'other';
 }

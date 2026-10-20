@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 
 // ---------------------------------------------------------------------------
@@ -231,6 +231,166 @@ function AgentCard({ agent }: { agent: AgentDef }) {
 }
 
 // ---------------------------------------------------------------------------
+// Deterministic Analysis Tool
+// ---------------------------------------------------------------------------
+
+function DeterministicTool() {
+  const [module, setModule] = useState('');
+  const [running, setRunning] = useState(false);
+  const [logs, setLogs] = useState<{ lv: string; t: string }[]>([]);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const esRef = useRef<EventSource | null>(null);
+  const logEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (logEndRef.current) logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
+
+  function handleRun() {
+    const name = module.trim().toUpperCase();
+    if (!name || running) return;
+    setLogs([]);
+    setDone(false);
+    setError(null);
+    setRunning(true);
+
+    if (esRef.current) { esRef.current.close(); esRef.current = null; }
+
+    const es = new EventSource(`/api/programs/${encodeURIComponent(name)}/graph-only`);
+    esRef.current = es;
+
+    es.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data) as { lv: string; t: string };
+        setLogs((prev) => [...prev, d]);
+      } catch { /* ignore */ }
+    };
+    es.addEventListener('done', () => {
+      setDone(true);
+      setRunning(false);
+      es.close();
+      esRef.current = null;
+    });
+    es.addEventListener('error', (e) => {
+      try {
+        const d = JSON.parse((e as MessageEvent).data) as { error: string };
+        setError(d.error ?? 'Unknown error');
+      } catch {
+        setError('Stream error');
+      }
+      setRunning(false);
+      es.close();
+      esRef.current = null;
+    });
+  }
+
+  const lvColor: Record<string, string> = {
+    INFO: '#93C5FD', CALL: '#34D399', SQL: '#FCD34D',
+    DATA: '#A78BFA', WARN: '#F87171', LLM: '#F472B6', DONE: '#86EFAC',
+  };
+
+  return (
+    <div style={{
+      background: '#0F172A',
+      border: '1.5px solid #1E3A5F',
+      borderRadius: 12,
+      padding: 24,
+      marginBottom: 40,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <span style={{ fontSize: 20 }}>🔍</span>
+        <span style={{ fontWeight: 700, fontSize: 15, color: '#E2E8F0' }}>Deterministic Analysis Tool</span>
+        <span style={{
+          background: '#1E3A5F', color: '#93C5FD',
+          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, letterSpacing: 0.5,
+        }}>
+          0 TOKENS · COBOL / JCL / PL/I / HLASM
+        </span>
+      </div>
+      <p style={{ margin: '0 0 16px', fontSize: 12, color: '#94A3B8', lineHeight: 1.6 }}>
+        Runs the static parser on a registered module — extracts call graph, SQL, CICS, and file dependencies with no LLM calls. Supports COBOL, JCL/PROC, PL/I, and HLASM.
+      </p>
+
+      {/* Input row */}
+      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+        <input
+          value={module}
+          onChange={(e) => setModule(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleRun()}
+          placeholder="Module name (e.g. ACCTPAY, PAYROLL01)"
+          style={{
+            flex: 1, background: '#1E293B', border: '1px solid #334155',
+            borderRadius: 7, padding: '8px 12px', color: '#E2E8F0',
+            fontSize: 13, fontFamily: 'Consolas, monospace', outline: 'none',
+          }}
+        />
+        <button
+          onClick={handleRun}
+          disabled={running || !module.trim()}
+          style={{
+            padding: '8px 20px',
+            background: running ? '#374151' : '#1F3864',
+            color: running ? '#6B7280' : '#fff',
+            border: 'none', borderRadius: 7,
+            fontSize: 13, fontWeight: 600, cursor: running ? 'not-allowed' : 'pointer',
+            transition: 'background 0.15s',
+          }}
+        >
+          {running ? 'Analysing…' : 'Run Analysis'}
+        </button>
+      </div>
+
+      {/* Log terminal */}
+      {(logs.length > 0 || running || error) && (
+        <div style={{
+          background: '#020617', borderRadius: 8, padding: '12px 14px',
+          fontFamily: 'Consolas, monospace', fontSize: 12, lineHeight: 1.7,
+          maxHeight: 280, overflowY: 'auto',
+          border: '1px solid #1E293B',
+        }}>
+          {logs.map((l, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8 }}>
+              <span style={{ color: lvColor[l.lv] ?? '#94A3B8', minWidth: 38, fontSize: 11 }}>{l.lv}</span>
+              <span
+                style={{ color: '#CBD5E1' }}
+                dangerouslySetInnerHTML={{ __html: l.t }}
+              />
+            </div>
+          ))}
+          {running && (
+            <div style={{ color: '#475569', marginTop: 4 }}>▌</div>
+          )}
+          {error && (
+            <div style={{ color: '#F87171', marginTop: 4 }}>ERROR: {error}</div>
+          )}
+          <div ref={logEndRef} />
+        </div>
+      )}
+
+      {/* Done state */}
+      {done && !error && (
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: '#86EFAC', fontSize: 13, fontWeight: 600 }}>
+            ✓ Static graph saved
+          </span>
+          <Link
+            href={`/programs/${encodeURIComponent(module.trim().toUpperCase())}`}
+            style={{
+              color: '#93C5FD', fontSize: 12, fontWeight: 600,
+              textDecoration: 'none', border: '1px solid #1E3A5F',
+              padding: '3px 10px', borderRadius: 6,
+            }}
+          >
+            View Program →
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
 
@@ -308,6 +468,9 @@ export default function AgentsPage() {
             <Link href="/settings" style={{ color: '#1F3864', fontWeight: 600 }}>Settings</Link>.
           </p>
         </div>
+
+        {/* Deterministic Analysis Tool */}
+        <DeterministicTool />
 
         {/* Agent grid */}
         <div style={{

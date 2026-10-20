@@ -118,7 +118,7 @@ export interface CopybookDefinition {
 
 export interface ParsedCobolProgram {
   name: string;
-  language: 'COBOL' | 'HLASM';
+  language: 'COBOL' | 'HLASM' | 'PLI';
   loc: number;
   source: string;
   graph: DependencyGraph;
