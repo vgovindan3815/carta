@@ -18,8 +18,8 @@ export const PROVIDER_MODELS: Record<LLMProvider, { id: string; label: string; d
     { id: 'o3', label: 'o3 · Most capable' },
   ],
   groq: [
-    { id: 'llama-3.1-8b-instant', label: 'Llama 3.1-8B · Fastest' },
-    { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3-70B · Recommended', default: true },
+    { id: 'llama-3.1-8b-instant', label: 'Llama 3.1-8B · Free tier', default: true },
+    { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3-70B · Paid tier' },
     { id: 'deepseek-r1-distill-llama-70b', label: 'DeepSeek R1 · Reasoning' },
   ],
 };

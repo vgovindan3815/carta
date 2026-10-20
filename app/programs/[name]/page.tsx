@@ -243,10 +243,13 @@ export default function ProgramHubPage() {
     if (!data) data = castFallbackRef.current;
     // Only fall back to demo data for known demo programs
     if (!data) data = await getDemoData(name!);
-    setIsFromCache(false);
+    // Mark as "from cache" so Refresh Graph / Full Re-analysis banner stays visible
+    setIsFromCache(!!data);
+    setGraphOnlyMode(!data?.businessRules?.length && !data?.changeImpact?.items?.length);
     setProgramData(data);
     setPhase('hub');
     setActiveTab('overview');
+    fetchStaleness();
   }
 
   async function skipProcessing() {
@@ -255,7 +258,8 @@ export default function ProgramHubPage() {
     let data = await fetchWithRetry(1); // single try on skip
     if (!data) data = castFallbackRef.current;
     if (!data) data = await getDemoData(name!);
-    setIsFromCache(false);
+    setIsFromCache(!!data);
+    setGraphOnlyMode(!data?.businessRules?.length && !data?.changeImpact?.items?.length);
     setProgramData(data);
     setPhase('hub');
     setActiveTab('overview');
