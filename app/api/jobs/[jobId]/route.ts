@@ -94,9 +94,8 @@ export async function GET(
         }
 
         if (!isLocalRepo) {
-          const pat = repo.patEncrypted
-            ? Buffer.from(repo.patEncrypted, 'base64').toString('utf-8')
-            : undefined;
+          const { decrypt } = await import('@/lib/crypto');
+          const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
 
           emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo}…` });
 
@@ -138,9 +137,7 @@ export async function GET(
           );
         }
 
-        // 8. Mark job done
         await updateJob(jobId, { status: 'completed', completedAt: new Date() });
-
         emit({}, 'done');
       } catch (e) {
         console.error('[/api/jobs SSE]', e);
