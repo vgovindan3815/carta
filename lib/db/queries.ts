@@ -624,13 +624,17 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
   const hasCastDepGraph = isCastRepo || depGraphJob?.tokensUsed === 0;
   const hasFullLLM = !!(bizRule && changeImpact);
 
+  // Graph source: CAST import → 'cast', GitHub static parser → 'parser', otherwise 'llm'
+  const graphSource: 'cast' | 'parser' | 'llm' =
+    hasCastDepGraph ? 'cast' : isGitHubRepo ? 'parser' : 'llm';
+
   // 10. Set pipelineStatus
   const pipelineStatus = {
     cast:        isCastRepo   ? 'success' : 'fail',
     github:      isGitHubRepo ? 'success' : 'skip',
     llm:         hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
     docs:        hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
-    graphSource: hasCastDepGraph ? 'cast' : 'llm',
+    graphSource,
   } as ProgramData['pipelineStatus'];
 
   // Build circular layout from the dep graph's cLayoutNodes

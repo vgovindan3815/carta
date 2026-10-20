@@ -1,7 +1,7 @@
 import type { SseLogLine, ParsedCobolProgram, GraphNode, GraphEdge } from '../parser/types';
 import { parseCobolFile } from '../parser/cobol';
 import { createLLMProvider } from '../llm/index';
-import { layoutCircular } from '../llm/layout';
+
 import type { LLMConfig } from '../llm/types';
 import {
   saveDepGraph,
@@ -79,7 +79,7 @@ export async function runAnalysisPipeline(
   onEvent: (line: SseLogLine) => void,
   llmConfig: LLMConfig = { provider: 'groq', apiKey: process.env.GROQ_API_KEY ?? '' }
 ): Promise<void> {
-  const { generateDepGraph, generateBusinessRules, generateChangeImpact, generateModuleFacts, providerName, modelName } =
+  const { generateBusinessRules, generateChangeImpact, generateModuleFacts, providerName, modelName } =
     createLLMProvider(llmConfig);
   // Mark job as running
   await updateJob(jobId, {
@@ -178,48 +178,7 @@ export async function runAnalysisPipeline(
       cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
     });
 
-    await emit(jobId, done('Phase 1 complete — deterministic graph saved'), onEvent);
-
-    // -----------------------------------------------------------------------
-    // Phase 1.5 — LLM Dependency Graph (CAST not available)
-    // -----------------------------------------------------------------------
-
-    await emit(
-      jobId,
-      { lv: 'INFO', t: 'Running LLM dependency enrichment (no static CAST graph available)…', d: 0 },
-      onEvent
-    );
-
-    let llmNodes = parsed.graph.nodes;
-    let llmEdges = parsed.graph.edges;
-    let llmCoverage = parsed.graph.coveragePct;
-
-    for await (const event of generateDepGraph(programName, source)) {
-      if ('done' in event && event.done) {
-        llmNodes = event.nodes;
-        llmEdges = event.edges;
-        llmCoverage = event.coveragePct;
-        totalTokensUsed += event.tokensUsed;
-      } else {
-        await emit(jobId, event as SseLogLine, onEvent);
-      }
-    }
-
-    // Build circular layout from LLM nodes and save
-    const llmLayout = layoutCircular(llmNodes, llmEdges);
-
-    await saveDepGraph(programId, jobId, {
-      nodes: llmNodes,
-      edges: llmEdges,
-      coveragePct: llmCoverage,
-      cLayoutNodes: llmLayout.nodes,
-    });
-
-    await emit(
-      jobId,
-      { lv: 'DONE', t: 'LLM dependency graph saved — graph source: <span class="hl">LLM (no CAST)</span>', d: 0 },
-      onEvent
-    );
+    await emit(jobId, done('Phase 1 complete — deterministic graph saved (source: static parser)'), onEvent);
 
     await updateJob(jobId, {
       phase: 'llm',
