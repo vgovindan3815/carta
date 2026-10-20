@@ -279,21 +279,58 @@ export default function ProgramHubPage() {
     setAnalysisError(null);
     setIsFromCache(false);
     setProgramData(null);
+    setGraphOnlyMode(false);
     setPhase('processing');
     setProcessingMode('graph-only');
     setLogs([]);
     setProgress(0);
     setStatusText('Running static analysis…');
 
-    try {
-      const res = await fetch(`/api/programs/${name}/graph-only`, { method: 'POST' });
-      if (res.ok) {
-        const { jobId } = await res.json();
-        if (jobId) { openSSE(jobId); return; }
-      }
-    } catch { /* fall through */ }
+    // Connect directly to the graph-only SSE endpoint — never touches /api/jobs
+    if (esRef.current) esRef.current.close();
+    const es = new EventSource(`/api/programs/${encodeURIComponent(name!)}/graph-only`);
+    esRef.current = es;
 
-    runDemoSimulation();
+    es.onmessage = (evt) => {
+      try {
+        const line = JSON.parse(evt.data) as { lv: string; t: string };
+        const uid = logIdRef.current++;
+        setLogs((prev) => [...prev, { ...line, id: uid }]);
+        if (line.lv === 'INFO' || line.lv === 'DONE') setStatusText(line.t.replace(/<[^>]+>/g, ''));
+        if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      } catch {}
+    };
+
+    es.addEventListener('done', () => {
+      es.close();
+      setProgress(100);
+      const t = setTimeout(async () => {
+        const data = await fetchWithRetry(3, 800);
+        if (data) {
+          setProgramData(data);
+          setGraphOnlyMode(!data.businessRules?.length && !data.changeImpact?.items?.length);
+          setPhase('hub');
+          setActiveTab('dependency');
+        } else {
+          enterHub();
+        }
+      }, 600);
+      timerRefs.current.push(t);
+    });
+
+    es.addEventListener('error', (evt) => {
+      es.close();
+      let errMsg = 'Static analysis failed';
+      try { const d = JSON.parse((evt as MessageEvent).data ?? '{}'); if (d.error) errMsg = d.error; } catch {}
+      const uid = logIdRef.current++;
+      setLogs((prev) => [...prev, { lv: 'ERROR', t: `<span style="color:#FCA5A5">${errMsg}</span>`, id: uid }]);
+      setProgress(100);
+      setAnalysisError(errMsg);
+      const t = setTimeout(() => { setPhase('hub'); }, 2000);
+      timerRefs.current.push(t);
+    });
+
+    es.onerror = () => { es.close(); runDemoSimulation(); };
   }
 
   async function fetchStaleness() {

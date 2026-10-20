@@ -1,147 +1,152 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 /**
- * POST /api/programs/[name]/graph-only
+ * GET /api/programs/[name]/graph-only
  *
- * Runs ONLY the static deterministic parser (Phase 1) on the program's
- * source code, saves the dependency graph to the DB, and returns { jobId }.
- * No LLM chains are executed — fast and free.
+ * Self-contained SSE stream that runs ONLY the static deterministic parser
+ * (Phase 1). No LLM is called. The dep graph is saved and a 'done' event
+ * is emitted when complete.
  *
- * The client opens GET /api/jobs/[jobId] (SSE) to stream log lines.
+ * The client connects directly to this URL — it does NOT go through
+ * /api/jobs/[jobId], which would trigger the full LLM pipeline.
  */
-export async function POST(
+export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({ error: 'Database not configured' }, { status: 503 });
-  }
-
   const { name } = await params;
 
-  const {
-    getProgram, getRepo, createJob, updateJob,
-    saveProgramSource, saveDepGraph, appendJobLog,
-    getProgramSource,
-  } = await import('@/lib/db/queries');
-  const { findProgramSource } = await import('@/lib/github');
-  const { parseCobolFile } = await import('@/lib/parser/cobol');
-  const { parseJclFile } = await import('@/lib/parser/jcl');
-  const { decrypt } = await import('@/lib/crypto');
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
 
-  const prog = await getProgram(name);
-  if (!prog) return NextResponse.json({ error: 'Program not found' }, { status: 404 });
+      function emit(event: string, data: object) {
+        const evtLine = event !== 'message' ? `event: ${event}\n` : '';
+        controller.enqueue(enc.encode(`${evtLine}data: ${JSON.stringify(data)}\n\n`));
+      }
 
-  const job = await createJob(prog.id);
-  await updateJob(job.id, { status: 'running', phase: 'parsing', progressPct: 0, startedAt: new Date() });
+      function log(lv: string, t: string) {
+        emit('message', { lv, t });
+      }
 
-  async function log(lv: string, t: string) {
-    await appendJobLog(job.id, { lv, t, ts: Date.now() });
-  }
+      try {
+        if (!process.env.DATABASE_URL) {
+          emit('done', {});
+          controller.close();
+          return;
+        }
 
-  // Fire-and-forget — client streams via SSE
-  (async () => {
-    try {
-      await log('INFO', `Starting static analysis of <span class="hl">${name}</span>…`);
+        const {
+          getProgram, getRepo, saveDepGraph, saveProgramSource, getProgramSource, createJob, updateJob, appendJobLog,
+        } = await import('@/lib/db/queries');
+        const { parseCobolFile } = await import('@/lib/parser/cobol');
+        const { parseJclFile } = await import('@/lib/parser/jcl');
+        const { findProgramSource } = await import('@/lib/github');
+        const { decrypt } = await import('@/lib/crypto');
 
-      // Fetch source from GitHub (or fall back to stored source)
-      let sourceText: string | undefined;
-      let filename = `${name}.cbl`;
+        const prog = await getProgram(name);
+        if (!prog) {
+          emit('error', { error: `Program ${name} not found` });
+          controller.close();
+          return;
+        }
 
-      if (prog.repoId) {
-        const repo = await getRepo(prog.repoId);
-        if (repo?.owner && repo?.repo) {
-          const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
-          try {
-            const fetched = await findProgramSource(
-              repo.owner, repo.repo, repo.branch ?? 'main', name, pat
-            );
-            if (fetched) {
-              sourceText = fetched;
-              filename = prog.filePath ?? filename;
-              await log('INFO', `Source fetched from GitHub — <span class="hl">${repo.owner}/${repo.repo}</span>`);
+        // Create a job record so the dep graph has a valid jobId FK
+        const job = await createJob(prog.id);
+        await updateJob(job.id, { status: 'running', phase: 'parsing', progressPct: 0, startedAt: new Date() });
+
+        async function persist(lv: string, t: string) {
+          log(lv, t);
+          try { await appendJobLog(job.id, { lv, t, ts: Date.now() }); } catch { /* non-fatal */ }
+        }
+
+        await persist('INFO', `Starting static analysis of <span class="hl">${name}</span>…`);
+
+        // Fetch source from GitHub
+        let sourceText: string | undefined;
+        let filename = prog.filePath ?? `${name}.cbl`;
+
+        if (prog.repoId) {
+          const repo = await getRepo(prog.repoId);
+          if (repo?.owner && repo?.repo && !repo.githubUrl.startsWith('cast://') && !repo.githubUrl.startsWith('upload://')) {
+            const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
+            try {
+              const fetched = await findProgramSource(repo.owner, repo.repo, repo.branch ?? 'main', name, pat);
+              if (fetched) {
+                sourceText = fetched;
+                await persist('INFO', `Source fetched from <span class="hl">${repo.owner}/${repo.repo}</span>`);
+              }
+            } catch (e) {
+              await persist('WARN', `GitHub fetch failed: ${String(e).slice(0, 100)} — trying stored source`);
             }
-          } catch (e) {
-            await log('WARN', `GitHub fetch failed: ${String(e).slice(0, 120)} — trying stored source`);
           }
         }
-      }
 
-      if (!sourceText) {
-        const stored = await getProgramSource(prog.id);
-        if (stored?.sourceText) {
-          sourceText = stored.sourceText;
-          await log('INFO', 'Using stored source (GitHub not connected or unreachable)');
+        if (!sourceText) {
+          const stored = await getProgramSource(prog.id);
+          if (stored?.sourceText) {
+            sourceText = stored.sourceText;
+            await persist('INFO', 'Using stored source');
+          }
         }
+
+        if (!sourceText) {
+          await updateJob(job.id, { status: 'failed', phase: 'error', error: 'No source available', completedAt: new Date() });
+          emit('error', { error: 'No source available — connect a GitHub repository first' });
+          controller.close();
+          return;
+        }
+
+        // Store source
+        await saveProgramSource(prog.id, sourceText);
+
+        // Run static parser
+        const isJcl = /\.(jcl|proc)$/i.test(filename) ||
+          prog.language?.toUpperCase() === 'JCL' || prog.language?.toUpperCase() === 'PROC' ||
+          /^\/\//.test(sourceText.trimStart());
+
+        const parsed = isJcl ? parseJclFile(filename, sourceText) : parseCobolFile(filename, sourceText);
+
+        await persist('INFO', `Language: <span class="hl">${parsed.language}</span> · LOC: <span class="hl">${parsed.loc.toLocaleString()}</span>`);
+
+        for (const e of parsed.graph.edges) {
+          if (e.type === 'call') await persist('CALL', `CALL <span class="hl">${e.to}</span>`);
+          else if (e.type === 'dyn') await persist('WARN', `CALL <span class="hl">${e.to}</span> <span class="dim">(dynamic, ~71% confidence)</span>`);
+          else if (e.type === 'data') await persist('SQL', `${e.label ?? 'DATA'} → <span class="hl">${e.to}</span>`);
+          else if (e.type === 'cics') await persist('DATA', `CICS → <span class="hl">${e.to}</span>${e.label ? ` <span class="dim">(${e.label})</span>` : ''}`);
+          else if (e.type === 'copy') await persist('INFO', `COPY <span class="hl">${e.to}</span>`);
+        }
+
+        await persist('INFO', `Graph: <span class="hl">${parsed.graph.nodes.length} nodes · ${parsed.graph.edges.length} edges</span> · Coverage: <span class="hl">${parsed.graph.coveragePct}%</span>`);
+
+        const cLayoutNodes = parsed.graph.nodes.filter((n) => n.cx !== undefined);
+        await saveDepGraph(prog.id, job.id, {
+          nodes: parsed.graph.nodes,
+          edges: parsed.graph.edges,
+          coveragePct: parsed.graph.coveragePct,
+          cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
+        });
+
+        await updateJob(job.id, { status: 'completed', phase: 'done', progressPct: 100, completedAt: new Date(), tokensUsed: 0 });
+        await persist('DONE', `Static graph saved — <span class="hl">0 tokens used</span> · source: deterministic parser`);
+
+        emit('done', {});
+      } catch (err) {
+        emit('error', { error: String(err) });
+        try {
+          // best-effort failure mark — job reference may not exist
+        } catch { /* ignore */ }
+      } finally {
+        controller.close();
       }
+    },
+  });
 
-      if (!sourceText) {
-        await updateJob(job.id, { status: 'failed', phase: 'error', error: 'No source available', completedAt: new Date() });
-        await log('WARN', 'No source available — connect a GitHub repository to enable static analysis');
-        return;
-      }
-
-      // Store / update source
-      await saveProgramSource(prog.id, sourceText);
-
-      // Run static parser
-      const isJcl = /\.(jcl|proc)$/i.test(filename) ||
-        (prog.language?.toUpperCase() === 'JCL') ||
-        (/^\/\//.test(sourceText.trimStart()));
-
-      const parsed = isJcl
-        ? parseJclFile(filename, sourceText)
-        : parseCobolFile(filename, sourceText);
-
-      await log('INFO', `Language: <span class="hl">${parsed.language}</span> · LOC: <span class="hl">${parsed.loc.toLocaleString()}</span>`);
-
-      const callEdges = parsed.graph.edges.filter((e) => e.type === 'call' || e.type === 'dyn');
-      const sqlEdges  = parsed.graph.edges.filter((e) => e.type === 'data');
-      const cicsEdges = parsed.graph.edges.filter((e) => e.type === 'cics');
-      const copyEdges = parsed.graph.edges.filter((e) => e.type === 'copy');
-
-      for (const e of callEdges) {
-        const isDyn = e.type === 'dyn';
-        await log(
-          isDyn ? 'WARN' : 'CALL',
-          `CALL <span class="hl">${e.to}</span>${isDyn ? ' <span class="dim">(dynamic, ~71% confidence)</span>' : ''}`
-        );
-      }
-      for (const e of sqlEdges) {
-        await log('SQL', `SQL → <span class="hl">${e.to}</span>${e.label ? ` <span class="dim">(${e.label})</span>` : ''}`);
-      }
-      for (const e of cicsEdges) {
-        await log('DATA', `CICS → <span class="hl">${e.to}</span>${e.label ? ` <span class="dim">(${e.label})</span>` : ''}`);
-      }
-      for (const e of copyEdges) {
-        await log('INFO', `COPY <span class="hl">${e.to}</span>`);
-      }
-
-      await log('INFO', `Graph: <span class="hl">${parsed.graph.nodes.length} nodes · ${parsed.graph.edges.length} edges</span> · Coverage: <span class="hl">${parsed.graph.coveragePct}%</span>`);
-
-      // Save dep graph
-      const cLayoutNodes = parsed.graph.nodes.filter((n) => n.cx !== undefined);
-      await saveDepGraph(prog.id, job.id, {
-        nodes: parsed.graph.nodes,
-        edges: parsed.graph.edges,
-        coveragePct: parsed.graph.coveragePct,
-        cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
-      });
-
-      await updateJob(job.id, {
-        status: 'completed',
-        phase: 'done',
-        progressPct: 100,
-        completedAt: new Date(),
-        tokensUsed: 0,
-      });
-
-      await log('DONE', `Static graph saved — <span class="hl">0 tokens used</span> · source: deterministic parser`);
-    } catch (err) {
-      await updateJob(job.id, { status: 'failed', phase: 'error', error: String(err), completedAt: new Date() });
-      await appendJobLog(job.id, { lv: 'WARN', t: `Error: ${String(err).slice(0, 200)}`, ts: Date.now() });
-    }
-  })();
-
-  return NextResponse.json({ jobId: job.id });
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  });
 }
