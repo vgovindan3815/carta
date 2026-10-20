@@ -15,7 +15,8 @@ export async function DELETE(
     const { deleteProject } = await import('@/lib/db/queries');
     await deleteProject(id);
     return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (e) {
+    console.error('[DELETE /api/repos]', e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
   }
 }

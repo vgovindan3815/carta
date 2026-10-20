@@ -83,27 +83,72 @@ export async function deleteProject(repoId: string): Promise<void> {
     const jobIds = jobs.map((j) => j.id);
 
     if (jobIds.length > 0) {
+      await db.delete(schema.graphDiscrepancies).where(inArray(schema.graphDiscrepancies.jobId, jobIds));
+      await db.delete(schema.moduleFacts).where(inArray(schema.moduleFacts.jobId, jobIds));
       await db.delete(schema.depGraphs).where(inArray(schema.depGraphs.jobId, jobIds));
       await db.delete(schema.bizRules).where(inArray(schema.bizRules.jobId, jobIds));
       await db.delete(schema.changeImpacts).where(inArray(schema.changeImpacts.jobId, jobIds));
       await db.delete(schema.modSpecs).where(inArray(schema.modSpecs.jobId, jobIds));
       await db.delete(schema.analysisJobs).where(inArray(schema.analysisJobs.id, jobIds));
     }
+    await db.delete(schema.programSources).where(inArray(schema.programSources.programId, progIds));
     await db.delete(schema.validations).where(inArray(schema.validations.programId, progIds));
     await db.delete(schema.programs).where(inArray(schema.programs.id, progIds));
   }
+
+  // Repo-level child tables
+  const scanJobs = await db
+    .select({ id: schema.scanJobs.id })
+    .from(schema.scanJobs)
+    .where(eq(schema.scanJobs.repoId, repoId));
+  const scanJobIds = scanJobs.map((s) => s.id);
+  if (scanJobIds.length > 0) {
+    await db.delete(schema.scanCompleteness).where(inArray(schema.scanCompleteness.scanJobId, scanJobIds));
+    await db.delete(schema.scanJobs).where(inArray(schema.scanJobs.id, scanJobIds));
+  }
+
+  const scopes = await db
+    .select({ id: schema.appScopes.id })
+    .from(schema.appScopes)
+    .where(eq(schema.appScopes.repoId, repoId));
+  const scopeIds = scopes.map((s) => s.id);
+  if (scopeIds.length > 0) {
+    await db.delete(schema.appCapabilityMaps).where(inArray(schema.appCapabilityMaps.scopeId, scopeIds));
+    await db.delete(schema.appBrds).where(inArray(schema.appBrds.scopeId, scopeIds));
+    await db.delete(schema.appModSpecs).where(inArray(schema.appModSpecs.scopeId, scopeIds));
+    await db.delete(schema.appImpacts).where(inArray(schema.appImpacts.scopeId, scopeIds));
+    await db.delete(schema.appScopes).where(inArray(schema.appScopes.id, scopeIds));
+  }
+
+  await db.delete(schema.agentRuns).where(eq(schema.agentRuns.repoId, repoId));
+  await db.delete(schema.copybooks).where(eq(schema.copybooks.repoId, repoId));
+  await db.delete(schema.domainGlossary).where(eq(schema.domainGlossary.repoId, repoId));
   await db.delete(schema.repos).where(eq(schema.repos.id, repoId));
 }
 
 export async function clearAllProjects(): Promise<void> {
   const db = getDb();
+  // Delete in FK dependency order (children before parents)
+  await db.delete(schema.graphDiscrepancies);
+  await db.delete(schema.moduleFacts);
   await db.delete(schema.depGraphs);
   await db.delete(schema.bizRules);
   await db.delete(schema.changeImpacts);
   await db.delete(schema.modSpecs);
-  await db.delete(schema.validations);
   await db.delete(schema.analysisJobs);
+  await db.delete(schema.programSources);
+  await db.delete(schema.validations);
   await db.delete(schema.programs);
+  await db.delete(schema.scanCompleteness);
+  await db.delete(schema.scanJobs);
+  await db.delete(schema.appCapabilityMaps);
+  await db.delete(schema.appBrds);
+  await db.delete(schema.appModSpecs);
+  await db.delete(schema.appImpacts);
+  await db.delete(schema.appScopes);
+  await db.delete(schema.agentRuns);
+  await db.delete(schema.copybooks);
+  await db.delete(schema.domainGlossary);
   await db.delete(schema.repos);
 }
 
