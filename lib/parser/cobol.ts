@@ -351,11 +351,14 @@ function buildCircularLayout(
   edges: RawEdge[],
   rectNodes: GraphNode[]
 ): GraphNode[] {
-  const CX = 280; const CY = 230;
+  // Center must be >= R_OUTER + NODE_R + margin so no node clips outside the canvas
+  const NODE_R = 36;
   const R_HERO = 44;
   const R_INNER = 150;
   const R_OUTER = 250;
-  const NODE_R = 36;
+  const MARGIN = 20;
+  const CX = R_OUTER + NODE_R + MARGIN; // 306
+  const CY = R_OUTER + NODE_R + MARGIN; // 306
 
   // Classify nodes
   const directCallees = edges

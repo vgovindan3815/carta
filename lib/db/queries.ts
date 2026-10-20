@@ -642,14 +642,24 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
   const allNodes = depGraph.nodes as typeof depGraph.nodes;
   const allEdges = depGraph.edges as typeof depGraph.edges;
 
-  // Derive canvas size from node positions
-  const maxCx = Math.max(...cLayoutNodes.map((n) => (n.cx ?? 0) + (n.r ?? 36) + 20));
-  const maxCy = Math.max(...cLayoutNodes.map((n) => (n.cy ?? 0) + (n.r ?? 36) + 20));
+  // Normalize positions: shift nodes if any would clip outside the canvas (old stored graphs may have CX=280)
+  const PADDING = 20;
+  const minCx = Math.min(...cLayoutNodes.map((n) => (n.cx ?? 0) - (n.r ?? 36)));
+  const minCy = Math.min(...cLayoutNodes.map((n) => (n.cy ?? 0) - (n.r ?? 36)));
+  const shiftX = minCx < PADDING ? PADDING - minCx : 0;
+  const shiftY = minCy < PADDING ? PADDING - minCy : 0;
+  const normalizedNodes = (shiftX > 0 || shiftY > 0)
+    ? cLayoutNodes.map((n) => ({ ...n, cx: (n.cx ?? 0) + shiftX, cy: (n.cy ?? 0) + shiftY }))
+    : cLayoutNodes;
+
+  // Derive canvas size from (shifted) node positions
+  const maxCx = Math.max(...normalizedNodes.map((n) => (n.cx ?? 0) + (n.r ?? 36) + PADDING));
+  const maxCy = Math.max(...normalizedNodes.map((n) => (n.cy ?? 0) + (n.r ?? 36) + PADDING));
 
   const cLayout: CircularLayout = {
     w: Math.max(560, maxCx),
     h: Math.max(460, maxCy),
-    nodes: cLayoutNodes,
+    nodes: normalizedNodes,
     edges: allEdges,
   };
 

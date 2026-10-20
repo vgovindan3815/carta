@@ -222,7 +222,9 @@ export function parseJclFile(filename: string, source: string): ParsedCobolProgr
   }));
 
   // Circular layout — simple ring
-  const CX = 280, CY = 230, R = 180, NODE_R = 36;
+  const NODE_R = 36, R = 180;
+  const CX = R + NODE_R + 20; // 236 — guarantees nodes stay inside canvas
+  const CY = R + NODE_R + 20;
   const cLayoutNodes: GraphNode[] = nodes.map((n, i) => {
     if (n.type === 'hero') return { ...n, cx: CX, cy: CY, r: 44 };
     const angle = (2 * Math.PI * (i - 1)) / Math.max(nodes.length - 1, 1) - Math.PI / 2;
