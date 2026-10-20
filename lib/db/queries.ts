@@ -555,7 +555,8 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     .orderBy(desc(schema.analysisJobs.completedAt))
     .limit(1);
 
-  if (!mainJob) return null;
+  // If no completed job yet (e.g. LLM failed, only static parser ran), fall through —
+  // the dep graph guard below will catch programs with no artifacts at all.
 
   // 3. Fetch the most recent dep graph for this program (independent of job)
   const [depGraph] = await db
@@ -601,11 +602,10 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     .where(eq(schema.analysisJobs.id, depGraph.jobId))
     .limit(1);
 
-  const [docsJob] = await db
-    .select()
-    .from(schema.analysisJobs)
-    .where(eq(schema.analysisJobs.id, (bizRule ?? changeImpact)?.jobId ?? mainJob.id))
-    .limit(1);
+  const docsJobId = (bizRule ?? changeImpact)?.jobId ?? mainJob?.id;
+  const [docsJob] = docsJobId
+    ? await db.select().from(schema.analysisJobs).where(eq(schema.analysisJobs.id, docsJobId)).limit(1)
+    : [];
 
   // 9. Determine pipeline source
   // Use the repo's githubUrl as the source of truth — not token counts.
@@ -688,7 +688,7 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
 
   // Modernization spec assembly — optional, may not exist yet (on-demand generation)
   const generatedAt = modSpec
-    ? new Date(modSpec.createdAt ?? mainJob.completedAt ?? Date.now()).toLocaleDateString('en-GB', {
+    ? new Date(modSpec.createdAt ?? mainJob?.completedAt ?? Date.now()).toLocaleDateString('en-GB', {
         day: 'numeric', month: 'short', year: 'numeric',
       })
     : undefined;
@@ -728,9 +728,9 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     pipelineStatus,
   };
 
-  // 11. castOnly: CAST dep graph exists and NO LLM docs at all yet
+  // 11. castOnly: dep graph exists but NO LLM docs yet (CAST import OR static parser ran but LLM failed/skipped)
   // Partial docs (some artifacts present) still open the hub — no re-run.
-  const castOnly = hasCastDepGraph && !bizRule && !changeImpact;
+  const castOnly = !bizRule && !changeImpact;
 
   // 12. version = number of completed jobs (for living document indicator)
   const [versionRow] = await db
