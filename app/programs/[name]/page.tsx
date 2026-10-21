@@ -292,6 +292,7 @@ export default function ProgramHubPage() {
     setStatusText('Running static analysis…');
 
     // Connect directly to the graph-only SSE endpoint — never touches /api/jobs
+    // TODO 0.5: switch to POST+events pattern in Phase 1 (EventSource only supports GET)
     if (esRef.current) esRef.current.close();
     const es = new EventSource(`/api/programs/${encodeURIComponent(name!)}/graph-only`);
     esRef.current = es;

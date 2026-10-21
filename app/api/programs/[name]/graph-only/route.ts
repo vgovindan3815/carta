@@ -1,21 +1,17 @@
 import { NextRequest } from 'next/server';
 
 /**
- * GET /api/programs/[name]/graph-only
+ * POST /api/programs/[name]/graph-only  (preferred)
+ * GET  /api/programs/[name]/graph-only  (deprecated shim — kept for EventSource compatibility)
  *
- * Self-contained SSE stream that runs ONLY the static deterministic parser
- * (Phase 1). No LLM is called. The dep graph is saved and a 'done' event
- * is emitted when complete.
+ * Self-contained SSE stream that runs ONLY the static deterministic parser.
+ * No LLM is called. The dep graph is saved and a 'done' event is emitted when complete.
  *
- * The client connects directly to this URL — it does NOT go through
- * /api/jobs/[jobId], which would trigger the full LLM pipeline.
+ * TODO 0.5: migrate clients to POST+events pattern (job queue) in Phase 1.
+ * EventSource only supports GET, so full migration requires a separate GET /events route.
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ name: string }> }
-) {
-  const { name } = await params;
 
+function buildStream(name: string): Response {
   const stream = new ReadableStream({
     async start(controller) {
       const enc = new TextEncoder();
@@ -73,11 +69,9 @@ export async function GET(
             const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
             try {
               if (prog.filePath) {
-                // Fast path: fetch by known file path (works for all languages)
                 sourceText = await fetchFileContent(repo.owner, repo.repo, prog.filePath, repo.branch ?? 'main', pat);
                 filename = prog.filePath;
               } else {
-                // Fallback: search tree by program name (COBOL only)
                 const fetched = await findProgramSource(repo.owner, repo.repo, repo.branch ?? 'main', name, pat);
                 if (fetched) sourceText = fetched;
               }
@@ -155,9 +149,6 @@ export async function GET(
         emit('done', {});
       } catch (err) {
         emit('error', { error: String(err) });
-        try {
-          // best-effort failure mark — job reference may not exist
-        } catch { /* ignore */ }
       } finally {
         controller.close();
       }
@@ -171,4 +162,21 @@ export async function GET(
       Connection: 'keep-alive',
     },
   });
+}
+
+export async function POST(
+  _req: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  const { name } = await params;
+  return buildStream(name);
+}
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  const { name } = await params;
+  console.warn(`[DEPRECATED] GET /api/programs/${name}/graph-only — use POST instead`);
+  return buildStream(name);
 }

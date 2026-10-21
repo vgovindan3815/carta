@@ -257,6 +257,7 @@ function DeterministicTool() {
 
     if (esRef.current) { esRef.current.close(); esRef.current = null; }
 
+    // TODO 0.5: switch to POST+events pattern in Phase 1 (EventSource only supports GET)
     const es = new EventSource(`/api/programs/${encodeURIComponent(name)}/graph-only`);
     esRef.current = es;
 
