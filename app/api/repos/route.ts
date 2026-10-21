@@ -28,7 +28,12 @@ export async function GET() {
   }
   try {
     const repos = await db.listRepos();
-    return NextResponse.json(repos);
+    // Strip patEncrypted — never send encrypted credentials to the client
+    const safe = repos.map(({ patEncrypted, ...rest }) => ({
+      ...rest,
+      hasPat: !!patEncrypted,
+    }));
+    return NextResponse.json(safe);
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
