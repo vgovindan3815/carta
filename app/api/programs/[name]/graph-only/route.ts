@@ -136,12 +136,17 @@ export async function GET(
 
         await persist('INFO', `Graph: <span class="hl">${parsed.graph.nodes.length} nodes · ${parsed.graph.edges.length} edges</span> · Coverage: <span class="hl">${parsed.graph.coveragePct}%</span>`);
 
+        if (parsed.internalFlow) {
+          await persist('INFO', `Paragraphs: <span class="hl">${parsed.internalFlow.paragraphs.length}</span> · PERFORM edges: <span class="hl">${parsed.internalFlow.performEdges.length}</span>`);
+        }
+
         const cLayoutNodes = parsed.graph.nodes.filter((n) => n.cx !== undefined);
         await saveDepGraph(prog.id, job.id, {
           nodes: parsed.graph.nodes,
           edges: parsed.graph.edges,
           coveragePct: parsed.graph.coveragePct,
           cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
+          internalFlow: parsed.internalFlow,
         });
 
         await updateJob(job.id, { status: 'completed', phase: 'done', progressPct: 100, completedAt: new Date(), tokensUsed: 0 });

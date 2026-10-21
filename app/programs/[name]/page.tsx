@@ -8,10 +8,11 @@ import DependencyView from '@/components/panels/DependencyView';
 import BusinessRules from '@/components/panels/BusinessRules';
 import ChangeImpact from '@/components/panels/ChangeImpact';
 import ModernizationSpec from '@/components/panels/ModernizationSpec';
+import InternalFlowTab from '@/components/panels/InternalFlowTab';
 import type { ProgramData } from '@/lib/parser/types';
 
 type Phase = 'processing' | 'hub' | 'not-found';
-type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec';
+type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec' | 'flow';
 
 interface LogLine {
   lv: string;
@@ -712,7 +713,8 @@ export default function ProgramHubPage() {
               { id: 'business' as TabId, label: 'Business Rules', icon: '📋' },
               { id: 'impact' as TabId, label: 'Change Impact', icon: '💥' },
               { id: 'spec' as TabId, label: 'Modernization Spec', icon: '🏗️' },
-            ] as const
+              ...(programData?.internalFlow ? [{ id: 'flow' as TabId, label: 'Internal flow', icon: '🔀' }] : []),
+            ]
           ).map((tab) => (
             <button
               key={tab.id}
@@ -748,6 +750,15 @@ export default function ProgramHubPage() {
               <ModernizationSpec
                 program={programData}
                 onRefreshed={(updated) => setProgramData(updated)}
+              />
+            </div>
+          )}
+          {activeTab === 'flow' && programData?.internalFlow && (
+            <div className="tab-panel">
+              <InternalFlowTab
+                programName={programData.name}
+                internalFlow={programData.internalFlow}
+                graph={programData.graph}
               />
             </div>
           )}

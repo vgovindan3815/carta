@@ -22,6 +22,7 @@ import type {
   InjectionFlag,
   AppCapability,
   GraphDiscrepancy,
+  InternalFlow,
 } from '../parser/types';
 
 // ---------------------------------------------------------------------------
@@ -106,6 +107,7 @@ export const depGraphs = pgTable('dep_graphs', {
   edges: jsonb('edges').notNull().$type<GraphEdge[]>(),
   coveragePct: real('coverage_pct').notNull().default(100),
   cLayoutNodes: jsonb('c_layout_nodes').$type<GraphNode[]>(),
+  internalFlow: jsonb('internal_flow').$type<InternalFlow>(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

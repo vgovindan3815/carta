@@ -5,6 +5,9 @@ import type {
   DependencyGraph,
   NodeType,
   EdgeType,
+  InternalFlow,
+  ParagraphNode,
+  PerformEdge,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -138,11 +141,101 @@ interface RawEdge {
   type: EdgeType;
   label?: string;
   confidence?: number;
+  sourcePara?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Internal flow extraction (paragraphs + PERFORM edges)
+// ---------------------------------------------------------------------------
+
+const PERFORM_KEYWORDS = new Set([
+  'UNTIL', 'VARYING', 'TIMES', 'THRU', 'THROUGH', 'WITH', 'TEST', 'AFTER',
+  'FROM', 'BY', 'END', 'SENTENCE',
+]);
+
+const DIVISION_WORDS = new Set([
+  'IDENTIFICATION', 'ENVIRONMENT', 'DATA', 'PROCEDURE',
+  'WORKING-STORAGE', 'FILE', 'LINKAGE', 'LOCAL-STORAGE',
+  'COMMUNICATION', 'REPORT', 'SCREEN', 'INPUT-OUTPUT',
+]);
+
+function extractInternalFlow(logicalLines: string[], programName: string): InternalFlow {
+  const paragraphs: ParagraphNode[] = [];
+  const sections: string[] = [];
+  const performEdges: PerformEdge[] = [];
+  const seen = new Set<string>();
+
+  let inProcedure = false;
+  let currentPara = programName;
+  let currentSection: string | undefined;
+
+  for (let i = 0; i < logicalLines.length; i++) {
+    const line = logicalLines[i];
+    const up = line.toUpperCase();
+
+    if (/\bPROCEDURE\s+DIVISION\b/.test(up)) { inProcedure = true; continue; }
+    if (/\b(IDENTIFICATION|ENVIRONMENT|DATA)\s+DIVISION\b/.test(up)) { inProcedure = false; continue; }
+    if (!inProcedure) continue;
+
+    // Area A detection: col 8 (index 7) is non-space, col 7 (index 6) is space
+    const col7 = line.length > 6 ? line[6] : ' ';
+    const col8 = line.length > 7 ? line[7] : ' ';
+
+    if (col8 !== ' ' && col7 === ' ') {
+      const areaContent = line.slice(7).trimEnd().toUpperCase();
+
+      const secMatch = /^([A-Z][A-Z0-9-]*)\s+SECTION\s*\./.exec(areaContent);
+      if (secMatch && !DIVISION_WORDS.has(secMatch[1])) {
+        currentSection = secMatch[1];
+        sections.push(currentSection);
+        continue;
+      }
+
+      const paraMatch = /^([A-Z][A-Z0-9#@$-]*)\s*\./.exec(areaContent);
+      if (paraMatch) {
+        const name = paraMatch[1];
+        if (!DIVISION_WORDS.has(name) && !COBOL_RESERVED.has(name) && !PERFORM_KEYWORDS.has(name)) {
+          if (paragraphs.length > 0 && paragraphs[paragraphs.length - 1].lineEnd === -1) {
+            paragraphs[paragraphs.length - 1].lineEnd = i;
+          }
+          currentPara = name;
+          paragraphs.push({ name, lineStart: i + 1, lineEnd: -1, sectionName: currentSection });
+        }
+      }
+    }
+
+    const upTrimmed = up.trim();
+    const PERFORM_RE = /\bPERFORM\s+([A-Z][A-Z0-9-]{1,29})(?:\s+THRU(?:ROUGH)?\s+([A-Z][A-Z0-9-]{1,29}))?(?:\s+(UNTIL|VARYING|TIMES)\b)?/g;
+    let m: RegExpExecArray | null;
+    PERFORM_RE.lastIndex = 0;
+    while ((m = PERFORM_RE.exec(upTrimmed)) !== null) {
+      const target = m[1];
+      const isLoop = !!m[3];
+      if (!PERFORM_KEYWORDS.has(target) && !COBOL_RESERVED.has(target) && !DIVISION_WORDS.has(target)) {
+        const key = `${currentPara}:${target}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          performEdges.push({ from: currentPara, to: target, type: 'perform', isLoop });
+        }
+      }
+    }
+  }
+
+  if (paragraphs.length > 0 && paragraphs[paragraphs.length - 1].lineEnd === -1) {
+    paragraphs[paragraphs.length - 1].lineEnd = logicalLines.length;
+  }
+
+  const entryParagraph = paragraphs.length > 0 ? paragraphs[0].name : programName;
+  return { paragraphs, sections, performEdges, entryParagraph };
 }
 
 function extractDependencies(logicalLines: string[], programName: string): RawEdge[] {
   const edges: RawEdge[] = [];
   const seen = new Set<string>();
+
+  // Track current paragraph for sourcePara annotation
+  let inProcedure = false;
+  let currentPara: string | undefined;
 
   function addEdge(raw: RawEdge) {
     const key = `${raw.type}:${raw.to}`;
@@ -154,17 +247,14 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
 
   // Join all logical lines for multi-line EXEC block detection
   const fullText = logicalLines.join('\n').toUpperCase();
+  const fullTextUp = fullText;
 
   // --- EXEC SQL blocks (multi-line) ---
-  // Match EXEC SQL ... END-EXEC
   const execSqlRe = /EXEC\s+SQL\s+([\s\S]+?)END-EXEC/gi;
   let sqlMatch: RegExpExecArray | null;
-  const fullTextOrig = logicalLines.join('\n');
-  const fullTextUp = fullText;
 
   while ((sqlMatch = execSqlRe.exec(fullTextUp)) !== null) {
     const sqlBody = sqlMatch[1];
-    // Extract table names from FROM, INTO, UPDATE, INSERT INTO
     const tableRe = /(?:FROM|INTO|UPDATE|JOIN)\s+([A-Z0-9#@$_-]+)/g;
     let tMatch: RegExpExecArray | null;
     while ((tMatch = tableRe.exec(sqlBody)) !== null) {
@@ -180,7 +270,6 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
   let cicsMatch: RegExpExecArray | null;
   while ((cicsMatch = execCicsRe.exec(fullTextUp)) !== null) {
     const cicsBody = cicsMatch[1];
-    // FILE(name) or PROGRAM(name)
     const fileRe = /FILE\s*\(\s*['"]?([A-Z0-9#@$_-]+)['"]?\s*\)/g;
     const progRe = /PROGRAM\s*\(\s*['"]?([A-Z0-9#@$_-]+)['"]?\s*\)/g;
     let m: RegExpExecArray | null;
@@ -196,6 +285,21 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
   for (const line of logicalLines) {
     const up = line.toUpperCase().trim();
 
+    // Track current paragraph for sourcePara
+    if (/\bPROCEDURE\s+DIVISION\b/.test(up)) { inProcedure = true; continue; }
+    if (/\b(IDENTIFICATION|ENVIRONMENT|DATA)\s+DIVISION\b/.test(up)) { inProcedure = false; currentPara = undefined; continue; }
+    if (inProcedure) {
+      const col7 = line.length > 6 ? line[6] : ' ';
+      const col8 = line.length > 7 ? line[7] : ' ';
+      if (col8 !== ' ' && col7 === ' ') {
+        const areaContent = line.slice(7).trimEnd().toUpperCase();
+        const paraMatch = /^([A-Z][A-Z0-9#@$-]*)\s*\./.exec(areaContent);
+        if (paraMatch && !DIVISION_WORDS.has(paraMatch[1]) && !COBOL_RESERVED.has(paraMatch[1]) && !PERFORM_KEYWORDS.has(paraMatch[1])) {
+          currentPara = paraMatch[1];
+        }
+      }
+    }
+
     // Skip EXEC blocks — already handled above
     if (/^EXEC\s+(SQL|CICS)/.test(up)) continue;
 
@@ -203,16 +307,15 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     const staticCallRe = /\bCALL\s+['"]([A-Z0-9#@$-]+)['"]/g;
     let m: RegExpExecArray | null;
     while ((m = staticCallRe.exec(up)) !== null) {
-      addEdge({ to: normName(m[1]), type: 'call', confidence: 100 });
+      addEdge({ to: normName(m[1]), type: 'call', confidence: 100, sourcePara: currentPara });
     }
 
-    // Dynamic CALL: CALL identifier (no quotes, not a literal already captured)
-    // Must not match CALL 'x' — those are handled above
+    // Dynamic CALL: CALL identifier (no quotes)
     const dynCallRe = /\bCALL\s+([A-Z][A-Z0-9-]{1,29})(?:\s|$)/g;
     while ((m = dynCallRe.exec(up)) !== null) {
       const id = m[1].trim();
       if (!id.startsWith("'") && !id.startsWith('"') && !COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'dyn', label: 'dynamic', confidence: 71 });
+        addEdge({ to: id, type: 'dyn', label: 'dynamic', confidence: 71, sourcePara: currentPara });
       }
     }
 
@@ -221,7 +324,7 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     while ((m = readRe.exec(up)) !== null) {
       const id = m[1].trim();
       if (!COBOL_RESERVED.has(id) && !COBOL_IO_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'READ', confidence: 100 });
+        addEdge({ to: id, type: 'data', label: 'READ', confidence: 100, sourcePara: currentPara });
       }
     }
 
@@ -230,7 +333,7 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     while ((m = writeRe.exec(up)) !== null) {
       const id = m[1].trim();
       if (!COBOL_RESERVED.has(id) && !COBOL_IO_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'WRITE', confidence: 100 });
+        addEdge({ to: id, type: 'data', label: 'WRITE', confidence: 100, sourcePara: currentPara });
       }
     }
 
@@ -239,16 +342,16 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     while ((m = openRe.exec(up)) !== null) {
       const id = m[1].trim();
       if (!COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'FILE', confidence: 100 });
+        addEdge({ to: id, type: 'data', label: 'FILE', confidence: 100, sourcePara: currentPara });
       }
     }
 
-    // COPY copybook-name (may appear with REPLACING clause — just capture the name)
+    // COPY copybook-name
     const copyRe = /\bCOPY\s+([A-Z][A-Z0-9-]{0,29})\b/g;
     while ((m = copyRe.exec(up)) !== null) {
       const id = m[1].trim();
       if (!COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'copy', label: 'COPY', confidence: 100 });
+        addEdge({ to: id, type: 'copy', label: 'COPY', confidence: 100, sourcePara: currentPara });
       }
     }
   }
@@ -341,6 +444,7 @@ function buildRectLayout(
     confidence: e.confidence,
     fd: 'bottom',
     td: 'top',
+    ...(e.sourcePara ? { sourcePara: e.sourcePara } : {}),
   }));
 
   return { nodes, edges: graphEdges };
@@ -453,6 +557,9 @@ export function parseCobolFile(filename: string, source: string): ParsedCobolPro
     coveragePct,
   };
 
+  // Extract paragraph-level internal flow (COBOL only, not HLASM)
+  const internalFlow = language === 'COBOL' ? extractInternalFlow(logicalLines, programName) : undefined;
+
   return {
     name: programName,
     language,
@@ -460,5 +567,6 @@ export function parseCobolFile(filename: string, source: string): ParsedCobolPro
     source,
     graph,
     linkageSection,
+    internalFlow,
   };
 }

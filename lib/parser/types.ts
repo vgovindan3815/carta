@@ -20,6 +20,7 @@ export interface GraphEdge {
   fd?: string; // from-direction for rect graph
   td?: string; // to-direction for rect graph
   confidence?: number; // 0-100, for dynamic calls
+  sourcePara?: string; // paragraph that contains this dependency
 }
 
 export interface DependencyGraph {
@@ -101,6 +102,7 @@ export interface ProgramData {
   spec: ModernizationSpec;
   pipelineStatus?: PipelineStatus;
   version?: number;
+  internalFlow?: InternalFlow;
 }
 
 export interface CopybookField {
@@ -116,6 +118,28 @@ export interface CopybookDefinition {
   fields: CopybookField[];
 }
 
+export interface ParagraphNode {
+  name: string;
+  lineStart: number;
+  lineEnd: number;
+  sectionName?: string;
+}
+
+export interface PerformEdge {
+  from: string;
+  to: string;
+  type: 'perform';
+  isLoop: boolean;
+  condition?: string;
+}
+
+export interface InternalFlow {
+  paragraphs: ParagraphNode[];
+  sections: string[];
+  performEdges: PerformEdge[];
+  entryParagraph: string;
+}
+
 export interface ParsedCobolProgram {
   name: string;
   language: 'COBOL' | 'HLASM' | 'PLI';
@@ -123,6 +147,7 @@ export interface ParsedCobolProgram {
   source: string;
   graph: DependencyGraph;
   linkageSection?: string;
+  internalFlow?: InternalFlow;
 }
 
 export interface SseLogLine {

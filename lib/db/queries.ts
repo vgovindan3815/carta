@@ -505,6 +505,7 @@ export async function saveDepGraph(
     edges: (typeof schema.depGraphs.$inferInsert)['edges'];
     coveragePct: number;
     cLayoutNodes?: (typeof schema.depGraphs.$inferInsert)['cLayoutNodes'];
+    internalFlow?: (typeof schema.depGraphs.$inferInsert)['internalFlow'];
   }
 ): Promise<void> {
   const db = getDb();
@@ -515,6 +516,7 @@ export async function saveDepGraph(
     edges: data.edges,
     coveragePct: data.coveragePct,
     cLayoutNodes: data.cLayoutNodes ?? null,
+    internalFlow: data.internalFlow ?? null,
   });
 
   // Mark the program as recently analyzed
@@ -781,6 +783,7 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
     changeImpact: ciObj,
     spec: modernSpec,
     pipelineStatus,
+    internalFlow: (depGraph.internalFlow as import('../parser/types').InternalFlow | null) ?? undefined,
   };
 
   // 11. castOnly: dep graph exists but NO LLM docs yet (CAST import OR static parser ran but LLM failed/skipped)
