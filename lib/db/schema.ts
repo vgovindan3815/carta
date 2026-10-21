@@ -338,6 +338,21 @@ export const validations = pgTable('validations', {
 });
 
 // ---------------------------------------------------------------------------
+// Audit events — tracks all destructive admin actions
+// ---------------------------------------------------------------------------
+
+export const auditEvents = pgTable('audit_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  action: text('action').notNull(),
+  targetType: text('target_type').notNull(),
+  targetId: text('target_id'),
+  targetName: text('target_name'),
+  performedBy: text('performed_by').notNull().default('system'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
 // Agent runs — agentic chat session records
 // ---------------------------------------------------------------------------
 

@@ -183,3 +183,35 @@ export async function getRepo(id: string): Promise<typeof schema.repos.$inferSel
   const [row] = await db.select().from(schema.repos).where(eq(schema.repos.id, id)).limit(1);
   return row;
 }
+
+export { deleteProject as deleteRepo };
+
+export async function recordAuditEvent(event: {
+  action: string;
+  targetType: string;
+  targetId?: string;
+  targetName?: string;
+  performedBy?: string;
+  reason?: string;
+}): Promise<void> {
+  const db = getDb();
+  await db.insert(schema.auditEvents).values({
+    action: event.action,
+    targetType: event.targetType,
+    targetId: event.targetId ?? null,
+    targetName: event.targetName ?? null,
+    performedBy: event.performedBy ?? 'system',
+    reason: event.reason ?? null,
+  });
+}
+
+export async function getAuditEvents(
+  limit = 50
+): Promise<typeof schema.auditEvents.$inferSelect[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(schema.auditEvents)
+    .orderBy(desc(schema.auditEvents.createdAt))
+    .limit(limit);
+}

@@ -136,6 +136,27 @@ export async function saveProgramSource(
   });
 }
 
+export async function deleteProgram(id: string): Promise<void> {
+  const db = getDb();
+  const jobs = await db
+    .select({ id: schema.analysisJobs.id })
+    .from(schema.analysisJobs)
+    .where(eq(schema.analysisJobs.programId, id));
+  const jobIds = jobs.map((j) => j.id);
+  if (jobIds.length > 0) {
+    await db.delete(schema.graphDiscrepancies).where(inArray(schema.graphDiscrepancies.jobId, jobIds));
+    await db.delete(schema.moduleFacts).where(inArray(schema.moduleFacts.jobId, jobIds));
+    await db.delete(schema.depGraphs).where(inArray(schema.depGraphs.jobId, jobIds));
+    await db.delete(schema.bizRules).where(inArray(schema.bizRules.jobId, jobIds));
+    await db.delete(schema.changeImpacts).where(inArray(schema.changeImpacts.jobId, jobIds));
+    await db.delete(schema.modSpecs).where(inArray(schema.modSpecs.jobId, jobIds));
+    await db.delete(schema.analysisJobs).where(inArray(schema.analysisJobs.id, jobIds));
+  }
+  await db.delete(schema.programSources).where(eq(schema.programSources.programId, id));
+  await db.delete(schema.validations).where(eq(schema.validations.programId, id));
+  await db.delete(schema.programs).where(eq(schema.programs.id, id));
+}
+
 export async function getProgramSource(
   programId: string
 ): Promise<typeof schema.programSources.$inferSelect | undefined> {
