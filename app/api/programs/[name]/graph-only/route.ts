@@ -42,7 +42,7 @@ export async function GET(
         const { parseCobolFile } = await import('@/lib/parser/cobol');
         const { parseJclFile } = await import('@/lib/parser/jcl');
         const { parsePliFile } = await import('@/lib/parser/pli');
-        const { findProgramSource } = await import('@/lib/github');
+        const { fetchFileContent, findProgramSource } = await import('@/lib/github');
         const { decrypt } = await import('@/lib/crypto');
 
         const prog = await getProgram(name);
@@ -72,9 +72,16 @@ export async function GET(
           if (repo?.owner && repo?.repo && !repo.githubUrl.startsWith('cast://') && !repo.githubUrl.startsWith('upload://')) {
             const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
             try {
-              const fetched = await findProgramSource(repo.owner, repo.repo, repo.branch ?? 'main', name, pat);
-              if (fetched) {
-                sourceText = fetched;
+              if (prog.filePath) {
+                // Fast path: fetch by known file path (works for all languages)
+                sourceText = await fetchFileContent(repo.owner, repo.repo, prog.filePath, repo.branch ?? 'main', pat);
+                filename = prog.filePath;
+              } else {
+                // Fallback: search tree by program name (COBOL only)
+                const fetched = await findProgramSource(repo.owner, repo.repo, repo.branch ?? 'main', name, pat);
+                if (fetched) sourceText = fetched;
+              }
+              if (sourceText) {
                 await persist('INFO', `Source fetched from <span class="hl">${repo.owner}/${repo.repo}</span>`);
               }
             } catch (e) {

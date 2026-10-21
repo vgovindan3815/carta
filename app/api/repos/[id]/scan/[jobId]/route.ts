@@ -26,7 +26,7 @@ export async function GET(
           return;
         }
 
-        const { getRepo, getScanJob, updateScanJob, upsertProgram, saveCopybook } =
+        const { getRepo, getScanJob, updateScanJob, upsertProgram, saveCopybook, saveProgramSource } =
           await import('@/lib/db/queries');
         const { listCobolFiles, fetchFileContent } = await import('@/lib/github');
         const { parseCobolFile } = await import('@/lib/parser/cobol');
@@ -135,7 +135,7 @@ export async function GET(
                   // use defaults
                 }
 
-                await upsertProgram({
+                const prog = await upsertProgram({
                   repoId,
                   name,
                   language,
@@ -145,6 +145,10 @@ export async function GET(
                   filePath: file.path,
                   lastCommitSha: file.sha,
                 });
+                // Store source so deterministic analysis works without live GitHub access
+                try {
+                  await saveProgramSource(prog.id, content, file.sha);
+                } catch { /* non-fatal */ }
               } catch {
                 // skip files that fail to fetch/parse
               }

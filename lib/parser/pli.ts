@@ -26,9 +26,9 @@ function normName(raw: string): string {
   return raw.replace(/['"]/g, '').trim().toUpperCase();
 }
 
-/** Strip /* ... */ block comments from a line (single-line occurrences). */
+/** Strip block comments from a line (single-line occurrences). */
 function stripLineComments(line: string): string {
-  // Remove /* ... */ on the same line
+  // Remove block comments on the same line
   return line.replace(/\/\*[^*]*\*\//g, ' ');
 }
 
@@ -49,7 +49,7 @@ function buildLogicalLines(source: string): string[] {
       }
     }
 
-    // Remove inline /* ... */ pairs
+    // Remove inline block comment pairs
     raw = stripLineComments(raw);
 
     // Check for an opening block comment that wasn't closed on the same line
