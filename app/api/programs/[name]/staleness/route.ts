@@ -36,8 +36,7 @@ export async function GET(
           const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
           const { getLatestCommitSha } = await import('@/lib/github');
           currentCommitSha = await getLatestCommitSha(
-            repo.owner, repo.repo, repo.branch ?? 'main',
-            prog.filePath ?? `${name}.cbl`, pat
+            repo.owner, repo.repo, repo.branch ?? 'main', pat
           );
           if (currentCommitSha && storedCommitSha && currentCommitSha !== storedCommitSha) {
             isStale = true;

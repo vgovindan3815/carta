@@ -23,10 +23,17 @@ export interface GraphEdge {
   sourcePara?: string; // paragraph that contains this dependency
 }
 
+export interface ScanIssue {
+  kind: 'invalid_target' | 'unresolved_copy' | 'reserved_word_target';
+  target: string;
+  context: string;
+}
+
 export interface DependencyGraph {
   nodes: GraphNode[];
   edges: GraphEdge[];
   coveragePct: number;
+  scanIssues?: ScanIssue[];
 }
 
 export interface CircularLayout {

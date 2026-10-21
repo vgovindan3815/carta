@@ -8,6 +8,7 @@ import type {
   InternalFlow,
   ParagraphNode,
   PerformEdge,
+  ScanIssue,
 } from './types';
 
 // ---------------------------------------------------------------------------
@@ -229,9 +230,13 @@ function extractInternalFlow(logicalLines: string[], programName: string): Inter
   return { paragraphs, sections, performEdges, entryParagraph };
 }
 
-function extractDependencies(logicalLines: string[], programName: string): RawEdge[] {
+function extractDependencies(
+  logicalLines: string[],
+  programName: string
+): { edges: RawEdge[]; scanIssues: ScanIssue[] } {
   const edges: RawEdge[] = [];
   const seen = new Set<string>();
+  const scanIssues: ScanIssue[] = [];
 
   // Track current paragraph for sourcePara annotation
   let inProcedure = false;
@@ -245,14 +250,42 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     }
   }
 
+  function checkAndAdd(target: string, context: string, build: () => RawEdge): void {
+    if (!isValidId(target)) {
+      scanIssues.push({ kind: 'invalid_target', target, context });
+      return;
+    }
+    if (COBOL_CLAUSE_WORDS.has(target) || COBOL_RESERVED.has(target)) {
+      scanIssues.push({ kind: 'reserved_word_target', target, context });
+      return;
+    }
+    addEdge(build());
+  }
+
+  // --- VALUE-clause constant propagation pre-pass (P0: VALUE clause only) ---
+  const constantValues = new Map<string, string>();
+  let inWorkingStorage = false;
+  for (const line of logicalLines) {
+    const up = line.toUpperCase().trim();
+    if (/\bWORKING-STORAGE\s+SECTION\b/.test(up)) { inWorkingStorage = true; continue; }
+    if (/\b(LINKAGE|FILE|LOCAL-STORAGE|PROCEDURE)\s+(SECTION|DIVISION)\b/.test(up)) { inWorkingStorage = false; continue; }
+    if (!inWorkingStorage) continue;
+    const valMatch = /^\d{2}\s+([A-Z][A-Z0-9-]*)\s+.*\bVALUE\s+['"]([ A-Z0-9-]{1,30})['"]/i.exec(up);
+    if (valMatch) {
+      const varName = valMatch[1].trim().toUpperCase();
+      const litValue = valMatch[2].trim().toUpperCase();
+      if (litValue && /^[A-Z][A-Z0-9-]*$/.test(litValue)) {
+        constantValues.set(varName, litValue);
+      }
+    }
+  }
+
   // Join all logical lines for multi-line EXEC block detection
-  const fullText = logicalLines.join('\n').toUpperCase();
-  const fullTextUp = fullText;
+  const fullTextUp = logicalLines.join('\n').toUpperCase();
 
   // --- EXEC SQL blocks (multi-line) ---
   const execSqlRe = /EXEC\s+SQL\s+([\s\S]+?)END-EXEC/gi;
   let sqlMatch: RegExpExecArray | null;
-
   while ((sqlMatch = execSqlRe.exec(fullTextUp)) !== null) {
     const sqlBody = sqlMatch[1];
     const tableRe = /(?:FROM|INTO|UPDATE|JOIN)\s+([A-Z0-9#@$_-]+)/g;
@@ -260,7 +293,7 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     while ((tMatch = tableRe.exec(sqlBody)) !== null) {
       const tname = tMatch[1].trim();
       if (tname && !SQL_KEYWORDS.has(tname)) {
-        addEdge({ to: tname, type: 'data', label: 'SQL', confidence: 100 });
+        checkAndAdd(tname, 'EXEC SQL', () => ({ to: tname, type: 'data', label: 'SQL', confidence: 100 }));
       }
     }
   }
@@ -274,10 +307,10 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     const progRe = /PROGRAM\s*\(\s*['"]?([A-Z0-9#@$_-]+)['"]?\s*\)/g;
     let m: RegExpExecArray | null;
     while ((m = fileRe.exec(cicsBody)) !== null) {
-      addEdge({ to: m[1].trim(), type: 'cics', label: 'CICS READ', confidence: 100 });
+      checkAndAdd(m[1].trim(), 'EXEC CICS FILE', () => ({ to: m![1].trim(), type: 'cics', label: 'CICS READ', confidence: 100 }));
     }
     while ((m = progRe.exec(cicsBody)) !== null) {
-      addEdge({ to: m[1].trim(), type: 'call', label: 'CICS LINK', confidence: 100 });
+      checkAndAdd(m[1].trim(), 'EXEC CICS PROGRAM', () => ({ to: m![1].trim(), type: 'call', label: 'CICS LINK', confidence: 100 }));
     }
   }
 
@@ -303,19 +336,31 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     // Skip EXEC blocks — already handled above
     if (/^EXEC\s+(SQL|CICS)/.test(up)) continue;
 
+    let m: RegExpExecArray | null;
+
     // Static CALL: CALL 'PROGNAME' or CALL "PROGNAME"
     const staticCallRe = /\bCALL\s+['"]([A-Z0-9#@$-]+)['"]/g;
-    let m: RegExpExecArray | null;
     while ((m = staticCallRe.exec(up)) !== null) {
-      addEdge({ to: normName(m[1]), type: 'call', confidence: 100, sourcePara: currentPara });
+      const name = normName(m[1]);
+      checkAndAdd(name, `CALL '${name}'`, () => ({ to: name, type: 'call', confidence: 100, sourcePara: currentPara }));
     }
 
     // Dynamic CALL: CALL identifier (no quotes)
     const dynCallRe = /\bCALL\s+([A-Z][A-Z0-9-]{1,29})(?:\s|$)/g;
     while ((m = dynCallRe.exec(up)) !== null) {
       const id = m[1].trim();
-      if (!id.startsWith("'") && !id.startsWith('"') && !COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'dyn', label: 'dynamic', confidence: 71, sourcePara: currentPara });
+      if (COBOL_RESERVED.has(id) || COBOL_CLAUSE_WORDS.has(id)) continue;
+      const resolved = constantValues.get(id);
+      if (resolved) {
+        // VALUE-clause resolved: emit as candidate dynamic call with resolved name
+        checkAndAdd(resolved, `CALL ${id} (VALUE='${resolved}')`, () => ({
+          to: resolved, type: 'dyn', label: `via ${id}`, confidence: 85, sourcePara: currentPara,
+        }));
+      } else {
+        // Truly unresolved dynamic call
+        checkAndAdd(id, `CALL ${id} (unresolved)`, () => ({
+          to: id, type: 'dyn', label: 'dynamic', confidence: 55, sourcePara: currentPara,
+        }));
       }
     }
 
@@ -323,40 +368,43 @@ function extractDependencies(logicalLines: string[], programName: string): RawEd
     const readRe = /\bREAD\s+([A-Z][A-Z0-9-]{1,29})(?:\s|$)/g;
     while ((m = readRe.exec(up)) !== null) {
       const id = m[1].trim();
-      if (!COBOL_RESERVED.has(id) && !COBOL_IO_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'READ', confidence: 100, sourcePara: currentPara });
-      }
+      if (COBOL_IO_RESERVED.has(id)) continue;
+      checkAndAdd(id, `READ ${id}`, () => ({ to: id, type: 'data', label: 'READ', confidence: 100, sourcePara: currentPara }));
     }
 
     // File WRITE: WRITE record-name [FROM ...]
     const writeRe = /\bWRITE\s+([A-Z][A-Z0-9-]{1,29})(?:\s|$)/g;
     while ((m = writeRe.exec(up)) !== null) {
       const id = m[1].trim();
-      if (!COBOL_RESERVED.has(id) && !COBOL_IO_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'WRITE', confidence: 100, sourcePara: currentPara });
-      }
+      if (COBOL_IO_RESERVED.has(id)) continue;
+      checkAndAdd(id, `WRITE ${id}`, () => ({ to: id, type: 'data', label: 'WRITE', confidence: 100, sourcePara: currentPara }));
     }
 
     // OPEN input-output files
     const openRe = /\bOPEN\s+(?:INPUT|OUTPUT|I-O|EXTEND)\s+([A-Z][A-Z0-9-]{1,29})/g;
     while ((m = openRe.exec(up)) !== null) {
       const id = m[1].trim();
-      if (!COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'data', label: 'FILE', confidence: 100, sourcePara: currentPara });
-      }
+      checkAndAdd(id, `OPEN ${id}`, () => ({ to: id, type: 'data', label: 'FILE', confidence: 100, sourcePara: currentPara }));
     }
 
-    // COPY copybook-name
+    // COPY copybook-name: extract only the FIRST word after COPY (Fix #1)
+    // Ignores OF/IN library qualifiers and REPLACING clauses
     const copyRe = /\bCOPY\s+([A-Z][A-Z0-9-]{0,29})\b/g;
     while ((m = copyRe.exec(up)) !== null) {
       const id = m[1].trim();
-      if (!COBOL_RESERVED.has(id)) {
-        addEdge({ to: id, type: 'copy', label: 'COPY', confidence: 100, sourcePara: currentPara });
+      if (COBOL_CLAUSE_WORDS.has(id) || COBOL_RESERVED.has(id)) {
+        scanIssues.push({ kind: 'reserved_word_target', target: id, context: `COPY ${id}` });
+        continue;
       }
+      if (!isValidId(id)) {
+        scanIssues.push({ kind: 'invalid_target', target: id, context: `COPY ${id}` });
+        continue;
+      }
+      addEdge({ to: id, type: 'copy', label: 'COPY', confidence: 100, sourcePara: currentPara });
     }
   }
 
-  return edges;
+  return { edges, scanIssues };
 }
 
 // ---------------------------------------------------------------------------
@@ -382,9 +430,39 @@ const COBOL_RESERVED = new Set([
   'USING', 'RETURNING', 'CONTENT', 'REFERENCE', 'LENGTH',
 ]);
 
+// Clause-level tokens that can appear immediately after a keyword and must not
+// become edge targets (e.g. COPY OF, CALL STATUS, READ RECORD).
+const COBOL_CLAUSE_WORDS = new Set([
+  'PIC', 'PICTURE', 'VALUE', 'VALUES', 'STATUS', 'OF', 'IN', 'BY', 'TO',
+  'FROM', 'THRU', 'THROUGH', 'UNTIL', 'VARYING', 'TIMES', 'AFTER', 'WITH',
+  'TEST', 'BEFORE', 'END', 'REPLACING', 'REDEFINES', 'OCCURS', 'DEPENDING',
+  'INDEXED', 'SECTION', 'DIVISION', 'PROCEDURE', 'DATA', 'ENVIRONMENT',
+  'IDENTIFICATION', 'WORKING-STORAGE', 'LINKAGE', 'FILE', 'SELECT', 'ASSIGN',
+  'ORGANIZATION', 'ACCESS', 'RECORD', 'LABEL', 'BLOCK', 'RECORDING',
+  'STANDARD', 'OMITTED', 'OPTIONAL', 'MODE', 'SEQUENTIAL', 'RANDOM',
+  'DYNAMIC', 'RELATIVE', 'KEY', 'ALTERNATE', 'INVALID', 'AT', 'END',
+  'NOT', 'ON', 'GO', 'STOP', 'RUN', 'EXIT', 'PROGRAM', 'CONTINUE',
+  'EVALUATE', 'WHEN', 'OTHER', 'IF', 'ELSE', 'THEN', 'AND', 'OR',
+  'GREATER', 'LESS', 'EQUAL', 'TRUE', 'FALSE', 'ZERO', 'ZEROS', 'ZEROES',
+  'SPACE', 'SPACES', 'HIGH-VALUE', 'HIGH-VALUES', 'LOW-VALUE', 'LOW-VALUES',
+  'QUOTE', 'QUOTES', 'ALL', 'NULL', 'NULLS', 'COMPUTE', 'MOVE', 'ADD',
+  'SUBTRACT', 'MULTIPLY', 'DIVIDE', 'GIVING', 'REMAINDER', 'INTO',
+  'CORRESPONDING', 'CORR', 'INITIALIZE', 'INSPECT', 'STRING', 'UNSTRING',
+  'WRITE', 'READ', 'REWRITE', 'DELETE', 'START', 'CLOSE', 'OPEN',
+  'INPUT', 'OUTPUT', 'EXTEND', 'DISPLAY', 'ACCEPT', 'SET', 'SEARCH',
+  'SORT', 'MERGE', 'RELEASE', 'RETURN', 'PERFORM', 'CALL', 'CANCEL',
+  'EXEC', 'SQL', 'CICS', 'END-EXEC', 'COPY', 'REPLACE', 'EJECT',
+  'SKIP1', 'SKIP2', 'SKIP3', 'TITLE',
+]);
+
 const COBOL_IO_RESERVED = new Set([
   'RECORD', 'LINE', 'PAGE', 'TAPE', 'DISK', 'PRINTER', 'TERMINAL',
 ]);
+
+/** Returns true when name is a valid COBOL identifier that can be an edge target. */
+function isValidId(name: string): boolean {
+  return /^[A-Z][A-Z0-9#@$-]*$/.test(name);
+}
 
 // ---------------------------------------------------------------------------
 // Layout algorithms
@@ -516,15 +594,14 @@ function buildCircularLayout(
 // ---------------------------------------------------------------------------
 
 /**
- * Coverage = percentage of program dependencies that could be resolved
- * to a known named program (static calls = 100%, dynamic = 71%).
+ * Resolution rate = static (quoted) calls / all program calls.
+ * Never returns 100% when unresolved dynamic calls remain.
  */
 function computeCoverage(edges: RawEdge[]): number {
-  if (edges.length === 0) return 100;
   const callEdges = edges.filter((e) => e.type === 'call' || e.type === 'dyn');
   if (callEdges.length === 0) return 100;
-  const total = callEdges.reduce((sum, e) => sum + (e.confidence ?? 100), 0);
-  return Math.round(total / callEdges.length);
+  const resolved = callEdges.filter((e) => e.type === 'call').length;
+  return Math.round((resolved / callEdges.length) * 100);
 }
 
 // ---------------------------------------------------------------------------
@@ -538,7 +615,7 @@ export function parseCobolFile(filename: string, source: string): ParsedCobolPro
   const linkageSection = extractLinkageSection(source);
 
   const logicalLines = buildLogicalLines(source);
-  const rawEdges = extractDependencies(logicalLines, programName);
+  const { edges: rawEdges, scanIssues } = extractDependencies(logicalLines, programName);
 
   const { nodes: rectNodes, edges: graphEdges } = buildRectLayout(programName, rawEdges);
   const circularNodes = buildCircularLayout(programName, rawEdges, rectNodes);
@@ -555,6 +632,7 @@ export function parseCobolFile(filename: string, source: string): ParsedCobolPro
     nodes: mergedNodes,
     edges: graphEdges,
     coveragePct,
+    ...(scanIssues.length > 0 ? { scanIssues } : {}),
   };
 
   // Extract paragraph-level internal flow (COBOL only, not HLASM)
