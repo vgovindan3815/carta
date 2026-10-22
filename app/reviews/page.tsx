@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { FF_KNOWLEDGE } from '@/lib/flags';
 import { redirect } from 'next/navigation';
 import { getDb } from '@/lib/db/client';

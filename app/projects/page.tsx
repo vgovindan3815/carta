@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { FF_PROJECTS } from '@/lib/flags';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
