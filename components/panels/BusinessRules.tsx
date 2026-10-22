@@ -349,9 +349,63 @@ export default function BusinessRules({ program: p }: Props) {
           .biz-section { page-break-inside: avoid; }
           .badge, button { display: none !important; }
         }
-        .brd-statement { margin: 6px 0 4px 0; }
-        .brd-rationale { margin: 4px 0; color: #374151; }
-        .brd-source { margin: 4px 0 0 0; color: #6B7280; font-size: 11px; }
+        .brd-statement {
+          margin: 8px 0 6px;
+          font-size: 13px;
+          line-height: 1.6;
+          color: #111827;
+          display: grid;
+          grid-template-columns: 72px 1fr;
+          gap: 0 12px;
+        }
+        .brd-statement::before {
+          content: "Action";
+          font-size: 10px;
+          font-weight: 800;
+          color: #6B7280;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding-top: 2px;
+        }
+        .brd-rationale {
+          margin: 6px 0;
+          font-size: 12px;
+          line-height: 1.5;
+          color: #374151;
+          display: grid;
+          grid-template-columns: 72px 1fr;
+          gap: 0 12px;
+        }
+        .brd-rationale::before {
+          content: "Rationale";
+          font-size: 10px;
+          font-weight: 800;
+          color: #6B7280;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding-top: 2px;
+        }
+        .brd-rationale em { font-style: normal; display: none; }
+        .brd-source {
+          margin: 4px 0 0;
+          font-size: 11px;
+          line-height: 1.5;
+          color: #6B7280;
+          font-family: Consolas, monospace;
+          display: grid;
+          grid-template-columns: 72px 1fr;
+          gap: 0 12px;
+        }
+        .brd-source::before {
+          content: "Impl.";
+          font-size: 10px;
+          font-weight: 800;
+          color: #6B7280;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          padding-top: 2px;
+        }
+        .brd-source em { font-style: normal; display: none; }
         button.source-citation {
           display: inline-flex; align-items: center;
           padding: 2px 8px; border-radius: 4px;

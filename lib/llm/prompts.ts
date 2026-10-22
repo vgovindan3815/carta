@@ -413,12 +413,7 @@ ${program.source}
 ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkageSection}\n\`\`\`` : ''}
 
 ## Task
-Extract ALL business rules from the ENTIRE source — not just the first few paragraphs. Scan the full PROCEDURE DIVISION including every SECTION and every PARAGRAPH. For each rule write a detailed explanation (2–4 sentences):
-- Start with the business outcome (not a code description)
-- Reference specific COBOL field names, PIC clauses from copybooks (if provided), DB2 table names, file names, status codes, and flag values found in the source
-- Explain the conditions, logic, or sequence involved
-- Cite at least one graph edge as evidence [edge: FROM → TO (type)]
-- Use <strong> tags around important field names and program names
+Extract ALL business rules from the ENTIRE source — not just the first few paragraphs. Scan the full PROCEDURE DIVISION including every SECTION and every PARAGRAPH.
 
 Produce a JSON array with ALL applicable sections (skip only if truly empty for this program):
 1. "Input Processing" — how data enters the program (LINKAGE, files, DB reads)
@@ -429,12 +424,14 @@ Produce a JSON array with ALL applicable sections (skip only if truly empty for 
 6. "JCL/Batch Execution Context" — how this program fits in the batch job, step inputs/outputs, DD datasets (include only if JCL callers are provided)
 7. "Copybook Field Dependencies" — key data structures defined in copybooks that drive this program's logic (include only if copybook context is provided)
 
-IMPORTANT — "text" format: Each rule's "text" field MUST be a complete HTML fragment structured as a Business Requirements Document entry:
-1. Open with: <strong>BR-[SECTION_ABBREV]-[NNN]</strong> (e.g. <strong>BR-INP-001</strong>, <strong>BR-CBL-002</strong>)
-2. Follow with: <p class="brd-statement">The system SHALL [business requirement in plain English — not COBOL jargon].</p>
-3. Add: <p class="brd-rationale"><em>Rationale:</em> [why this rule exists — regulatory, risk, operational].</p>
-4. Add: <p class="brd-source"><em>Implementation:</em> [specific COBOL fields with PIC clauses, SQL table names, program calls that implement this requirement].</p>
-Use <strong> tags around COBOL field names and program names. The SECTION_ABBREV is a 2-3 letter code derived from the section name (e.g. INP=Input Processing, CBL=Core Business Logic, DAT=Data Persistence, EXT=External Integrations, ERR=Error Handling, JCL=JCL/Batch, CPY=Copybook).
+For each rule, produce a structured Business Requirements Document (BRD) entry with these fields:
+- id: BR-NNN (sequential within section, e.g. BR-001, BR-002)
+- title: Short noun-phrase title (max 10 words)
+- trigger: WHEN/IF condition that activates this rule — mention specific COBOL fields, status codes, or conditions (1–2 sentences)
+- action: THE SYSTEM SHALL statement — what the program does, referencing COBOL fields, DB2 tables, called programs, file names with PIC clauses where relevant (2–4 sentences)
+- outcome: Expected business outcome when rule executes correctly (1–2 sentences)
+- risk: What breaks if this rule fails, is missing, or is incorrectly implemented (1–2 sentences)
+- gap (optional): Any identified gap, ambiguity, missing validation, or undocumented assumption — omit field entirely if none
 
 Output schema:
 \`\`\`json
@@ -443,10 +440,13 @@ Output schema:
     "section": "section name",
     "rules": [
       {
-        "text": "<strong>BR-INP-001</strong><p class=\"brd-statement\">The system SHALL...</p><p class=\"brd-rationale\"><em>Rationale:</em> ...</p><p class=\"brd-source\"><em>Implementation:</em> ...</p>",
-        "citations": [
-          { "label": "Edge label", "edge": "FROM → TO (type)" }
-        ]
+        "id": "BR-001",
+        "title": "Settlement Cutoff Determination",
+        "trigger": "When batch job GTMJOB01 invokes GTMSETL0 and WS-RUN-DATE is populated in the LINKAGE SECTION...",
+        "action": "The system SHALL read the SETLCTRL file using WS-CUTOFF-KEY to retrieve WS-CUTOFF-TIME (PIC 9(6)), then set WS-PROCESS-FLAG to 'Y' for all transactions with TRANS-TIME <= WS-CUTOFF-TIME.",
+        "outcome": "Only transactions submitted before the cutoff time are included in settlement processing.",
+        "risk": "If WS-CUTOFF-TIME is read incorrectly, transactions may be erroneously included or excluded from settlement.",
+        "gap": "No validation that WS-RUN-DATE matches the expected PIC 9(8) format before use."
       }
     ]
   }

@@ -577,8 +577,8 @@ export default function DependencyView({ program: p }: Props) {
                 const [lx, ly] = midPoint(d);
                 const col = EC[e.type] ?? '#9CA3AF';
                 const da = e.type === 'dyn' || e.type === 'cics' ? '6,4' : e.type === 'perform' ? '3,3' : undefined;
-                const rawLabel = e.label ?? EDGE_LABELS[e.type] ?? e.type;
-                const lbl = rawLabel.length > 18 ? rawLabel.slice(0, 16) + '…' : rawLabel;
+                const rawLabel = e.sourcePara ? `¶${e.sourcePara}` : (e.label ?? EDGE_LABELS[e.type] ?? e.type);
+                const lbl = rawLabel.length > 32 ? rawLabel.slice(0, 30) + '…' : rawLabel;
                 const lw = lbl.length * 5 + 12;
                 return (
                   <g key={i}>
