@@ -151,37 +151,68 @@ function CodeInspector({
   const { id, type } = inspected;
   const C = NC[type] ?? NC.prog;
 
-  // Paragraph node: show source lines from hero source
+  // Paragraph node: show FULL source with the paragraph highlighted and scrolled into view
   if (type === 'para') {
     const paraName = id.replace(/^para:/, '');
     const para = program.internalFlow?.paragraphs.find(p => p.name === paraName);
     const heroSource = loadedSource[program.name];
-    const lines = heroSource ? heroSource.split('\n') : null;
-    const slice = lines && para ? lines.slice(para.lineStart - 1, para.lineEnd) : null;
+    const allLines = heroSource ? heroSource.split('\n') : null;
+    // 1-based line range of this paragraph
+    const hlStart = para ? para.lineStart - 1 : -1; // 0-based index
+    const hlEnd   = para ? para.lineEnd   - 1 : -1;
 
     return (
-      <div style={{ padding: 12, fontSize: 12 }}>
-        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: C.tx, marginBottom: 4, background: C.fill, border: `1.5px solid ${C.stroke}`, borderRadius: 6, padding: '6px 10px' }}>
+      <div style={{ padding: 12, fontSize: 12, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Header */}
+        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: C.tx, marginBottom: 4, background: C.fill, border: `1.5px solid ${C.stroke}`, borderRadius: 6, padding: '6px 10px', flexShrink: 0 }}>
           ¶ {paraName}
         </div>
-        {para && <div style={{ color: '#6B7280', fontSize: 11, marginBottom: 8 }}>Lines {para.lineStart}–{para.lineEnd} · {para.sectionName ?? 'no section'}</div>}
+        {para && (
+          <div style={{ color: '#6B7280', fontSize: 11, marginBottom: 8, flexShrink: 0 }}>
+            Lines {para.lineStart}–{para.lineEnd} · {para.sectionName ?? 'no section'} · {para.lineEnd - para.lineStart + 1} lines
+          </div>
+        )}
         {!heroSource && loading !== program.name && (
-          <button onClick={() => onLoad(program.name)} style={{ padding: '5px 12px', background: '#1F3864', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>
+          <button onClick={() => onLoad(program.name)} style={{ padding: '5px 12px', background: '#1F3864', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, alignSelf: 'flex-start' }}>
             Load source to view code
           </button>
         )}
         {loading === program.name && <div style={{ color: '#9CA3AF', fontSize: 11 }}>Loading source…</div>}
-        {slice && (
-          <pre style={{ fontSize: 10, background: '#0F172A', color: '#E2E8F0', borderRadius: 6, padding: '10px 12px', overflow: 'auto', maxHeight: 400, margin: '8px 0 0', lineHeight: 1.5, fontFamily: 'Consolas,monospace' }}>
-            {slice.map((line, i) => (
-              <div key={i}>
-                <span style={{ color: '#64748B', userSelect: 'none', display: 'inline-block', width: 36, textAlign: 'right', marginRight: 10 }}>{(para!.lineStart + i)}</span>
-                {line}
-              </div>
-            ))}
+        {allLines && (
+          <pre
+            ref={(el) => {
+              if (el && hlStart >= 0) {
+                // scroll highlighted line into view after render
+                const target = el.querySelector<HTMLElement>(`[data-para-line="${hlStart}"]`);
+                if (target) target.scrollIntoView({ block: 'center' });
+              }
+            }}
+            style={{ fontSize: 10, background: '#0F172A', color: '#E2E8F0', borderRadius: 6, padding: '4px 0', overflow: 'auto', flex: 1, margin: '4px 0 0', lineHeight: 1.5, fontFamily: 'Consolas,monospace' }}
+          >
+            {allLines.map((line, i) => {
+              const isHl = i >= hlStart && i <= hlEnd;
+              return (
+                <div
+                  key={i}
+                  data-para-line={i}
+                  style={{
+                    display: 'flex',
+                    background: isHl ? 'rgba(99,102,241,0.25)' : 'transparent',
+                    borderLeft: isHl ? '3px solid #6366F1' : '3px solid transparent',
+                  }}
+                >
+                  <span style={{ userSelect: 'none', flexShrink: 0, width: 44, textAlign: 'right', paddingRight: 10, color: isHl ? '#818CF8' : '#4A4A6A', fontSize: 10 }}>
+                    {i + 1}
+                  </span>
+                  <span style={{ paddingLeft: 4, paddingRight: 8, whiteSpace: 'pre', overflow: 'hidden', textOverflow: 'ellipsis', color: isHl ? '#E0E7FF' : '#E2E8F0' }}>
+                    {line}
+                  </span>
+                </div>
+              );
+            })}
           </pre>
         )}
-        {heroSource && !slice && <div style={{ color: '#9CA3AF', fontSize: 11 }}>Paragraph source not found.</div>}
+        {heroSource && !para && <div style={{ color: '#9CA3AF', fontSize: 11 }}>Paragraph not found in internal flow data.</div>}
       </div>
     );
   }

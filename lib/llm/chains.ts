@@ -185,12 +185,14 @@ export function createChains(callLLM: CallLLM) {
     program: ParsedCobolProgram,
     copybookContext?: string,
     glossaryContext?: string,
-    jclCallers?: string[]
+    jclCallers?: string[],
+    portfolioContext?: string
   ): AsyncGenerator<SseLogLine | { done: true; sections: BusinessRulesSection[]; tokensUsed: number }> {
     const contextParts: string[] = [];
     if (copybookContext) contextParts.push(`${copybookContext.split('\n').length - 1} copybook fields`);
     if (glossaryContext) contextParts.push('domain glossary');
     if (jclCallers?.length) contextParts.push(`${jclCallers.length} JCL caller(s)`);
+    if (portfolioContext) contextParts.push('callee portfolio context');
     const ctxNote = contextParts.length ? ` + ${contextParts.join(', ')}` : '';
 
     yield logLine('LLM', `Sending <span class="hl">${program.name}</span> (${program.loc.toLocaleString()} LOC)${ctxNote} to LLM…`, 0);
@@ -199,7 +201,7 @@ export function createChains(callLLM: CallLLM) {
     let lastLogAt = 0;
     const { text: raw, promptTokens, completionTokens, totalTokens } = await callLLM(
       SYSTEM_PROMPT,
-      businessRulesPrompt(program, copybookContext, glossaryContext, jclCallers),
+      businessRulesPrompt(program, copybookContext, glossaryContext, jclCallers, portfolioContext),
       8192,
       (_chunk, total) => { lastLogAt = total; }
     );

@@ -301,7 +301,7 @@ export async function runAnalysisPipeline(
 
     let businessRulesSections: Parameters<typeof saveBizRules>[2] = [];
 
-    for await (const event of generateBusinessRules(parsed, copybookCtx || undefined, glossaryCtx || undefined, jclCallers.length ? jclCallers : undefined)) {
+    for await (const event of generateBusinessRules(parsed, copybookCtx || undefined, glossaryCtx || undefined, jclCallers.length ? jclCallers : undefined, portfolioCtx || undefined)) {
       if ('done' in event && event.done) {
         businessRulesSections = event.sections;
         totalTokensUsed += event.tokensUsed;
@@ -531,7 +531,7 @@ export async function runCastLLMPipeline(
     // --- Chain 1: Business Rules ---
     await emit(jobId, { lv: 'LLM', t: 'Starting Chain 1 — Business Rules…', d: 0 }, onEvent);
     let businessRulesSections: Parameters<typeof saveBizRules>[2] = [];
-    for await (const event of generateBusinessRules(castParsed, copybookCtx || undefined, glossaryCtx || undefined, jclCallers.length ? jclCallers : undefined)) {
+    for await (const event of generateBusinessRules(castParsed, copybookCtx || undefined, glossaryCtx || undefined, jclCallers.length ? jclCallers : undefined, portfolioCtx || undefined)) {
       if ('done' in event && event.done) {
         businessRulesSections = event.sections;
         totalTokensUsed += event.tokensUsed;

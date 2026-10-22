@@ -380,7 +380,8 @@ export function businessRulesPrompt(
   program: ParsedCobolProgram,
   copybookContext?: string,
   glossaryContext?: string,
-  jclCallers?: string[]
+  jclCallers?: string[],
+  portfolioContext?: string
 ): string {
   const graphText = graphSummary(program);
 
@@ -396,6 +397,10 @@ export function businessRulesPrompt(
     ? `\n## JCL Jobs That Invoke This Program\n${jclCallers.map((j) => `- ${j}`).join('\n')}`
     : '';
 
+  const portfolioSection = portfolioContext
+    ? `\n## Analyzed Callee Programs (business context for downstream calls)\n${portfolioContext}`
+    : '';
+
   return `Analyze the COBOL program below and produce a complete Business Requirements Document (BRD).
 
 ## Dependency Graph
@@ -405,6 +410,7 @@ ${graphText}
 ${copybookSection}
 ${glossarySection}
 ${jclSection}
+${portfolioSection}
 
 ## Full COBOL Source (${program.loc.toLocaleString()} LOC)
 \`\`\`cobol
