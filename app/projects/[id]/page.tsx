@@ -2,6 +2,7 @@ import { FF_PROJECTS } from '@/lib/flags';
 import { redirect, notFound } from 'next/navigation';
 import { getProject, getSourceConnectionsForProject, listP1ScansForProject } from '@/lib/db/queries';
 import Link from 'next/link';
+import { ScanButton } from '@/components/ScanButton';
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   if (!FF_PROJECTS) redirect('/');
@@ -49,14 +50,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               </p>
             )}
           </div>
-          <form action={`/api/projects/${id}/scans`} method="POST">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium"
-            >
-              Run scan
-            </button>
-          </form>
+          <ScanButton projectId={id} />
         </div>
 
         {/* Status cards */}

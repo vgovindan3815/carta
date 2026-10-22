@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 
-export const maxDuration = 60;
+export const maxDuration = 120;
+
+const MAX_TURNS = 5;
 
 export async function POST(req: NextRequest) {
   const { FF_AGENTS_V2 } = await import('@/lib/flags');
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { agentId, messages, projectId, repoId } = body as {
     agentId: string;
-    messages: Array<{ role: string; content: string }>;
+    messages: Array<{ role: 'user' | 'assistant'; content: string }>;
     projectId?: string;
     repoId?: string;
   };
@@ -28,20 +30,17 @@ export async function POST(req: NextRequest) {
   const agent = getAgent(agentId);
   if (!agent) return Response.json({ error: `Unknown agent: ${agentId}` }, { status: 400 });
 
-  const hasLLM = !!(process.env.ANTHROPIC_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY);
-  if (!hasLLM) return Response.json({ error: 'No LLM provider configured' }, { status: 503 });
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return Response.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 503 });
+  }
 
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
-  const provider = process.env.ANTHROPIC_API_KEY ? 'anthropic'
-    : process.env.GROQ_API_KEY ? 'groq'
-    : 'openai';
 
-  // createAgentRun requires query, provider, model (existing schema)
   const run = await createAgentRun({
-    repoId: repoId,
+    repoId,
     query: lastUserMessage.slice(0, 1000),
-    provider,
-    model: provider === 'anthropic' ? 'claude-sonnet-4-6' : provider === 'groq' ? 'llama3-70b-8192' : 'gpt-4o',
+    provider: 'anthropic',
+    model: 'claude-haiku-4-5',
   });
 
   try {
@@ -52,52 +51,95 @@ export async function POST(req: NextRequest) {
 
     const systemPrompt = `${agent.systemPrompt}
 
-Available tools (call with JSON: {"tool": "name", "args": {...}}):
+Available tools (JSON format):
 ${toolDescriptions}
 
-When using a tool, output EXACTLY: <tool>{"tool":"toolname","args":{...}}</tool>
-After getting tool results, continue your response naturally.`;
+To call a tool, output EXACTLY on its own line: <tool>{"tool":"name","args":{...}}</tool>
+After the tool result is injected, continue your response.
+Never call the same tool with the same arguments twice.
+When you have enough information to answer, stop calling tools and give your final answer.`;
 
-    let llmResponse = '';
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-    if (provider === 'anthropic') {
-      const Anthropic = (await import('@anthropic-ai/sdk')).default;
-      const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    let conversationMessages = [...messages];
+    const allToolResults: Array<{ turn: number; call: unknown; result: unknown }> = [];
+    let totalTokens = 0;
+    let finalResponse = '';
+
+    for (let turn = 0; turn < MAX_TURNS; turn++) {
       const response = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
+        model: 'claude-haiku-4-5',
+        max_tokens: 1024,
         system: systemPrompt,
-        messages: messages as Array<{ role: 'user' | 'assistant'; content: string }>,
+        messages: conversationMessages,
       });
-      llmResponse = response.content[0].type === 'text' ? response.content[0].text : '';
-    }
 
-    // Parse and execute tool calls embedded in response
-    // Use [^]* instead of dotall flag for ES2017 compat
-    const toolCallRegex = /<tool>([^]*?)<\/tool>/g;
-    const toolResults: Array<{ call: unknown; result: unknown }> = [];
-    let match;
-    while ((match = toolCallRegex.exec(llmResponse)) !== null) {
-      try {
-        const call = JSON.parse(match[1]);
-        const result = await executeTool({ name: call.tool, args: call.args ?? {} }, { projectId, repoId });
-        toolResults.push({ call, result });
-      } catch { /* skip malformed tool calls */ }
-    }
+      totalTokens += response.usage.input_tokens + response.usage.output_tokens;
 
-    const cleanResponse = llmResponse.replace(/<tool>[^]*?<\/tool>/g, '').trim();
+      const assistantText = response.content
+        .filter(b => b.type === 'text')
+        .map(b => (b as { type: 'text'; text: string }).text)
+        .join('');
+
+      // Parse tool calls (ES2017 compat — no /s flag)
+      const toolCallRegex = /<tool>([^]*?)<\/tool>/g;
+      const toolCalls: Array<{ raw: string; parsed: { tool: string; args: Record<string, unknown> } | null }> = [];
+      let match;
+      while ((match = toolCallRegex.exec(assistantText)) !== null) {
+        try {
+          const parsed = JSON.parse(match[1]);
+          toolCalls.push({ raw: match[1], parsed });
+        } catch {
+          toolCalls.push({ raw: match[1], parsed: null });
+        }
+      }
+
+      if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {
+        finalResponse = assistantText.replace(/<tool>[^]*?<\/tool>/g, '').trim();
+        break;
+      }
+
+      let toolResultText = assistantText;
+      for (const tc of toolCalls) {
+        if (!tc.parsed) continue;
+        const result = await executeTool(
+          { name: tc.parsed.tool, args: tc.parsed.args },
+          { projectId, repoId }
+        );
+        allToolResults.push({ turn, call: tc.parsed, result });
+
+        const resultJson = JSON.stringify(result.data ?? { error: result.error }, null, 2);
+        toolResultText = toolResultText.replace(
+          `<tool>${tc.raw}</tool>`,
+          `<tool>${tc.raw}</tool>\n<tool_result>${resultJson}</tool_result>`
+        );
+      }
+
+      conversationMessages = [
+        ...conversationMessages,
+        { role: 'assistant', content: toolResultText },
+        { role: 'user', content: 'Continue based on the tool results above.' },
+      ];
+
+      if (turn === MAX_TURNS - 1) {
+        finalResponse = assistantText.replace(/<tool>[^]*?<\/tool>/g, '').trim();
+      }
+    }
 
     await updateAgentRun(run.id, {
       status: 'completed',
-      response: cleanResponse,
-      toolCalls: toolResults,
+      response: finalResponse,
+      toolCalls: allToolResults,
+      tokensUsed: totalTokens,
     });
 
     return Response.json({
       agentId,
       runId: run.id,
-      response: cleanResponse,
-      toolResults,
+      response: finalResponse,
+      toolResults: allToolResults,
+      totalTokens,
     });
   } catch (err) {
     await updateAgentRun(run.id, { status: 'failed', error: String(err) });

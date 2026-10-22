@@ -58,10 +58,14 @@ export async function updateProgramDesc(id: string, desc: string): Promise<void>
   await db.update(schema.programs).set({ desc }).where(eq(schema.programs.id, id));
 }
 
-export async function listPrograms(repoId?: string): Promise<typeof schema.programs.$inferSelect[]> {
+export async function listPrograms(repoId?: string, projectId?: string): Promise<typeof schema.programs.$inferSelect[]> {
   const db = getDb();
-  const rows = await (repoId
-    ? db.select().from(schema.programs).where(eq(schema.programs.repoId, repoId)).orderBy(schema.programs.name)
+  const conditions = [];
+  if (repoId) conditions.push(eq(schema.programs.repoId, repoId));
+  if (projectId) conditions.push(eq(schema.programs.projectId, projectId));
+
+  const rows = await (conditions.length > 0
+    ? db.select().from(schema.programs).where(and(...conditions)).orderBy(schema.programs.name)
     : db.select().from(schema.programs).orderBy(desc(schema.programs.createdAt)));
 
   const seen = new Set<string>();
@@ -119,18 +123,26 @@ export function hashSource(sourceText: string): string {
   return createHash('sha256').update(sourceText, 'utf8').digest('hex');
 }
 
+const MAX_SOURCE_BYTES = 2 * 1024 * 1024; // 2MB soft limit
+
 export async function saveProgramSource(
   programId: string,
   sourceText: string,
   commitSha?: string
 ): Promise<void> {
   const db = getDb();
-  const sourceHash = hashSource(sourceText);
-  const loc = sourceText.split('\n').length;
+  let textToStore = sourceText;
+  if (Buffer.byteLength(sourceText, 'utf8') > MAX_SOURCE_BYTES) {
+    textToStore =
+      sourceText.slice(0, 1_900_000) +
+      '\n\n[TRUNCATED: source exceeds 2MB limit. SHA256 preserved for identity.]';
+  }
+  const sourceHash = hashSource(sourceText); // hash original, not truncated
+  const loc = textToStore.split('\n').length;
   await db.insert(schema.programSources).values({
     programId,
     commitSha: commitSha ?? null,
-    sourceText,
+    sourceText: textToStore,
     sourceHash,
     loc,
   });

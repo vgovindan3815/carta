@@ -40,9 +40,24 @@ export async function appendJobLog(
   line: { lv: string; t: string; ts: number }
 ): Promise<void> {
   const db = getDb();
+  // Cap at 500 entries: keep last 499 + new entry to prevent runaway JSONB growth
   await db
     .update(schema.analysisJobs)
-    .set({ log: sql`COALESCE(${schema.analysisJobs.log}, '[]'::jsonb) || ${JSON.stringify([line])}::jsonb` })
+    .set({
+      log: sql`(
+        SELECT jsonb_agg(e)
+        FROM (
+          SELECT e FROM jsonb_array_elements(
+            COALESCE(${schema.analysisJobs.log}, '[]'::jsonb) || ${JSON.stringify([line])}::jsonb
+          ) AS e
+          ORDER BY (e->>'ts')::bigint
+          LIMIT 500
+          OFFSET GREATEST(0,
+            jsonb_array_length(COALESCE(${schema.analysisJobs.log}, '[]'::jsonb)) + 1 - 500
+          )
+        ) sub
+      )`,
+    })
     .where(eq(schema.analysisJobs.id, id));
 }
 

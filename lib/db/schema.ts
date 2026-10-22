@@ -58,6 +58,7 @@ export const repos = pgTable('repos', {
   patEncrypted: text('pat_encrypted'),
   lastSyncedAt: timestamp('last_synced_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  projectId: uuid('project_id'), // FK to projects — added in 0007 backfill migration
 });
 
 /** Individual COBOL/HLASM programs discovered in a repo. */
@@ -75,6 +76,7 @@ export const programs = pgTable('programs', {
   lastCommitSha: text('last_commit_sha'),
   lastAnalyzedAt: timestamp('last_analyzed_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  projectId: uuid('project_id'), // FK to projects — added in 0007 backfill migration
 });
 
 /** A single end-to-end analysis run for a program. */

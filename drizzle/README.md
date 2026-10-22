@@ -11,6 +11,7 @@
 | 4 | `0004_audit_events.sql` | ✅ | Creates `audit_events` table (confirmed applied 2026-10-21) |
 | 5 | `0005_outstanding_penance.sql` | ⚠️ **Apply manually — see below** | Phase 1 project model: projects, source_connections, source_snapshots, source_files, p1_modules, module_memberships, p1_scans, scan_stages, scan_issues |
 | 6 | `0006_blushing_redwing.sql` | ⚠️ **Apply manually** | Phase 2+3 tables: kg_nodes, kg_edges, kg_node_presence, kg_edge_presence, evidence_records, program_aliases, analysis_runs, corrections, documentation_runs, documents, document_sections, context_manifests |
+| 7 | `0007_backfill_project_id.sql` | ⚠️ **Apply manually — step by step** | Data migration: adds project_id FK to repos+programs; creates synthetic projects for existing repos. Run statements 1-2 first, verify, then uncomment and run UPDATE statements 4-5. |
 
 ## Archived (do not apply)
 
