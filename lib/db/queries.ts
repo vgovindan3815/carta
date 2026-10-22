@@ -6,3 +6,4 @@ export * from './documentation';
 export * from './agents';
 export * from './scopes';
 export * from './settings';
+export * from './phase1';

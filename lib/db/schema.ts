@@ -373,3 +373,105 @@ export const agentRuns = pgTable('agent_runs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   completedAt: timestamp('completed_at'),
 });
+
+// ---------------------------------------------------------------------------
+// Phase 1 — Project model (behind FF_PROJECTS)
+// ---------------------------------------------------------------------------
+
+export const projects = pgTable('projects', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull(),
+  description: text('description'),
+  createdBy: text('created_by').notNull().default('system'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const sourceConnections = pgTable('source_connections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  kind: text('kind').notNull(), // 'github' | 'upload'
+  owner: text('owner'),
+  repo: text('repo'),
+  branch: text('branch'),
+  patEncryptedRef: text('pat_encrypted_ref'),
+  uploadLabel: text('upload_label'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const sourceSnapshots = pgTable('source_snapshots', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  sourceConnectionId: uuid('source_connection_id').references(() => sourceConnections.id),
+  commitSha: text('commit_sha'),
+  acquiredAt: timestamp('acquired_at').notNull().defaultNow(),
+  fileCount: integer('file_count').notNull().default(0),
+});
+
+export const sourceFiles = pgTable('source_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  snapshotId: uuid('snapshot_id').notNull().references(() => sourceSnapshots.id),
+  path: text('path').notNull(),
+  sha256: text('sha256'),
+  language: text('language'),
+  languageConfidence: integer('language_confidence'),
+  loc: integer('loc'),
+  classification: text('classification'), // 'program' | 'copybook' | 'jcl' | 'proc' | 'other'
+  analysisStatus: text('analysis_status').notNull().default('pending'),
+  parserId: text('parser_id'),
+  parserVersion: text('parser_version'),
+  moduleId: uuid('module_id'),
+  attributes: jsonb('attributes').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const p1Modules = pgTable('p1_modules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  name: text('name').notNull(),
+  ruleSource: text('rule_source').notNull().default('auto'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const moduleMemberships = pgTable('module_memberships', {
+  moduleId: uuid('module_id').notNull().references(() => p1Modules.id),
+  sourceFileId: uuid('source_file_id').notNull().references(() => sourceFiles.id),
+  assignedBy: text('assigned_by').notNull().default('auto'),
+});
+
+export const p1Scans = pgTable('p1_scans', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  snapshotId: uuid('snapshot_id').references(() => sourceSnapshots.id),
+  status: text('status').notNull().default('queued'),
+  headlineStatus: text('headline_status'),
+  inngestRunId: text('inngest_run_id'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+});
+
+export const scanStages = pgTable('scan_stages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scanId: uuid('scan_id').notNull().references(() => p1Scans.id),
+  stageName: text('stage_name').notNull(),
+  status: text('status').notNull().default('pending'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  itemsProcessed: integer('items_processed').notNull().default(0),
+  itemsFailed: integer('items_failed').notNull().default(0),
+  warningCount: integer('warning_count').notNull().default(0),
+  errorCode: text('error_code'),
+  message: text('message'),
+  attemptCount: integer('attempt_count').notNull().default(0),
+});
+
+export const scanIssues = pgTable('scan_issues', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  scanId: uuid('scan_id').notNull().references(() => p1Scans.id),
+  sourceFileId: uuid('source_file_id').references(() => sourceFiles.id),
+  issueKind: text('issue_kind').notNull(),
+  severity: text('severity').notNull().default('warning'),
+  message: text('message').notNull(),
+  details: jsonb('details').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
