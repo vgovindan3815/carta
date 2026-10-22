@@ -43,8 +43,17 @@ export interface CircularLayout {
 }
 
 export interface BusinessRule {
-  text: string;
-  citations: { label: string; edge: string }[];
+  /** Legacy flat-text format */
+  text?: string;
+  citations?: { label: string; edge: string }[];
+  /** BRD structured format */
+  id?: string;
+  title?: string;
+  trigger?: string;
+  action?: string;
+  outcome?: string;
+  risk?: string;
+  gap?: string;
 }
 
 export interface BusinessRulesSection {

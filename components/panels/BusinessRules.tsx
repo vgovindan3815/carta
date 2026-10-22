@@ -165,41 +165,87 @@ export default function BusinessRules({ program: p }: Props) {
                   </div>
 
                   {sec.rules.map((rule, ri) => {
-                    const reqId = `BR-${abbrev}-${String(ri + 1).padStart(3, '0')}`;
+                    const reqId = rule.id ?? `BR-${abbrev}-${String(ri + 1).padStart(3, '0')}`;
+                    const isBrd = !!(rule.trigger || rule.action || rule.outcome || rule.risk);
                     return (
-                      <div key={ri} className="biz-rule">
-                        <div style={{
-                          fontSize: 10, fontWeight: 800, color: 'var(--navy-dark)',
-                          fontFamily: 'Consolas, monospace', marginBottom: 6,
-                          background: '#EEF2FF', display: 'inline-block',
-                          padding: '2px 8px', borderRadius: 4,
-                        }}>
-                          {reqId}
-                        </div>
-                        <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rule.text) }} />
-                        {(rule.citations ?? []).length > 0 && (
-                          <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                            {(rule.citations ?? []).map((c, ci) => (
-                              <button
-                                key={ci}
-                                title={c.edge}
-                                onClick={() => setSelectedCitation(
-                                  selectedCitation === c.label ? null : c.label
-                                )}
-                                style={{
-                                  cursor: 'pointer',
-                                  background: selectedCitation === c.label ? '#1F3864' : undefined,
-                                  color: selectedCitation === c.label ? '#fff' : undefined,
-                                  border: selectedCitation === c.label ? '1.5px solid #1F3864' : undefined,
-                                  fontFamily: 'var(--font-body)',
-                                  fontSize: 'inherit',
-                                }}
-                                className="source-citation"
-                              >
-                                [{ci + 1}] {c.label}
-                              </button>
-                            ))}
+                      <div key={ri} className="biz-rule" style={{ marginBottom: 14, padding: '14px 18px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
+                        {/* Rule header */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: isBrd ? 12 : 8 }}>
+                          <div style={{
+                            fontSize: 10, fontWeight: 800, color: 'var(--navy-dark)',
+                            fontFamily: 'Consolas, monospace', flexShrink: 0,
+                            background: '#EEF2FF', padding: '2px 8px', borderRadius: 4, marginTop: 1,
+                          }}>
+                            {reqId}
                           </div>
+                          {rule.title && (
+                            <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy-dark)', lineHeight: 1.4 }}>
+                              {rule.title}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* BRD structured format */}
+                        {isBrd ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {rule.trigger && (
+                              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '0 12px', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.8 }}>Trigger</span>
+                                <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55 }}>{rule.trigger}</span>
+                              </div>
+                            )}
+                            {rule.action && (
+                              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '0 12px', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.8 }}>Action</span>
+                                <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rule.action) }} />
+                              </div>
+                            )}
+                            {rule.outcome && (
+                              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '0 12px', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: '#1D6B37', textTransform: 'uppercase', letterSpacing: 0.8 }}>Outcome</span>
+                                <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55 }}>{rule.outcome}</span>
+                              </div>
+                            )}
+                            {rule.risk && (
+                              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '0 12px', alignItems: 'baseline' }}>
+                                <span style={{ fontSize: 10, fontWeight: 800, color: '#B45309', textTransform: 'uppercase', letterSpacing: 0.8 }}>Risk</span>
+                                <span style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.55 }}>{rule.risk}</span>
+                              </div>
+                            )}
+                            {rule.gap && (
+                              <div style={{ marginTop: 4, padding: '8px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
+                                ⚠ <em>Gap — {rule.gap}</em>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          /* Legacy flat-text format */
+                          <>
+                            <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rule.text ?? '') }} />
+                            {(rule.citations ?? []).length > 0 && (
+                              <div style={{ marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {(rule.citations ?? []).map((c, ci) => (
+                                  <button
+                                    key={ci}
+                                    title={c.edge}
+                                    onClick={() => setSelectedCitation(
+                                      selectedCitation === c.label ? null : c.label
+                                    )}
+                                    style={{
+                                      cursor: 'pointer',
+                                      background: selectedCitation === c.label ? '#1F3864' : undefined,
+                                      color: selectedCitation === c.label ? '#fff' : undefined,
+                                      border: selectedCitation === c.label ? '1.5px solid #1F3864' : undefined,
+                                      fontFamily: 'var(--font-body)', fontSize: 'inherit',
+                                    }}
+                                    className="source-citation"
+                                  >
+                                    [{ci + 1}] {c.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     );

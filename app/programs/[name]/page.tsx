@@ -572,6 +572,7 @@ export default function ProgramHubPage() {
           borderBottom: '1px solid #C7D2FE',
           padding: '10px 20px',
           display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+          position: 'sticky', top: 60, zIndex: 90,
         }}>
           <span style={{ fontSize: 16 }}>🔗</span>
           <div style={{ flex: 1, minWidth: 200 }}>
@@ -616,6 +617,7 @@ export default function ProgramHubPage() {
           borderBottom: `1px solid ${staleness?.isStale ? '#FDE68A' : '#BFDBFE'}`,
           padding: '8px 20px',
           display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+          position: 'sticky', top: 60, zIndex: 90,
         }}>
           <span style={{ fontSize: 13 }}>{staleness?.isStale ? '⚠️' : '💾'}</span>
           <div style={{ flex: 1, minWidth: 200 }}>

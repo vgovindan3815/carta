@@ -46,7 +46,7 @@ export async function buildPortfolioContext(
     const firstSection = bizRules?.sections?.[0];
     const summaryRules = (firstSection?.rules ?? []).slice(0, 5);
     const bizSummary = summaryRules.length
-      ? summaryRules.map((r) => r.text.replace(/<[^>]+>/g, '').slice(0, 600)).join(' ')
+      ? summaryRules.map((r) => (r.text ?? [r.trigger, r.action].filter(Boolean).join(' ')).replace(/<[^>]+>/g, '').slice(0, 600)).join(' ')
       : firstSection?.section ?? '';
 
     // All outbound edges

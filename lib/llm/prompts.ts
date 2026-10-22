@@ -542,7 +542,7 @@ export function modSpecPrompt(
 ): string {
   const graphText = graphSummary(program);
   const rulesText = businessRules
-    .map((s) => `### ${s.section}\n${s.rules.map((r) => `- ${r.text.replace(/<[^>]+>/g, '')}`).join('\n')}`)
+    .map((s) => `### ${s.section}\n${s.rules.map((r) => `- ${(r.text ?? [r.trigger, r.action, r.outcome].filter(Boolean).join(' | ')).replace(/<[^>]+>/g, '')}`).join('\n')}`)
     .join('\n\n');
 
   const portfolioSection = portfolioContext
