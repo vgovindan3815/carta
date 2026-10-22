@@ -121,6 +121,8 @@ export async function listCobolFiles(
  * Fetches the raw content of a file from GitHub, decodes it from base64,
  * and returns it as a UTF-8 string.
  */
+const FETCH_TIMEOUT_MS = 12000;
+
 export async function fetchFileContent(
   owner: string,
   repo: string,
@@ -130,14 +132,14 @@ export async function fetchFileContent(
 ): Promise<string> {
   const octokit = makeOctokit(pat);
 
-  const { data } = await withRetry(() =>
-    octokit.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref,
-    })
+  const fetchPromise = withRetry(() =>
+    octokit.repos.getContent({ owner, repo, path, ref })
   );
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`GitHub fetch timed out after ${FETCH_TIMEOUT_MS / 1000}s for "${path}"`)), FETCH_TIMEOUT_MS)
+  );
+
+  const { data } = await Promise.race([fetchPromise, timeoutPromise]);
 
   // getContent returns an array for directories; for a file it returns a single object
   if (Array.isArray(data)) {

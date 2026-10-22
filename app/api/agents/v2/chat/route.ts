@@ -25,22 +25,44 @@ export async function POST(req: NextRequest) {
   const { getAgent } = await import('@/lib/agents/agents');
   const { toolRegistry } = await import('@/lib/agents/registry');
   const { executeTool } = await import('@/lib/agents/executor');
-  const { createAgentRun, updateAgentRun } = await import('@/lib/db/queries');
+  const { createAgentRun, updateAgentRun, getLLMSettings } = await import('@/lib/db/queries');
 
   const agent = getAgent(agentId);
   if (!agent) return Response.json({ error: `Unknown agent: ${agentId}` }, { status: 400 });
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return Response.json({ error: 'ANTHROPIC_API_KEY not configured' }, { status: 503 });
+  // Load saved LLM settings from DB (same pattern as /api/agents/chat)
+  const { isPlaceholderKey } = await import('@/lib/llm/types');
+  const settings = await getLLMSettings();
+
+  // Resolve active provider + key: DB setting first, then env var fallback
+  const provider = (settings.provider ?? 'groq') as 'anthropic' | 'openai' | 'groq';
+  const keyMap: Record<string, string> = {
+    anthropic: settings.anthropicKey || process.env.ANTHROPIC_API_KEY || '',
+    openai:    settings.openaiKey    || process.env.OPENAI_API_KEY    || '',
+    groq:      settings.groqKey      || process.env.GROQ_API_KEY      || '',
+  };
+  const activeKey = keyMap[provider] ?? '';
+
+  if (isPlaceholderKey(activeKey)) {
+    return Response.json(
+      { error: `No API key configured for provider "${provider}". Go to Settings and enter your key.` },
+      { status: 503 }
+    );
   }
+
+  const activeModel = settings.model || (
+    provider === 'anthropic' ? 'claude-sonnet-4-6' :
+    provider === 'openai'    ? 'gpt-4o' :
+    'llama-3.3-70b-versatile'
+  );
 
   const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content ?? '';
 
   const run = await createAgentRun({
     repoId,
     query: lastUserMessage.slice(0, 1000),
-    provider: 'anthropic',
-    model: 'claude-haiku-4-5',
+    provider,
+    model: activeModel,
   });
 
   try {
@@ -59,8 +81,20 @@ After the tool result is injected, continue your response.
 Never call the same tool with the same arguments twice.
 When you have enough information to answer, stop calling tools and give your final answer.`;
 
-    const Anthropic = (await import('@anthropic-ai/sdk')).default;
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // Resolve provider-specific callLLM function
+    type CallResult = { text: string; totalTokens?: number };
+    let callLLM: (system: string, user: string, maxTokens: number) => Promise<CallResult>;
+
+    if (provider === 'anthropic') {
+      const { createAnthropicCallLLM } = await import('@/lib/llm/anthropic');
+      callLLM = createAnthropicCallLLM(activeKey, activeModel) as typeof callLLM;
+    } else if (provider === 'openai') {
+      const { createOpenAICallLLM } = await import('@/lib/llm/openai');
+      callLLM = createOpenAICallLLM(activeKey, activeModel) as typeof callLLM;
+    } else {
+      const { createGroqCallLLM } = await import('@/lib/llm/groq');
+      callLLM = createGroqCallLLM(activeKey, activeModel) as typeof callLLM;
+    }
 
     let conversationMessages = [...messages];
     const allToolResults: Array<{ turn: number; call: unknown; result: unknown }> = [];
@@ -68,19 +102,14 @@ When you have enough information to answer, stop calling tools and give your fin
     let finalResponse = '';
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
-      const response = await client.messages.create({
-        model: 'claude-haiku-4-5',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: conversationMessages,
-      });
+      // Serialize conversation history into a single user string (works with all providers)
+      const userContent = conversationMessages
+        .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
+        .join('\n\n');
 
-      totalTokens += response.usage.input_tokens + response.usage.output_tokens;
-
-      const assistantText = response.content
-        .filter(b => b.type === 'text')
-        .map(b => (b as { type: 'text'; text: string }).text)
-        .join('');
+      const llmResult = await callLLM(systemPrompt, userContent, 1024);
+      totalTokens += llmResult.totalTokens ?? 0;
+      const assistantText = llmResult.text;
 
       // Parse tool calls (ES2017 compat — no /s flag)
       const toolCallRegex = /<tool>([^]*?)<\/tool>/g;
@@ -95,7 +124,7 @@ When you have enough information to answer, stop calling tools and give your fin
         }
       }
 
-      if (toolCalls.length === 0 || response.stop_reason === 'end_turn') {
+      if (toolCalls.length === 0) {
         finalResponse = assistantText.replace(/<tool>[^]*?<\/tool>/g, '').trim();
         break;
       }
@@ -103,13 +132,13 @@ When you have enough information to answer, stop calling tools and give your fin
       let toolResultText = assistantText;
       for (const tc of toolCalls) {
         if (!tc.parsed) continue;
-        const result = await executeTool(
+        const toolResult = await executeTool(
           { name: tc.parsed.tool, args: tc.parsed.args },
           { projectId, repoId }
         );
-        allToolResults.push({ turn, call: tc.parsed, result });
+        allToolResults.push({ turn, call: tc.parsed, result: toolResult });
 
-        const resultJson = JSON.stringify(result.data ?? { error: result.error }, null, 2);
+        const resultJson = JSON.stringify(toolResult.data ?? { error: toolResult.error }, null, 2);
         toolResultText = toolResultText.replace(
           `<tool>${tc.raw}</tool>`,
           `<tool>${tc.raw}</tool>\n<tool_result>${resultJson}</tool_result>`

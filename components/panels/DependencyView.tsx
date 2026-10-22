@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProgramData, GraphNode, GraphEdge, ChangeImpactItem } from '@/lib/parser/types';
 
@@ -186,7 +186,7 @@ function buildCircularSVG(
     const ny =  dx / (Math.sqrt(dx * dx + dy * dy) || 1);
     const cx1 = mx + nx * perp; const cy1 = my + ny * perp;
     const pathD = `M${x1.toFixed(1)},${y1.toFixed(1)} Q${cx1.toFixed(1)},${cy1.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
-    edgeSvg += `<path d="${pathD}" fill="none" stroke="${col}" stroke-width="1.8"
+    edgeSvg += `<path data-from="${e.from}" data-to="${e.to}" d="${pathD}" fill="none" stroke="${col}" stroke-width="1.8"
       stroke-dasharray="${da}" marker-end="url(#arr-${e.type})" opacity="${opacity}"/>`;
 
     // Edge label at midpoint of the quadratic curve (t=0.5)
@@ -212,7 +212,7 @@ function buildCircularSVG(
     const isHero = n.type === 'hero';
     const filter = isHero ? 'filter="url(#shadowHero)"' : 'filter="url(#shadow)"';
 
-    nodeSvg += `<g class="graph-node" data-id="${n.id}" data-sub="${n.sub ?? ''}" data-type="${n.type}" style="cursor:pointer">`;
+    nodeSvg += `<g class="graph-node" data-id="${n.id}" data-sub="${n.sub ?? ''}" data-type="${n.type}" style="cursor:grab">`;
 
     if (n.type === 'data' || n.type === 'cpy') {
       // Cylinder / drum shape
@@ -261,7 +261,7 @@ function buildCircularSVG(
   });
 
   return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg"
-    style="width:100%;height:100%;display:block">
+    style="width:100%;height:100%;display:block;touch-action:none;user-select:none">
     <rect width="${width}" height="${height}" fill="#F8FAFD" rx="8"/>
     ${defs}${edgeSvg}${nodeSvg}
   </svg>`;
@@ -274,10 +274,12 @@ export default function DependencyView({ program: p }: Props) {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
 
   const isCast = p.pipelineStatus?.graphSource === 'cast';
-  // Default: structural view when CAST is available; impact view when LLM-only
   const [viewMode, setViewMode] = useState<'structural' | 'impact'>(
     isCast ? 'structural' : 'impact'
   );
+
+  // User-dragged positions overlay — keyed by node id
+  const [userPositions, setUserPositions] = useState<Record<string, { cx: number; cy: number }>>({});
 
   const baseLayout: ProgramData['cLayout'] = p.cLayout ?? {
     w: 560, h: 460,
@@ -290,13 +292,28 @@ export default function DependencyView({ program: p }: Props) {
       ? augmentLayoutWithImpacts(baseLayout, p.changeImpact?.items ?? [])
       : baseLayout;
 
-  const cNodes = activeLayout.nodes;
+  // Reset drag positions when switching view mode
+  const prevViewMode = useRef(viewMode);
+  if (prevViewMode.current !== viewMode) {
+    prevViewMode.current = viewMode;
+    // Will be cleared next render; safe to mutate during render since it's a ref
+  }
+
+  // Apply user-moved positions on top of auto-layout positions
+  const cNodes = activeLayout.nodes.map((n) => ({
+    ...n,
+    cx: userPositions[n.id]?.cx ?? n.cx ?? 0,
+    cy: userPositions[n.id]?.cy ?? n.cy ?? 0,
+  }));
   const cEdges = activeLayout.edges;
   const w = Math.max(activeLayout.w, 560);
   const h = Math.max(activeLayout.h, 460);
 
   const svgHtml = buildCircularSVG(cNodes, cEdges, w, h);
 
+  const resetPositions = useCallback(() => setUserPositions({}), []);
+
+  // Hover + click handlers
   useEffect(() => {
     if (!wrapRef.current || !tooltipRef.current) return;
     const wrap = wrapRef.current;
@@ -314,11 +331,11 @@ export default function DependencyView({ program: p }: Props) {
         if (sysDesc) {
           html += `<em style="opacity:.8;font-size:10px;display:block;max-width:220px;white-space:normal;margin-top:4px">${sysDesc}</em>`;
         } else if (type === 'prog') {
-          html += `<em style="opacity:.55;font-size:10px">Click to open program hub</em>`;
+          html += `<em style="opacity:.55;font-size:10px">Drag to move · Click to open hub</em>`;
         } else if (type === 'impact') {
-          html += `<em style="opacity:.55;font-size:10px">Click to open program hub</em>`;
+          html += `<em style="opacity:.55;font-size:10px">Drag to move · Click to open hub</em>`;
         } else {
-          html += `<em style="opacity:.55;font-size:10px">${typeLbl}</em>`;
+          html += `<em style="opacity:.55;font-size:10px">${typeLbl} · Drag to move</em>`;
         }
 
         tooltip.innerHTML = html;
@@ -340,13 +357,95 @@ export default function DependencyView({ program: p }: Props) {
       el.addEventListener('click', () => {
         const id = el.dataset.id ?? '';
         const type = el.dataset.type ?? '';
-        // System programs, data nodes, and copybooks are not navigable
         if (SYSTEM_PROGRAMS.has(id.toUpperCase()) || type === 'data' || type === 'cpy' || type === 'sys') return;
         if (type === 'hero' || type === 'prog' || type === 'asm' || type === 'impact') {
           router.push(`/programs/${encodeURIComponent(id)}`);
         }
       });
     });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [svgHtml]);
+
+  // Drag-to-move: pointerdown on SVG, move/up on window (survives pointer leaving SVG)
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const svgEl = wrapRef.current.querySelector('svg');
+    if (!svgEl) return;
+
+    // Mutable position map — updated in place during drag to avoid stale closures
+    const pos: Record<string, { cx: number; cy: number; r: number }> = {};
+    cNodes.forEach((n) => { pos[n.id] = { cx: n.cx ?? 0, cy: n.cy ?? 0, r: n.r ?? 36 }; });
+
+    type DS = { id: string; nodeEl: SVGGElement; origCx: number; origCy: number; startPx: number; startPy: number; moved: boolean };
+    let drag: DS | null = null;
+
+    const toSvg = (clientX: number, clientY: number) => {
+      const rect = svgEl.getBoundingClientRect();
+      const vb = svgEl.getAttribute('viewBox')?.split(' ').map(Number) ?? [0, 0, w, h];
+      return {
+        x: (clientX - rect.left) * (vb[2] / (rect.width  || 1)),
+        y: (clientY - rect.top)  * (vb[3] / (rect.height || 1)),
+      };
+    };
+
+    const redrawEdges = (nodeId: string) => {
+      svgEl.querySelectorAll<SVGPathElement>('path[data-from]').forEach((path) => {
+        const from = path.dataset.from ?? ''; const to = path.dataset.to ?? '';
+        if (from !== nodeId && to !== nodeId) return;
+        const fp = pos[from]; const tp = pos[to];
+        if (!fp || !tp) return;
+        const [x1, y1] = circleEdgePoint(fp.cx, fp.cy, fp.r, tp.cx, tp.cy);
+        const [x2, y2] = circleEdgePoint(tp.cx, tp.cy, tp.r, fp.cx, fp.cy);
+        const mx = (x1 + x2) / 2; const my = (y1 + y2) / 2;
+        const dx = x2 - x1; const dy = y2 - y1;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const qx = mx + (-dy / len) * len * 0.18;
+        const qy = my + ( dx / len) * len * 0.18;
+        path.setAttribute('d', `M${x1.toFixed(1)},${y1.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`);
+      });
+    };
+
+    const onDown = (e: PointerEvent) => {
+      const nodeEl = (e.target as Element).closest<SVGGElement>('.graph-node');
+      if (!nodeEl) return;
+      const id = nodeEl.dataset.id ?? '';
+      if (!id || !pos[id]) return;
+      e.preventDefault();
+      const pt = toSvg(e.clientX, e.clientY);
+      drag = { id, nodeEl, origCx: pos[id].cx, origCy: pos[id].cy, startPx: pt.x, startPy: pt.y, moved: false };
+      nodeEl.style.cursor = 'grabbing';
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (!drag) return;
+      const pt = toSvg(e.clientX, e.clientY);
+      const ddx = pt.x - drag.startPx; const ddy = pt.y - drag.startPy;
+      if (!drag.moved && Math.abs(ddx) < 4 && Math.abs(ddy) < 4) return;
+      drag.moved = true;
+      pos[drag.id] = { ...pos[drag.id], cx: drag.origCx + ddx, cy: drag.origCy + ddy };
+      drag.nodeEl.setAttribute('transform', `translate(${ddx.toFixed(1)},${ddy.toFixed(1)})`);
+      redrawEdges(drag.id);
+    };
+
+    const onUp = () => {
+      if (!drag) return;
+      drag.nodeEl.style.cursor = 'grab';
+      const { id, moved } = drag;
+      const finalPos = { cx: pos[id].cx, cy: pos[id].cy };
+      drag = null;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      if (moved) setUserPositions((prev) => ({ ...prev, [id]: finalPos }));
+    };
+
+    svgEl.addEventListener('pointerdown', onDown);
+    return () => {
+      svgEl.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [svgHtml]);
 
@@ -375,7 +474,7 @@ export default function DependencyView({ program: p }: Props) {
               border: '1.5px solid #E5E7EB', fontSize: 11, fontWeight: 700,
             }}>
               <button
-                onClick={() => setViewMode('structural')}
+                onClick={() => { setViewMode('structural'); setUserPositions({}); }}
                 style={{
                   padding: '4px 10px', border: 'none', cursor: 'pointer',
                   background: viewMode === 'structural' ? '#1F3864' : '#F9FAFB',
@@ -385,7 +484,7 @@ export default function DependencyView({ program: p }: Props) {
                 {isCast ? 'CAST Structural' : 'Structural'}
               </button>
               <button
-                onClick={() => setViewMode('impact')}
+                onClick={() => { setViewMode('impact'); setUserPositions({}); }}
                 style={{
                   padding: '4px 10px', border: 'none', cursor: 'pointer',
                   background: viewMode === 'impact' ? '#E07B39' : '#F9FAFB',
@@ -396,6 +495,20 @@ export default function DependencyView({ program: p }: Props) {
                 + Impact Radius
               </button>
             </div>
+            {/* Reset layout button — only show when nodes have been moved */}
+            {Object.keys(userPositions).length > 0 && (
+              <button
+                onClick={resetPositions}
+                title="Reset all nodes to auto-layout positions"
+                style={{
+                  padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6,
+                  background: '#F9FAFB', color: '#6B7280', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700,
+                }}
+              >
+                ↺ Reset layout
+              </button>
+            )}
           </div>
         </div>
 

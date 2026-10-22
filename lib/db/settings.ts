@@ -2,7 +2,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { getDb } from './client';
 import * as schema from './schema';
 import type { LLMProvider } from '../llm/types';
-import { PLACEHOLDER_KEYS } from '../llm/types';
+import { isPlaceholderKey } from '../llm/types';
 import type { CopybookField, CopybookDefinition } from '../parser/types';
 
 const SETTINGS_KEYS = ['llm_provider', 'llm_model', 'groq_api_key', 'openai_api_key', 'anthropic_api_key'] as const;
@@ -20,20 +20,35 @@ export async function getLLMSettings(): Promise<LLMSettings & { apiKey: string }
   try {
     const rows = await db.select().from(schema.settings).where(inArray(schema.settings.key, [...SETTINGS_KEYS]));
     const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-    const provider = ((map.llm_provider as LLMProvider) || 'groq');
+    const savedProvider = (map.llm_provider as LLMProvider) || null;
     const model = map.llm_model || undefined;
-    const groqKey = map.groq_api_key || process.env.GROQ_API_KEY || '';
-    const openaiKey = map.openai_api_key || PLACEHOLDER_KEYS.openai;
-    const anthropicKey = map.anthropic_api_key || PLACEHOLDER_KEYS.anthropic;
-    const apiKey = provider === 'groq' ? groqKey : provider === 'openai' ? openaiKey : anthropicKey;
+
+    // Always fall back to env vars so all three providers work without a Settings visit
+    const groqKey      = map.groq_api_key      || process.env.GROQ_API_KEY      || '';
+    const openaiKey    = map.openai_api_key     || process.env.OPENAI_API_KEY    || '';
+    const anthropicKey = map.anthropic_api_key  || process.env.ANTHROPIC_API_KEY || '';
+
+    // Smart provider selection: use saved preference only if that provider has a real key.
+    // Otherwise pick the first provider that does.
+    const keyForProvider = (p: LLMProvider) =>
+      p === 'groq' ? groqKey : p === 'openai' ? openaiKey : anthropicKey;
+
+    // Preference: honour saved choice if its key is real; otherwise openai → groq → anthropic
+    const preferenceOrder: LLMProvider[] = savedProvider
+      ? [savedProvider, 'openai', 'groq', 'anthropic']
+      : ['openai', 'groq', 'anthropic'];
+
+    const provider = preferenceOrder.find(p => !isPlaceholderKey(keyForProvider(p))) ?? 'groq';
+
+    const apiKey = keyForProvider(provider);
     return { provider, model, groqKey, openaiKey, anthropicKey, apiKey };
   } catch {
     return {
       provider: 'groq',
       model: undefined,
       groqKey: process.env.GROQ_API_KEY || '',
-      openaiKey: PLACEHOLDER_KEYS.openai,
-      anthropicKey: PLACEHOLDER_KEYS.anthropic,
+      openaiKey: process.env.OPENAI_API_KEY || '',
+      anthropicKey: process.env.ANTHROPIC_API_KEY || '',
       apiKey: process.env.GROQ_API_KEY || '',
     };
   }
