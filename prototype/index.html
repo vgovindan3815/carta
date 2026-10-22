@@ -179,6 +179,88 @@
     .freshness-dot{width:6px;height:6px;border-radius:50%;background:#27AE60;flex-shrink:0;}
     /* Tabs */
     .tab-nav{background:var(--surface);border-bottom:2px solid var(--border);padding:0 40px;display:flex;flex-shrink:0;}
+    /* ── Agent pipeline tab ── */
+    .agent-pipeline{display:flex;align-items:center;gap:0;margin-bottom:32px;overflow-x:auto;padding:4px 0;}
+    .agent-arrow{color:var(--border);font-size:20px;padding:0 6px;flex-shrink:0;}
+    .agent-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px 22px;flex:1;min-width:180px;max-width:240px;box-shadow:var(--shadow-sm);}
+    .agent-card.det{border-color:#A7D7B2;background:#F7FBF8;}
+    .agent-card.llm{border-color:#A7B8E8;background:#F4F6FC;}
+    .agent-card.audit{border-color:#F0A96B;background:#FEF6EE;}
+    .agent-num{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;}
+    .agent-name{font-size:14px;font-weight:700;color:var(--navy-dark);margin-bottom:4px;}
+    .agent-type-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-bottom:10px;}
+    .det .agent-type-badge{background:#EBF5EE;color:#1D6B37;}
+    .llm .agent-type-badge{background:#EBF0FA;color:#2D4EA0;}
+    .audit .agent-type-badge{background:#FEF0E4;color:#8B4513;}
+    .agent-desc{font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:10px;}
+    .agent-output-lbl{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+    .agent-output{font-size:11px;color:var(--text-2);font-family:var(--font-mono);background:var(--surface-2);border-radius:4px;padding:4px 8px;}
+    .agent-rules{margin-top:28px;}
+    .agent-rules-title{font-size:13px;font-weight:700;color:var(--navy-dark);margin-bottom:16px;padding-bottom:8px;border-bottom:1.5px solid var(--border);}
+    .agent-rule-group{margin-bottom:20px;}
+    .agent-rule-group-name{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+    .agent-rule-row{display:flex;gap:10px;align-items:flex-start;font-size:12px;color:var(--text-2);margin-bottom:6px;line-height:1.5;}
+    .agent-rule-icon{flex-shrink:0;margin-top:1px;}
+    .prompt-excerpt{background:var(--surface-2);border:1px solid var(--border);border-left:3px solid var(--teal);border-radius:6px;padding:12px 16px;font-size:11.5px;color:var(--text-2);font-family:var(--font-mono);line-height:1.65;margin-top:8px;white-space:pre-wrap;}
+    /* ── BRD document layout (matches production document style) ── */
+    .brd-page{max-width:820px;margin:0 auto;font-family:var(--font-body);}
+    .brd-page-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+    .brd-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
+    .brd-title{font-size:26px;font-weight:700;color:var(--navy-dark);margin:0 0 10px 0;line-height:1.2;}
+    .brd-subtitle{font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:0;}
+    .brd-generated{font-size:12px;color:var(--text-3);white-space:nowrap;padding-top:4px;}
+    .brd-divider{border:none;border-top:2px solid var(--navy-dark);margin:20px 0 24px;}
+    .brd-toc-row{display:grid;grid-template-columns:1fr 260px;gap:20px;margin-bottom:32px;}
+    .brd-toc{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;}
+    .brd-toc-title{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:12px;}
+    .brd-toc-item{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--bg);font-size:13px;}
+    .brd-toc-item:last-child{border-bottom:none;}
+    .brd-toc-link{color:var(--teal);font-weight:600;text-decoration:none;cursor:pointer;}
+    .brd-toc-link:hover{text-decoration:underline;}
+    .brd-toc-count{color:var(--text-3);font-size:12px;}
+    .brd-source-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+    .brd-source-file{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--navy-dark);border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px;}
+    .brd-source-note{font-size:12px;color:var(--text-3);line-height:1.5;}
+    .brd-section{margin-bottom:32px;}
+    .brd-sec-header{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;}
+    .brd-sec-num{font-size:13px;color:var(--text-3);font-weight:600;min-width:16px;}
+    .brd-sec-title{font-size:16px;font-weight:700;color:var(--teal);}
+    .brd-rule-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:10px;}
+    .brd-rule-cat{font-size:10px;font-weight:700;font-family:var(--font-mono);color:var(--text-3);margin-bottom:4px;letter-spacing:.5px;}
+    .brd-rule-id{font-size:14px;font-weight:700;color:var(--navy-dark);margin-bottom:8px;}
+    .brd-rule-text{font-size:13.5px;color:var(--text);line-height:1.7;margin-bottom:8px;}
+    .brd-rule-rationale{font-size:12.5px;color:var(--text-2);font-style:italic;line-height:1.6;margin-bottom:6px;}
+    .brd-rule-impl{font-size:12px;color:var(--text-2);font-style:italic;line-height:1.6;margin-bottom:6px;}
+    .brd-rule-risk{font-size:12px;color:var(--text-2);font-style:italic;line-height:1.6;margin-top:6px;padding-top:6px;border-top:1px dashed var(--border);}
+    .brd-rule-risk em{font-style:normal;font-weight:700;color:#C0392B;}
+    .brd-inferred{font-size:10px;font-weight:700;color:var(--warning);background:#FEF6E4;border:1px solid #E8C97A;border-radius:3px;padding:1px 5px;}
+    .br-inferred{font-size:10px;font-weight:700;color:var(--warning);background:#FEF6E4;border:1px solid #E8C97A;border-radius:3px;padding:1px 5px;margin-left:4px;}
+    .brd-rule-title{font-size:14px;font-weight:700;color:var(--navy-dark);margin-bottom:12px;}
+    .brd-rule-field{font-size:13.5px;line-height:1.7;margin-bottom:8px;color:var(--text);}
+    .brd-field-lbl{font-weight:700;color:var(--navy-dark);margin-right:6px;}
+    .brd-gap{margin-top:10px;padding:10px 14px;background:#FFF8F0;border-left:3px solid #E07B39;font-size:13px;color:var(--text-2);line-height:1.6;}
+    .brd-data-table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;}
+    .brd-data-table th{background:var(--navy-dark);color:#fff;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;}
+    .brd-data-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6;}
+    .brd-data-table tr:last-child td{border-bottom:none;}
+    .brd-data-table tr:nth-child(even) td{background:var(--surface-2);}
+    .brd-section-lbl{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin:28px 0 14px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+    .brd-exec-box{font-size:13.5px;line-height:1.8;color:var(--text);margin-bottom:20px;padding:0 2px;}
+    .brd-downstream-table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:13px;}
+    .brd-downstream-table th{background:var(--surface-2);color:var(--navy-dark);padding:9px 14px;text-align:left;font-size:12px;font-weight:700;border-bottom:2px solid var(--border);}
+    .brd-downstream-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6;}
+    .brd-gaps-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .brd-gaps-table th{background:#FFF3E0;color:#7C4A00;padding:9px 14px;text-align:left;font-size:11px;font-weight:700;border-bottom:2px solid #E8C97A;}
+    .brd-gaps-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.6;}
+    .brd-gaps-table td:first-child{font-weight:700;color:var(--text-3);width:28px;}
+    /* ── Enhanced change impact ── */
+    .impact-mitigation{margin-top:8px;padding:8px 12px;background:#F4F8FF;border-left:3px solid var(--navy);border-radius:0 4px 4px 0;font-size:12px;}
+    .impact-mitigation strong{color:var(--navy-dark);display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;}
+    .impact-mitigation ul{margin:0;padding-left:16px;color:var(--text-2);}
+    .impact-mitigation li{margin-bottom:2px;}
+    .impact-test{margin-top:6px;padding:6px 12px;background:#F0FBF4;border-left:3px solid var(--success);border-radius:0 4px 4px 0;font-size:12px;color:var(--text-2);}
+    .impact-test strong{color:var(--success);}
+    .hop-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;background:#F0F4F8;color:var(--text-3);border:1px solid var(--border);margin-left:6px;font-family:var(--font-mono);}
     .tab-btn{padding:14px 22px;border:none;background:transparent;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;align-items:center;gap:7px;}
     .tab-btn:hover{color:var(--teal);}
     .tab-btn.active{color:var(--navy-dark);border-bottom-color:var(--teal);}
@@ -539,6 +621,7 @@
       <button class="tab-btn" onclick="showTab('business')" data-tab="business"><span>📋</span> Business Rules</button>
       <button class="tab-btn" onclick="showTab('impact')" data-tab="impact"><span>💥</span> Change Impact</button>
       <button class="tab-btn" onclick="showTab('spec')" data-tab="spec"><span>🏗️</span> Modernization Spec</button>
+      <button class="tab-btn" onclick="showTab('agents')" data-tab="agents"><span>🤖</span> Agents</button>
     </nav>
 
     <div class="tab-content">
@@ -594,6 +677,14 @@
         </div>
         <div class="spec-container" id="spec-content"></div>
       </div>
+
+      <div class="tab-panel" id="panel-agents">
+        <div class="flex items-center gap-12 mb-16">
+          <div><div class="panel-title">MAVEN Agent Pipeline</div><div class="panel-subtitle" style="margin-bottom:0;">The five agents that produce this documentation — their roles, grounding rules, and trust model.</div></div>
+          <div style="margin-left:auto;flex-shrink:0;"><span class="badge badge-deterministic"><span class="badge-dot"></span>Pipeline: deterministic → LLM → audit</span></div>
+        </div>
+        <div id="agents-content"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -622,21 +713,30 @@ const STEPS = {
     ],
     p1dur: 3460,
     p2: [
-      {d:0,    lv:'INFO', t:'Serialising dependency graph for LLM context window…'},
-      {d:300,  lv:'INFO', t:'Context payload: 8 nodes, 8 typed edges, 847 LOC of parsed source'},
-      {d:580,  lv:'LLM',  t:'Generating <span class="hl">business rules</span> — 4 sections, analyst readability target…'},
-      {d:1100, lv:'LLM',  t:'Grounding each claim against deterministic graph edges…'},
-      {d:1420, lv:'DONE', t:'Business rules complete — <span class="hl">4 sections · 8 rules · 12 edge citations</span> ✓'},
-      {d:1650, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 5 dependent programs…'},
-      {d:2030, lv:'LLM',  t:'Scoring severity by edge type (direct CALL → CRITICAL, runtime read → HIGH)…'},
-      {d:2340, lv:'DONE', t:'Change impact complete — <span class="hl">5 programs · coverage 91%</span> ✓'},
-      {d:2570, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Java Spring Boot target)…'},
-      {d:2980, lv:'LLM',  t:'Mapping COBOL data structures → JPA entities, COMP-3 → BigDecimal…'},
-      {d:3290, lv:'LLM',  t:'Identifying open questions for engineer review…'},
-      {d:3550, lv:'DONE', t:'Modernisation spec complete — <span class="hl">5 sections</span> ✓'},
-      {d:3800, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 6.4s</span>'},
+      {d:0,    lv:'INFO', t:'Building LLM context package for <span class="hl">GTMSETL0</span>…'},
+      {d:280,  lv:'INFO', t:'→ Dependency graph serialised — 8 nodes, 8 typed edges'},
+      {d:520,  lv:'INFO', t:'→ Loading GTMSETL0 source — 847 LOC · PROCEDURE DIVISION · WORKING-STORAGE'},
+      {d:740,  lv:'INFO', t:'→ Resolving copybooks: <span class="hl">SETLCTRL.cpy</span>, <span class="hl">GLEDGFMT.cpy</span>, <span class="hl">VALD2PRM.cpy</span>, <span class="hl">POST1PRM.cpy</span>'},
+      {d:980,  lv:'INFO', t:'→ Loading dependent source: <span class="hl">GTMPOST1.cbl</span> (612 LOC) — interface contracts'},
+      {d:1180, lv:'INFO', t:'→ Loading dependent source: <span class="hl">GTMVALD2.cbl</span> (534 LOC) — validation logic'},
+      {d:1380, lv:'INFO', t:'→ Loading dependent source: <span class="hl">GTMDB2IO.cbl</span> (388 LOC) — DB2 cursor definitions'},
+      {d:1560, lv:'SQL',  t:'→ Attaching SQL statements: 2 SELECT, 1 UPDATE on <span class="hl">SETL_CTRL</span>'},
+      {d:1730, lv:'INFO', t:'→ Attaching WORKING-STORAGE: WS-RETURN-CODE, WS-POST-PARM, WS-VALD2-PARM, WS-SETL-CTRL-ROW'},
+      {d:1900, lv:'INFO', t:'Context package complete — <span class="hl">2,381 LOC · 4 copybooks · 3 SQL statements · 8 graph edges</span>'},
+      {d:2100, lv:'LLM',  t:'Generating <span class="hl">business rules document</span> — 6 sections, BR-xxx rule IDs, analyst readability target…'},
+      {d:2500, lv:'LLM',  t:'Grounding each BR-xxx rule against deterministic graph edges and paragraph citations…'},
+      {d:2780, lv:'LLM',  t:'Applying Coverage Auditor — verifying all claims are graph-grounded…'},
+      {d:3050, lv:'DONE', t:'Business rules complete — <span class="hl">6 sections · 13 rules · 21 edge citations · grounding 97%</span> ✓'},
+      {d:3250, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 6 dependents · hop-count tracing · mitigation steps…'},
+      {d:3600, lv:'LLM',  t:'Scoring severity by rubric (direct CALL → CRITICAL, runtime read → HIGH, partial coverage → UNKNOWN)…'},
+      {d:3880, lv:'DONE', t:'Change impact complete — <span class="hl">6 items · 4 CRITICAL · coverage 91%</span> ✓'},
+      {d:4080, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Java Spring Boot target)…'},
+      {d:4450, lv:'LLM',  t:'Mapping COBOL data structures → JPA entities, COMP-3 → BigDecimal, cursor → JdbcCursorItemReader…'},
+      {d:4720, lv:'LLM',  t:'Identifying open questions for engineer review (GTMASM01 contract, GL format lock, tx isolation)…'},
+      {d:4980, lv:'DONE', t:'Modernisation spec complete — <span class="hl">5 sections · 4 open questions</span> ✓'},
+      {d:5200, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 8.3s · context: 2,381 LOC</span>'},
     ],
-    p2dur: 3800,
+    p2dur: 5200,
   },
   GTMPOST1: {
     p1: [
@@ -656,20 +756,27 @@ const STEPS = {
     ],
     p1dur: 2960,
     p2: [
-      {d:0,    lv:'INFO', t:'Serialising dependency graph for LLM context window…'},
-      {d:270,  lv:'INFO', t:'Context payload: 5 nodes, 4 typed edges, 612 LOC of parsed source'},
-      {d:530,  lv:'LLM',  t:'Generating <span class="hl">business rules</span> — 3 sections…'},
-      {d:970,  lv:'LLM',  t:'Grounding claims against graph edges…'},
-      {d:1240, lv:'DONE', t:'Business rules complete — <span class="hl">3 sections · 6 rules</span> ✓'},
-      {d:1460, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 4 dependent programs/stores…'},
-      {d:1820, lv:'LLM',  t:'Flagging GLEDGER format change as CRITICAL (fixed-format downstream consumer)…'},
-      {d:2090, lv:'DONE', t:'Change impact complete — <span class="hl">4 items · coverage 96%</span> ✓'},
-      {d:2310, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Spring Batch target)…'},
-      {d:2680, lv:'LLM',  t:'Mapping COBOL cursor pattern → Spring Batch chunk-oriented model…'},
-      {d:2950, lv:'DONE', t:'Modernisation spec complete — <span class="hl">3 sections</span> ✓'},
-      {d:3150, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 5.8s</span>'},
+      {d:0,    lv:'INFO', t:'Building LLM context package for <span class="hl">GTMPOST1</span>…'},
+      {d:260,  lv:'INFO', t:'→ Dependency graph serialised — 5 nodes, 4 typed edges'},
+      {d:490,  lv:'INFO', t:'→ Loading GTMPOST1 source — 612 LOC · PROCEDURE DIVISION · WORKING-STORAGE · LINKAGE SECTION'},
+      {d:700,  lv:'INFO', t:'→ Resolving copybooks: <span class="hl">POST1PRM.cpy</span> (caller interface), <span class="hl">GLEDGFMT.cpy</span> (output layout), <span class="hl">AUDITROW.cpy</span>'},
+      {d:900,  lv:'INFO', t:'→ Loading caller source: <span class="hl">GTMSETL0.cbl</span> — parameter block, calling paragraph, return-code logic'},
+      {d:1080, lv:'SQL',  t:'→ Attaching SQL: DECLARE CURSOR / FETCH on <span class="hl">TRANS_PENDING</span>, INSERT on <span class="hl">POST_AUDIT</span>'},
+      {d:1250, lv:'INFO', t:'→ Attaching file definitions: <span class="hl">GLEDGER</span> FD record layout, OPEN/WRITE/CLOSE paragraphs'},
+      {d:1420, lv:'INFO', t:'Context package complete — <span class="hl">1,459 LOC · 3 copybooks · 2 SQL statements · 4 graph edges</span>'},
+      {d:1610, lv:'LLM',  t:'Generating <span class="hl">business rules document</span> — 4 sections, BR-xxx rule IDs, analyst readability target…'},
+      {d:2000, lv:'LLM',  t:'Grounding each BR-xxx rule against GLEDGER FD layout, TRANS_PENDING cursor, POST_AUDIT INSERT…'},
+      {d:2230, lv:'LLM',  t:'Applying Coverage Auditor — verifying all claims are graph-grounded…'},
+      {d:2450, lv:'DONE', t:'Business rules complete — <span class="hl">4 sections · 8 rules · 14 edge citations · grounding 96%</span> ✓'},
+      {d:2640, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 4 dependents · GLEDGER downstream consumer flagged CRITICAL…'},
+      {d:2980, lv:'LLM',  t:'Flagging GLEDGER format change as CRITICAL (fixed-format, independent GL system release cycle)…'},
+      {d:3220, lv:'DONE', t:'Change impact complete — <span class="hl">4 items · 2 CRITICAL · coverage 96%</span> ✓'},
+      {d:3410, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Spring Batch target)…'},
+      {d:3740, lv:'LLM',  t:'Mapping COBOL cursor pattern → Spring Batch chunk-oriented model, COMP-3 AMOUNT → BigDecimal…'},
+      {d:3970, lv:'DONE', t:'Modernisation spec complete — <span class="hl">3 sections · 3 open questions</span> ✓'},
+      {d:4180, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 7.1s · context: 1,459 LOC</span>'},
     ],
-    p2dur: 3150,
+    p2dur: 4180,
   }
 };
 
@@ -724,45 +831,155 @@ GTMSETL0:{
       {id:'SETLCTRL',label:'SETL_CTRL',sub:'DB2 · Settlement Control',type:'data',x:250,y:453,w:170,h:52},
     ],
     edges:[
-      {from:'GTMCICS4',to:'GTMSETL0',type:'cics',label:'reads cutoff at runtime',fd:'bottom',td:'top'},
-      {from:'GTMSETL0',to:'GTMPOST1',type:'call',label:'CALL — cutoff timestamp',fd:'bl',td:'top'},
-      {from:'GTMSETL0',to:'GTMVALD2',type:'call',label:'CALL — validate pending',fd:'br',td:'top'},
-      {from:'GTMSETL0',to:'SETLCTRL',type:'data',label:'EXEC SQL SELECT',fd:'bottom',td:'top'},
-      {from:'GTMPOST1',to:'GLEDGER', type:'data',label:'WRITE — GLEDGER feed',fd:'bottom',td:'top'},
-      {from:'GTMVALD2',to:'GTMDB2IO',type:'call',label:'CALL — cursor ops',fd:'bottom',td:'top'},
-      {from:'GTMVALD2',to:'GTMASM01',type:'dyn', label:'DYNAMIC CALL (71%)',fd:'bl',td:'top'},
-      {from:'GTMDB2IO',to:'SETLCTRL',type:'data',label:'READ/WRITE — table owner',fd:'left',td:'right'},
+      {from:'GTMCICS4',to:'GTMSETL0',type:'cics',label:'reads SETL_CTRL at runtime',fd:'bottom',td:'top'},
+      {from:'GTMSETL0',to:'GTMPOST1',type:'call',label:'¶4000-CALL-POSTING',fd:'bl',td:'top'},
+      {from:'GTMSETL0',to:'GTMVALD2',type:'call',label:'¶3000-CALL-VALIDATION',fd:'br',td:'top'},
+      {from:'GTMSETL0',to:'SETLCTRL',type:'data',label:'¶2000-READ-SETL-CTRL',fd:'bottom',td:'top'},
+      {from:'GTMPOST1',to:'GLEDGER', type:'data',label:'WRITE SEQ GLEDGER',fd:'bottom',td:'top'},
+      {from:'GTMVALD2',to:'GTMDB2IO',type:'call',label:'¶3000-VALIDATE-TRANS',fd:'bottom',td:'top'},
+      {from:'GTMVALD2',to:'GTMASM01',type:'dyn', label:'DYN CALL 71% ¶3000',fd:'bl',td:'top'},
+      {from:'GTMDB2IO',to:'SETLCTRL',type:'data',label:'SQL READ/WRITE',fd:'left',td:'right'},
     ]
   },
+  executiveSummary:'GTMSETL0 is the authoritative orchestrator of the daily GTM settlement cutoff. It is the single entry point for the settlement end-of-day batch stream — no other program initiates the cutoff. It determines the effective cutoff timestamp (applying UTC offset and emergency override logic), calls GTMVALD2 to validate all pending transactions, calls GTMPOST1 to post the validated set, and broadcasts the final cutoff to the control table for GTMCICS4 to consume. Its RETURN-CODE propagates to the JCL job stream; a non-zero return causes downstream steps to be bypassed by COND= logic. Analysis coverage is 91% — one dynamic CALL to GTMASM01 (via GTMVALD2) is resolved at 71% confidence and requires manual verification.',
+  businessPurpose:'This program exists to enforce a controlled, single-entry-point settlement cutoff for the GTM payments platform. It prevents any transaction from being posted without first passing validation, and prevents the cutoff from being broadcast before posting completes. By combining cutoff determination, validation gating, posting, and broadcast into one sequenced program, it creates an auditable, atomic settlement event — one that either completes fully or fails cleanly with a non-zero return code. The program is designed so that every failure mode produces a distinct return code that the JCL job stream can act on without human intervention.',
+  triggers:'This program is triggered by the JCL batch scheduler at the end of each business day, within the scheduled settlement window (standard: 17:00 ET). It runs as a single-step COBOL batch program under JES2. There is no interactive or on-demand invocation path; all operator interaction with settlement status is through GTMCICS4, which reads the result from SETL_CTRL after this program completes. The program reads SETL_CTRL at startup to determine whether the run should proceed normally, use an override cutoff, or be suppressed for a bank holiday.',
+  dataTable:[
+    {name:'SETL_CTRL (DB2 table)',what:'Settlement control parameters: standard cutoff time, UTC offset, emergency override flag and time, holiday suppression flag, region code, computed cutoff timestamp, and broadcast status code',access:'Read and Changed'},
+    {name:'TRANS_PENDING (DB2 table)',what:'Pending transactions awaiting validation and posting; accessed indirectly via GTMVALD2 (validation) and GTMPOST1 (posting) — not accessed directly by GTMSETL0',access:'Read only (indirect)'},
+    {name:'GLEDGER (file + downstream system)',what:'General ledger feed written by GTMPOST1 after successful validation; the downstream GL system reads this for reconciliation and reporting',access:'Changed (indirect via GTMPOST1)'},
+    {name:'POST_AUDIT (DB2 table)',what:'Posting audit log; one row written by GTMPOST1 per settlement run recording post count, region, cutoff timestamp, and run result',access:'Changed (indirect via GTMPOST1)'},
+  ],
+  downstream:[
+    {to:'GTMVALD2',dependency:'Called synchronously before posting. The WS-VALD2-PARM interface block (COPYBOOK-defined) carries the cutoff timestamp, region code, and fail-count return counters. A change to any of these fields, or to the calling paragraph, breaks the validation gate and may allow invalid transactions into the posting stream.'},
+    {to:'GTMPOST1',dependency:'Called synchronously after validation passes. The WS-POST-PARM interface block (COPYBOOK-defined) carries the confirmed cutoff timestamp, region code, and output counters. A change to the block structure must be co-deployed with GTMPOST1.'},
+    {to:'GTMCICS4',dependency:'Reads SETL_CTRL.COMPUTED_CUTOFF_TS and STATUS_CODE at online-transaction time via a runtime DB2 SELECT — not a CALL. Any change to the STATUS_CODE vocabulary (BROADCAST, HOLIDAY_SKIP, PENDING) or the timestamp format must be co-ordinated with GTMCICS4, with no compile-time signal if it is not.'},
+    {to:'SETL_CTRL',dependency:'Both read (control parameters at start) and written (broadcast update at end). A schema change — NOT NULL column without default, CUTOFF_TIME format change, STATUS_CODE rename — will break either the SELECT or the UPDATE without warning.'},
+  ],
+  gaps:[
+    {n:1,uncertain:'GTMASM01 dynamic CALL resolved at 71% confidence only. The exact bit-field contract — flag byte layout, which bit positions map to which transaction status indicators — is not fully determinable by static analysis.',businessRisk:'If the flag byte layout changes, GTMVALD2 will silently mis-validate transactions. Because the edge is partially resolved, automated analysis cannot guarantee detection of this breakage.',validation:'Engineer to trace GTMASM01 Assembler source and document the exact bit-field layout and register conventions before any validation-path change.'},
+    {n:2,uncertain:'HOLIDAY_FLAG reset mechanism. The code reads HOLIDAY_FLAG and acts on it when Y, but the process that resets it to N after a holiday skip is not visible in GTMSETL0.',businessRisk:'If the reset is manual and is missed, the next business day\'s settlement run will be suppressed with no error signal — GTMSETL0 returns RC=0 for a holiday skip, so JCL will not detect the failure.',validation:'SME to confirm the operations runbook: who resets HOLIDAY_FLAG, when, and what is the safeguard if it is not reset?'},
+    {n:3,uncertain:'JCL COND= threshold. GTMSETL0 sets RETURN-CODE to 0, 8, 12, or 16. The JCL COND= threshold configured in the job stream is not visible from the program source.',businessRisk:'If the JCL threshold differs from what the return-code matrix implies, downstream steps may execute on a failed settlement run or be skipped on a partial success.',validation:'Engineer to confirm the JCL COND= value matches the return-code matrix and that any new error code added to the program is reflected in the JCL.'},
+  ],
   businessRules:[
-    {section:'Purpose & Scope',rules:[
-      {text:'GTMSETL0 is the <strong>authoritative source of the daily settlement cutoff timestamp</strong> for all Global Transaction Management (GTM) payment flows. Its output determines which transactions are included in today\'s settlement run — any transaction timestamped after the broadcast cutoff is deferred to the next business day.',citations:[]},
-      {text:'The program runs once per business day during the end-of-day window. It reads the configured cutoff parameters from DB2, validates all pending transactions, triggers posting, then broadcasts the confirmed cutoff to the shared control table.',citations:[{label:'SETL_CTRL (DB2 READ)',edge:'GTMSETL0 → SETL_CTRL'}]},
+    {section:'Program Identity & Batch Context',rules:[
+      {id:'BR-001',title:'Settlement Cutoff Orchestration Is the Sole Batch Entry Point',
+       trigger:'The daily GTM settlement batch stream is initiated by the JCL job scheduler at the end of each business day.',
+       action:'GTMSETL0 is invoked as the exclusive entry-point program. It executes in strict paragraph sequence: 1000-INITIALIZE → 2000-READ-SETL-CTRL → 3000-CALL-VALIDATION → 4000-CALL-POSTING → 5000-UPDATE-CUTOFF-BROADCAST → 9000-TERMINATE. Steps 3 through 5 are bypassed if any preceding step returns a non-zero code. RETURN-CODE is set and propagated to the JCL job stream at 9000-TERMINATE.',
+       outcome:'The full settlement cutoff lifecycle — determination, validation, posting, broadcast — is completed as a single atomic batch run. No other program can initiate or substitute for this sequence.',
+       risk:'A change to RETURN-CODE semantics breaks the JCL COND= gate logic. Downstream batch steps may run when they should be held, or be skipped when they should run. This is a JCL-level contract that cannot be enforced by the program itself.'},
+      {id:'BR-002',title:'Strict Execution Sequence Prevents Partial Settlement',
+       trigger:'Any step in the settlement pipeline (validate, post, broadcast) is about to begin.',
+       action:'The program evaluates the return code of the preceding step. If the preceding step set a non-zero RETURN-CODE, the remaining steps are skipped and control passes directly to 9000-TERMINATE. Step 3 (validation) must return FAIL-COUNT = 0 for step 4 (posting) to execute. Step 4 must return RC = 0 for step 5 (broadcast) to execute.',
+       outcome:'Validation failure means no transaction is posted that day. Posting failure means no broadcast occurs. The batch run either completes fully or fails cleanly with a diagnostic return code.',
+       risk:'Inserting a new step, weakening a return-code check, or reordering paragraphs can cause transactions to be posted without passing validation, or the cutoff to be broadcast after a failed posting — creating a false settlement confirmation.'},
     ]},
-    {section:'Cutoff Time Rules',rules:[
-      {text:'The standard settlement cutoff is <strong>17:00 ET</strong>, stored in SETL_CTRL as CUTOFF_TIME. A UTC_OFFSET column adjusts for timezone differences when MAVEN is run from non-New York infrastructure.',citations:[{label:'SETL_CTRL.CUTOFF_TIME',edge:'GTMSETL0 → SETL_CTRL SELECT'}]},
-      {text:'If OVERRIDE_FLAG = \'Y\' in SETL_CTRL (set by settlement operations), the program substitutes the OVERRIDE_TIME value. This mechanism handles emergency cutoff extensions approved by treasury.',citations:[{label:'SETL_CTRL.OVERRIDE_FLAG',edge:'GTMSETL0 → SETL_CTRL SELECT'}]},
-      {text:'On bank holidays (HOLIDAY_FLAG = \'Y\'), the program suppresses the settlement run and sets STATUS_CODE = \'HOLIDAY_SKIP\'. GTMCICS4 reads this status at runtime to display the correct message to online users.',citations:[{label:'SETL_CTRL.HOLIDAY_FLAG',edge:'GTMSETL0 → SETL_CTRL SELECT'},{label:'GTMCICS4 reads status',edge:'GTMCICS4 → GTMSETL0'}]},
+    {section:'Settlement Cutoff Determination Rules',rules:[
+      {id:'BR-003',title:'Cutoff Time Is Configurable via the Control Table, Not Hard-Coded',
+       trigger:'The program reaches paragraph 2000-READ-SETL-CTRL at the start of each settlement run.',
+       action:'The program reads SETL_CTRL.CUTOFF_TIME (PIC X(08), HHMMSS format) and SETL_CTRL.UTC_OFFSET (PIC S9(04) COMP) from DB2. It computes the effective cutoff timestamp at paragraph 2100-COMPUTE-CUTOFF by applying the UTC offset to produce an ET-equivalent boundary. If SETL_CTRL row is not found, RETURN-CODE = 8 is set and processing stops.',
+       outcome:'The effective settlement cutoff is a computed, configurable value. Changing CUTOFF_TIME in SETL_CTRL changes the cutoff window for all future runs without a code deployment.',
+       risk:'Changing the data type or format of CUTOFF_TIME or UTC_OFFSET breaks the arithmetic in 2100-COMPUTE-CUTOFF. An incorrect UTC_OFFSET value silently shifts the cutoff boundary, causing transactions near the boundary to be included or excluded incorrectly — a silent financial accuracy error.'},
+      {id:'BR-004',title:'Emergency Override Extends the Cutoff Window for a Single Run',
+       trigger:'Settlement operations manually sets SETL_CTRL.OVERRIDE_FLAG = \'Y\' before the batch run — typically under treasury direction for late-day transaction inclusion.',
+       action:'When OVERRIDE_FLAG = \'Y\', the program reads SETL_CTRL.OVERRIDE_TIME and substitutes it for the standard CUTOFF_TIME. The effective cutoff is recalculated using the override value. The program does not reset OVERRIDE_FLAG — that is an operations responsibility.',
+       outcome:'The settlement window is extended to OVERRIDE_TIME for the current run only. All transactions timestamped at or before OVERRIDE_TIME become eligible for validation and posting.',
+       risk:'Automating or caching the override flag, or failing to reset it after use, could extend the cutoff beyond a single day without treasury awareness. The program provides no safeguard against OVERRIDE_FLAG remaining \'Y\' across multiple consecutive runs.'},
+      {id:'BR-005',title:'Bank Holiday Suppression Produces a Clean Exit, Not an Error',
+       trigger:'SETL_CTRL.HOLIDAY_FLAG = \'Y\' at the time the program reads the control row.',
+       action:'The program sets STATUS_CODE = \'HOLIDAY_SKIP\' on the SETL_CTRL record via EXEC SQL UPDATE and sets RETURN-CODE = 0 — a clean, successful exit. No validation, posting, or broadcast is performed. No transactions are processed.',
+       outcome:'The settlement run produces a zero return code, signalling to JCL that the step completed normally even though no transactions were processed. GTMCICS4 reads STATUS_CODE = \'HOLIDAY_SKIP\' and displays the appropriate customer-facing message.',
+       risk:'Setting HOLIDAY_FLAG = \'Y\' for a non-holiday, or failing to reset it after a holiday, suppresses an entire live settlement run with no alert — because the program returns RC=0, JCL will not detect the suppression as a failure. There is no automated safeguard that checks the business calendar.',
+       gap:'The process that resets HOLIDAY_FLAG to \'N\' after a holiday skip is not visible in GTMSETL0. If this is a manual operations step and is missed, the following business day\'s settlement run will also be suppressed silently. SME confirmation required: who resets HOLIDAY_FLAG, and what is the safeguard?'},
     ]},
-    {section:'Validation Gate (Pre-posting)',rules:[
-      {text:'Before any posting occurs, GTMSETL0 calls <strong>GTMVALD2</strong> with the computed cutoff timestamp. GTMVALD2 validates all pending transactions. If any transaction fails (VALD2-FAIL-COUNT &gt; 0), the entire settlement run is held — posting does not proceed.',citations:[{label:'CALL GTMVALD2',edge:'GTMSETL0 → GTMVALD2'}]},
-      {text:'GTMVALD2 in turn uses <strong>GTMDB2IO</strong> for all DB2 cursor operations, and dynamically calls <strong>GTMASM01</strong> for packed-byte flag inspection. The GTMASM01 dependency is partially resolved (71%) — if its bit-field contract changes, downstream effects may not be fully detectable by automated analysis.',citations:[{label:'CALL GTMDB2IO',edge:'GTMVALD2 → GTMDB2IO'},{label:'DYNAMIC CALL GTMASM01',edge:'GTMVALD2 → GTMASM01 (71%)'}]},
+    {section:'Validation Gate Rules',rules:[
+      {id:'BR-006',title:'Validation Is a Hard Gate — Posting Cannot Bypass It',
+       trigger:'The program reaches paragraph 3000-CALL-VALIDATION after successfully reading the SETL_CTRL control row.',
+       action:'GTMSETL0 calls GTMVALD2 synchronously via a static CALL, passing the computed cutoff timestamp and region code via WS-VALD2-PARM. GTMVALD2 returns LS-FAIL-COUNT. If LS-FAIL-COUNT &gt; 0, the program sets a non-zero RETURN-CODE and skips paragraph 4000-CALL-POSTING entirely. The fail count and RETURN-CODE are written to the JES log.',
+       outcome:'Validation failure immediately halts the settlement run before any transaction is posted. Operations review the JES log to determine which transactions failed and why. No posting occurs until FAIL-COUNT = 0.',
+       risk:'Weakening the fail-count gate — for example, allowing posting when FAIL-COUNT is below a threshold — would let invalid transactions enter the settlement batch, producing an incorrect GLEDGER feed and a direct GL reconciliation failure. This is a financial integrity risk.'},
+      {id:'BR-007',title:'Validation Sub-Pipeline Includes a Partially Resolved Assembler Dependency',
+       trigger:'GTMVALD2 is executing its internal validation logic against TRANS_PENDING.',
+       action:'GTMVALD2 calls GTMDB2IO for all its DB2 cursor operations (CALL_STATIC, 100% confidence). It also dynamically calls GTMASM01 for packed-byte flag inspection — specifically, bit-field validation of transaction status indicators. This dynamic CALL is resolved at 71% confidence from static analysis; the precise bit-field contract is not fully determined.',
+       outcome:'Each pending transaction\'s status flags are validated against a bit-field mask provided by GTMASM01. Transactions failing the check increment LS-FAIL-COUNT and are held from posting.',
+       risk:'If GTMASM01\'s bit-field layout changes — for example, a flag byte position shifts — GTMVALD2 will silently mis-validate transactions. Because this edge is partially resolved, automated analysis cannot guarantee detection of this breakage.',
+       gap:'GTMASM01 dynamic CALL resolved at 71% confidence only. Its precise bit-field contract — parameter register convention, flag bit positions, return value semantics — is not fully determinable by static analysis. Engineer to trace GTMASM01 Assembler source and document the exact flag byte layout before any validation-path change.'},
     ]},
-    {section:'Posting & Broadcast',rules:[
-      {text:'Once validation passes, GTMSETL0 calls <strong>GTMPOST1</strong>, passing the confirmed cutoff timestamp and region code. GTMPOST1 selects all transactions with TRANS_TS ≤ cutoff and writes them to the GLEDGER sequential feed. A non-zero return code halts the broadcast.',citations:[{label:'CALL GTMPOST1',edge:'GTMSETL0 → GTMPOST1'}]},
-      {text:'After successful posting, GTMSETL0 writes the computed cutoff back to SETL_CTRL — setting COMPUTED_CUTOFF_TS and STATUS_CODE = \'BROADCAST\'. This is the signal that GTMCICS4 polls at online-transaction time to confirm today\'s cutoff is final.',citations:[{label:'EXEC SQL UPDATE SETL_CTRL',edge:'GTMSETL0 → SETL_CTRL UPDATE'},{label:'GTMCICS4 reads COMPUTED_CUTOFF_TS',edge:'GTMCICS4 → GTMSETL0'}]},
+    {section:'Transaction Posting Rules',rules:[
+      {id:'BR-008',title:'Posting Shares a COPYBOOK-Defined Interface with GTMPOST1',
+       trigger:'Validation passes (LS-FAIL-COUNT = 0) and the program reaches paragraph 4000-CALL-POSTING.',
+       action:'GTMSETL0 calls GTMPOST1 via a static CALL, passing WS-POST-PARM: the confirmed cutoff timestamp (PIC X(26)), the settlement region code (PIC X(04)), and pre-zeroed transaction and return code counters. WS-POST-PARM is defined in a shared COPYBOOK. GTMPOST1 populates the counters and returns RETURN-CODE.',
+       outcome:'GTMPOST1 takes control of transaction posting. All transactions in TRANS_PENDING with TRANS_STATUS = \'VALIDATED\' and TRANS_TS ≤ cutoff are posted to GLEDGER. Transaction count and return code are returned to GTMSETL0.',
+       risk:'A change to WS-POST-PARM structure — field order, data type (especially PIC X timestamp format), or field length — must be co-deployed with GTMPOST1. Because the interface is COPYBOOK-defined, a change to one program without updating the other causes GTMPOST1 to parse the parameter block incorrectly, posting the wrong transaction set or crashing with a data exception.'},
+      {id:'BR-009',title:'Transaction Eligibility Boundary Is a Closed Interval',
+       trigger:'GTMPOST1 opens its DB2 cursor against TRANS_PENDING.',
+       action:'The cursor selects rows where TRANS_STATUS = \'VALIDATED\' AND TRANS_TS ≤ the received cutoff timestamp. Transactions in any other status, or timestamped after the cutoff, are excluded and remain in TRANS_PENDING for the next cycle.',
+       outcome:'Exactly the validated, in-window transaction set is posted each run. Late arrivals and pre-validated or failed transactions are deferred — not discarded.',
+       risk:'A timezone mismatch between TRANS_TS storage format (UTC vs. ET) and the ET-based cutoff timestamp will silently include or exclude boundary transactions incorrectly. This produces an incorrect GLEDGER feed with no error code.',
+       gap:'This rule is inferred from GTMPOST1\'s cursor logic. The exact timezone convention for TRANS_TS, and whether the column is indexed on (TRANS_STATUS, TRANS_TS), are not confirmed from GTMSETL0\'s analysis alone. Engineer to verify the TRANS_PENDING schema and confirm timezone handling for TRANS_TS.'},
+    ]},
+    {section:'Broadcast & Status Management',rules:[
+      {id:'BR-010',title:'Broadcast Is the Settlement Completion Signal for Online Systems',
+       trigger:'GTMPOST1 returns RETURN-CODE = 0 (successful posting) and the program reaches paragraph 5000-UPDATE-CUTOFF-BROADCAST.',
+       action:'GTMSETL0 executes EXEC SQL UPDATE on SETL_CTRL, writing the COMPUTED_CUTOFF_TS value and setting STATUS_CODE = \'BROADCAST\'. This is the only write that marks the settlement run as complete. If this UPDATE fails, RETURN-CODE = 12 is set and the broadcast is not recorded.',
+       outcome:'STATUS_CODE = \'BROADCAST\' is the signal that GTMCICS4 reads to confirm the cutoff is final. Until this UPDATE succeeds, the online system considers the settlement run incomplete.',
+       risk:'If the broadcast UPDATE fails silently or is skipped — for example, due to a DB2 outage after posting — GTMCICS4 will never see STATUS_CODE = \'BROADCAST\'. It may display stale cutoff information or fail to gate online transactions against today\'s confirmed boundary. Transactions may have already been posted to GLEDGER with no corresponding completion record.'},
+      {id:'BR-011',title:'GTMCICS4 Reads Settlement Status via a Runtime DB2 Dependency',
+       trigger:'An online user submits a transaction or requests cutoff status via GTMCICS4 — at any point after GTMSETL0 has (or should have) run.',
+       action:'GTMCICS4 executes EXEC SQL SELECT against SETL_CTRL to read COMPUTED_CUTOFF_TS and STATUS_CODE. There is no CALL relationship between GTMCICS4 and GTMSETL0 — GTMCICS4 consults the DB2 table directly at runtime. This is a pure data contract with no compile-time enforcement.',
+       outcome:'GTMCICS4 displays the current cutoff status and confirmed timestamp to the user based on whatever SETL_CTRL contains at query time.',
+       risk:'A change to the column names, data format, or STATUS_CODE vocabulary in GTMSETL0\'s UPDATE statement will break GTMCICS4\'s display logic at runtime — with no compile-time signal. The breakage will only appear in production after GTMSETL0 has run.',
+       gap:'The GTMCICS4 runtime read dependency is inferred from CICS map logic, not confirmed from GTMSETL0\'s own source. The exact SELECT columns, how GTMCICS4 handles a missing BROADCAST status, and what it displays during the window between posting and broadcast are not documented. Engineer to verify GTMCICS4\'s SETL_CTRL read logic.'},
+    ]},
+    {section:'Error Handling & Return Code Rules',rules:[
+      {id:'BR-012',title:'Return Code Scheme Is a Formal Contract with JCL',
+       trigger:'Any error condition is detected — SETL_CTRL row not found, DB2 SQL error, or a critical processing failure — or processing completes normally.',
+       action:'The program sets RETURN-CODE to a value from a defined matrix: 0 = success or holiday skip; 8 = SETL_CTRL control row not found; 12 = DB2 SQL error; 16 = critical processing failure. The JCL uses COND=((4,LT)) to bypass downstream steps on any non-zero return. RETURN-CODE is set at 9000-TERMINATE in all exit paths.',
+       outcome:'The JCL job stream automatically skips downstream batch steps on non-zero return. Operations can distinguish between failure types from the JES log without reading program output.',
+       risk:'A change to return-code values without a corresponding update to JCL COND= logic will cause downstream steps to run or be bypassed incorrectly. Adding a new error code that falls below the COND= threshold would cause a failed settlement to proceed as if it had succeeded.'},
+      {id:'BR-013',title:'SQL Errors Fail Fast With No Automatic Retry',
+       trigger:'Any DB2 operation in GTMSETL0 receives a non-zero SQLCODE.',
+       action:'Execution branches to paragraph 9100-SQL-ERROR, which writes SQLCODE and WS-SETL-REGION to the JES log and sets RETURN-CODE = 12. There is no retry loop within the program. Control returns to 9000-TERMINATE. Retry is expected to be handled at the JCL job-stream level by operations resubmitting the step.',
+       outcome:'The program fails immediately on the first SQL error, with a diagnostic log entry. No partial processing continues after the first SQL failure.',
+       risk:'If the SETL_CTRL table is unavailable due to a DB2 outage at job start, the entire settlement run fails with RC=12 and no automatic recovery. Manual operations intervention is required to re-execute the job step after DB2 recovery. There is no partial-processing or checkpoint/restart facility in GTMSETL0.'},
     ]},
   ],
   changeImpact:{
     query:'What breaks if <strong class="font-mono">GTMSETL0</strong> changes?',
     coverage:91,
-    coverageNote:'Coverage 91% — GTMASM01 (dynamic call via GTMVALD2) partially analysed. Verify manually.',
+    coverageNote:'Coverage 91% — GTMASM01 (dynamic CALL via GTMVALD2, 71% confidence) requires manual verification. All other edges fully resolved.',
+    mandatoryChecks:['Manual review of GTMASM01 bit-field contract before any validation-path change','Confirm JCL COND= thresholds match updated RETURN-CODE matrix','Verify SETL_CTRL schema DDL before any column change — GTMDB2IO is shared'],
     items:[
-      {prog:'GTMPOST1',rel:'Direct callee (CALL)',severity:'critical',reason:'Receives cutoff timestamp via WS-POST1-PARM. Any change to parameter structure, data type, or timestamp format in GTMSETL0 will break the posting run — GTMPOST1 may read the wrong cutoff boundary or fail to start.',edge:'GTMSETL0 → GTMPOST1 (CALL)'},
-      {prog:'GTMVALD2',rel:'Direct callee (CALL)',severity:'critical',reason:'Called synchronously before posting. The interface contract (WS-VALD2-PARM: cutoff timestamp + region code + return counters) must remain stable. A parameter or calling-convention change will stall or mis-gate the settlement run.',edge:'GTMSETL0 → GTMVALD2 (CALL)'},
-      {prog:'GTMCICS4',rel:'Runtime reader (CICS)',severity:'high',reason:'Queries COMPUTED_CUTOFF_TS from SETL_CTRL at online-transaction time, relying on GTMSETL0 having set STATUS_CODE = \'BROADCAST\'. A change to the broadcast update logic could leave GTMCICS4 reading a stale or absent cutoff.',edge:'GTMCICS4 → SETL_CTRL (reads COMPUTED_CUTOFF_TS set by GTMSETL0)'},
-      {prog:'GTMDB2IO',rel:'Indirect (via GTMVALD2)',severity:'medium',reason:'Owns all I/O to SETL_CTRL. A schema change to SETL_CTRL driven by a GTMSETL0 requirement propagates directly to GTMDB2IO\'s SELECT and cursor definitions — and since GTMDB2IO is shared, the impact extends to any other caller.',edge:'GTMVALD2 → GTMDB2IO (CALL) → SETL_CTRL (READ/WRITE)'},
-      {prog:'GTMASM01',rel:'Dynamic call (partial · via GTMVALD2)',severity:'unknown',reason:'Called dynamically by GTMVALD2 for bit-field manipulation. Static analysis resolved this edge at 71% confidence. If a GTMSETL0 change modifies the validation logic path that invokes GTMASM01, its contract may break in ways this analysis cannot fully predict.',edge:'GTMVALD2 → GTMASM01 (DYNAMIC CALL · 71% coverage)'},
+      {prog:'GTMPOST1',rel:'Direct callee (CALL)',hop:1,severity:'critical',
+        reason:'Receives the settlement cutoff timestamp and region code via the WS-POST-PARM parameter block (COPYBOOK-defined). Any change to parameter field order, data type (especially PIC X timestamp format), or the calling paragraph in GTMSETL0 will cause GTMPOST1 to parse the parameter block incorrectly — the wrong cutoff boundary will be used, posting against TRANS_PENDING will select the wrong transaction set, and the GLEDGER feed will be incorrect.',
+        edge:'GTMSETL0 → GTMPOST1 (CALL_STATIC · paragraph 4000-CALL-POSTING)',
+        mitigation:['Treat the WS-POST-PARM COPYBOOK as a shared interface contract — any change requires simultaneous update to both programs','Coordinate release timing: both programs must be in the same deployment batch','Run the posting regression test suite (test set: boundary transactions near cutoff time) after any parameter change'],
+        test:'Execute GTMPOST1 in isolation with GTMSETL0-compatible parameter stubs; verify GLEDGER output transaction count matches expected boundary set.'},
+      {prog:'GTMVALD2',rel:'Direct callee (CALL)',hop:1,severity:'critical',
+        reason:'Called synchronously before posting (paragraph 3000-CALL-VALIDATION). The WS-VALD2-PARM interface block carries the cutoff timestamp, region code, and fail-count/return-code counters. A change to any of these fields — or to the calling paragraph — breaks the validation gate. If validation is bypassed or mis-invoked, invalid transactions will enter the posting stream.',
+        edge:'GTMSETL0 → GTMVALD2 (CALL_STATIC · paragraph 3000-CALL-VALIDATION)',
+        mitigation:['Treat WS-VALD2-PARM as a shared interface contract — co-deploy with GTMVALD2','If the cutoff timestamp format changes, update GTMVALD2\'s comparison logic in the same release','Test the validation hold path: submit a batch with a known-invalid transaction and confirm GTMPOST1 is not called'],
+        test:'End-to-end test: inject a failing transaction into TRANS_PENDING; confirm FAIL-COUNT > 0 propagates correctly and posting is suppressed.'},
+      {prog:'GTMCICS4',rel:'Runtime reader (CICS — indirect)',hop:2,severity:'high',
+        reason:'GTMCICS4 does not CALL GTMSETL0 directly. It reads SETL_CTRL.COMPUTED_CUTOFF_TS and STATUS_CODE from DB2 at online-transaction time, relying on GTMSETL0 having written STATUS_CODE = \'BROADCAST\' and a valid timestamp after a successful settlement run. A change to the broadcast UPDATE logic (column written, format of timestamp, or STATUS_CODE value) will leave GTMCICS4 reading stale or missing data — either it shows the wrong cutoff to online users, or it fails to gate transactions against today\'s boundary.',
+        edge:'GTMSETL0 → SETL_CTRL (EXEC SQL UPDATE · paragraph 5000-UPDATE-CUTOFF-BROADCAST) → GTMCICS4 reads SETL_CTRL at runtime',
+        mitigation:['Do not change STATUS_CODE vocabulary (BROADCAST, HOLIDAY_SKIP, PENDING) without a coordinated GTMCICS4 change','If COMPUTED_CUTOFF_TS format changes, update the GTMCICS4 parsing logic in the same release — it is a runtime string contract, not a compiled interface','After any broadcast-path change, verify GTMCICS4 displays the correct cutoff during a CICS system test'],
+        test:'Post-batch CICS transaction test: confirm GTMCICS4 reads and displays COMPUTED_CUTOFF_TS correctly after GTMSETL0 completes.'},
+      {prog:'SETL_CTRL (DB2 table)',rel:'Shared data store (SELECT + UPDATE)',hop:1,severity:'high',
+        reason:'GTMSETL0 both reads (control parameters) and writes (broadcast result) to SETL_CTRL. A schema change — adding a NOT NULL column without a default, changing CUTOFF_TIME format, or renaming STATUS_CODE values — will break the SELECT in 2000-READ-SETL-CTRL or the UPDATE in 5000-UPDATE-CUTOFF-BROADCAST. SETL_CTRL is shared: GTMDB2IO and GTMCICS4 also access it.',
+        edge:'GTMSETL0 → SETL_CTRL (EXEC SQL SELECT · paragraph 2000-READ-SETL-CTRL AND EXEC SQL UPDATE · paragraph 5000-UPDATE-CUTOFF-BROADCAST)',
+        mitigation:['All SETL_CTRL DDL changes must assess impact on GTMSETL0, GTMDB2IO, and GTMCICS4 before deployment','Additive schema changes (nullable columns, new tables) are lower risk; structural changes (column rename, type change) require coordinated code changes across all three programs','Use DB2 BIND to detect plan invalidation after any DDL change'],
+        test:'After DDL change, DB2 BIND all affected packages; run GTMSETL0 end-to-end with a test SETL_CTRL row and confirm correct read and broadcast update.'},
+      {prog:'GTMDB2IO',rel:'Indirect (via GTMVALD2 — 2 hops)',hop:2,severity:'medium',
+        reason:'GTMDB2IO is GTMVALD2\'s exclusive DB2 access module. It owns the cursor operations against TRANS_PENDING and any SETL_CTRL reads made within the validation path. A GTMSETL0-driven change to the SETL_CTRL schema propagates to GTMDB2IO\'s SQL. Additionally, GTMDB2IO is a shared module — any change to it must be assessed for impact on its other callers beyond GTMVALD2.',
+        edge:'GTMSETL0 → GTMVALD2 (CALL) → GTMDB2IO (CALL · paragraph 3000-VALIDATE-TRANS)',
+        mitigation:['Assess GTMDB2IO caller list before any interface change — it is a shared utility','If TRANS_PENDING schema changes, update GTMDB2IO\'s cursor SELECT and DB2 BIND in the same release','Run GTMDB2IO unit tests independently before including in settlement regression suite'],
+        test:'GTMDB2IO isolation test with updated TRANS_PENDING or SETL_CTRL DDL; confirm cursors open, fetch, and close without SQLCODE errors.'},
+      {prog:'GTMASM01',rel:'Dynamic callee — PARTIAL COVERAGE (via GTMVALD2)',hop:2,severity:'unknown',
+        reason:'GTMASM01 is called dynamically by GTMVALD2 for bit-field inspection of transaction status flags. Static analysis resolved this edge at 71% confidence — the call target was resolved via value propagation, but the precise contract (parameter register convention, bit positions, return value semantics) is not fully determined. If a GTMSETL0 change modifies the validation logic path that reaches this call, the impact on GTMASM01 cannot be fully assessed by automated analysis.',
+        edge:'GTMVALD2 → GTMASM01 (CALL_DYNAMIC · 71% confidence · paragraph 3000-VALIDATE-TRANS)',
+        mitigation:['Manual code review of GTMASM01 is mandatory before any change to the GTMVALD2 validation path','Identify the assembler registers used to pass parameters and the bit positions inspected — document before any change','If bit-field definitions change in TRANS_PENDING or any transaction flag structure, GTMASM01 must be reviewed by an assembler-literate engineer'],
+        test:'No automated test can fully cover this edge. Manual integration test required: trace the GTMVALD2 → GTMASM01 call path under a debugger or IBM Debug Tool session with representative transaction flag values.'},
     ]
   },
   spec:{
@@ -815,34 +1032,109 @@ GTMPOST1:{
       {id:'POSTAUDIT',label:'POST_AUDIT',sub:'DB2 · Posting Audit Log',     type:'data',x:260,y:453,w:160,h:52},
     ],
     edges:[
-      {from:'GTMSETL0', to:'GTMPOST1', type:'call',label:'CALL — cutoff timestamp',fd:'bottom',td:'top'},
-      {from:'GTMPOST1', to:'TRANSPEND',type:'data',label:'EXEC SQL SELECT (cursor)',fd:'bl',td:'top'},
-      {from:'GTMPOST1', to:'GLEDGER',  type:'data',label:'WRITE SEQUENTIAL',fd:'br',td:'top'},
-      {from:'GTMPOST1', to:'POSTAUDIT',type:'data',label:'EXEC SQL INSERT (audit)',fd:'bottom',td:'top'},
+      {from:'GTMSETL0', to:'GTMPOST1', type:'call',label:'¶4000-CALL-POSTING',fd:'bottom',td:'top'},
+      {from:'GTMPOST1', to:'TRANSPEND',type:'data',label:'¶3000-FETCH-PENDING-TXNS',fd:'bl',td:'top'},
+      {from:'GTMPOST1', to:'GLEDGER',  type:'data',label:'¶4000-WRITE-GLEDGER',fd:'br',td:'top'},
+      {from:'GTMPOST1', to:'POSTAUDIT',type:'data',label:'¶4000-WRITE-AUDIT-RECORD',fd:'bottom',td:'top'},
     ]
   },
+  executiveSummary:'GTMPOST1 is a narrowly scoped, terminal settlement posting module — it is always invoked by GTMSETL0 and never runs standalone. Its sole responsibility is to select all validated pending transactions timestamped at or before the confirmed settlement cutoff, write each one as a fixed-format record to the GLEDGER sequential file, and insert a corresponding audit row into the POST_AUDIT DB2 table. It has no outgoing CALLs to other programs. It returns a transaction count and a structured return code to its caller, which GTMSETL0 uses to decide whether to broadcast the cutoff. Analysis coverage is 96% — all edges are fully resolved. The 4% residual reflects the downstream GL system, which consumes the GLEDGER file outside the scope of this analysis.',
+  businessPurpose:'This program exists to perform the atomic, auditable act of settlement posting. Its design deliberately separates posting from validation (handled by GTMVALD2) and from broadcast (handled by GTMSETL0). This separation means that GTMPOST1 can be tested, replaced, or diagnosed independently without touching the orchestration or validation logic. It enforces a strict two-condition eligibility filter — status and timestamp — so that no unvalidated transaction and no post-cutoff transaction can enter the settlement batch or the GLEDGER feed. Every transaction it posts has a corresponding audit row, making the settlement run fully traceable by transaction ID.',
+  triggers:'GTMPOST1 is triggered exclusively by a static CALL from GTMSETL0, paragraph 4000-CALL-POSTING, after GTMVALD2 has returned FAIL-COUNT = 0. There is no direct JCL invocation path, no CICS trigger, and no scheduled invocation. The program receives its entire operational context — cutoff timestamp and region code — from its caller via the WS-POST-PARM LINKAGE block. It cannot derive these values independently and will not execute meaningful work if called with an empty or zero-filled parameter block.',
+  dataTable:[
+    {name:'TRANS_PENDING (DB2 table)',what:'Pending transactions awaiting posting; the DB2 cursor selects rows with TRANS_STATUS = \'VALIDATED\' AND TRANS_TS ≤ cutoff timestamp, filtered by region code. Rows are read but not updated by GTMPOST1 — status update is handled by GTMVALD2 upstream.',access:'Read only'},
+    {name:'GLEDGER (sequential file)',what:'General ledger feed written one fixed-format record per posted transaction. Record layout includes: transaction ID (PIC X(16)), amount (PIC S9(13)V9(2) COMP-3), currency code (PIC X(03)), value date (PIC X(08)), posting status code (PIC X(02)). The downstream GL system reads this file with a fixed parser — it is a hard binary contract.',access:'Changed (written)'},
+    {name:'POST_AUDIT (DB2 table)',what:'Posting audit log; one row inserted per successfully posted transaction, containing: transaction ID, posted timestamp (CURRENT TIMESTAMP), settlement region code, posting operator ID. POST_AUDIT is the authoritative record of each settlement run for reconciliation and operations reporting.',access:'Changed (inserted)'},
+  ],
+  downstream:[
+    {to:'General Ledger System (via GLEDGER)',dependency:'Reads the GLEDGER sequential file after each settlement run using a fixed-format parser. The record layout — field positions, field widths, packed-decimal AMOUNT precision — is a hard binary contract. Any field change in GTMPOST1\'s GLEDGER WRITE must be co-ordinated with the GL team, which has its own release cycle and cannot be co-deployed automatically.'},
+    {to:'GTMSETL0 (caller)',dependency:'Receives LS-TXN-COUNT and LS-POST-RC as return values via the WS-POST-PARM LINKAGE block. GTMSETL0 inspects LS-POST-RC to decide whether to proceed to broadcast. A change to return-code semantics must be reflected in GTMSETL0\'s decision logic in paragraph 4000-CALL-POSTING.'},
+    {to:'Reconciliation / Operations (via POST_AUDIT)',dependency:'Operations teams query POST_AUDIT after each settlement run to verify that the row count matches the GLEDGER file count and that each transaction ID is represented. POST_AUDIT is also the source for regulatory and audit reporting of settled transactions.'},
+  ],
+  gaps:[
+    {n:1,uncertain:'The downstream GL system\'s GLEDGER parser is out of scope for this analysis. It is confirmed to read the file with a fixed-format parser, but the exact columns it references and how it handles a partial or empty GLEDGER file are not documented here.',businessRisk:'A schema or precision change to the GLEDGER record that the GL team has not approved will cause silent mis-reads of every field after the change point in every settlement run.',validation:'GL system team to review and approve any GLEDGER COPYBOOK change before deployment. Consider a contract test: generate a test GLEDGER file from updated GTMPOST1 and parse it through the GL system in a lower environment.'},
+    {n:2,uncertain:'The TRANS_PENDING cursor does not have an explicit row count cap or pagination mechanism. As TRANS_PENDING grows between settlement runs, cursor fetch time increases with no upper bound.',businessRisk:'A very large TRANS_PENDING set (e.g., following a prior failed settlement run where transactions accumulated) may cause the posting step to run beyond its JES step time limit, resulting in a job cancellation mid-posting.',validation:'DBA to confirm that TRANS_PENDING has an index on (TRANS_STATUS, TRANS_TS, REGION_CODE) to support the cursor WHERE clause. Operations to confirm the JES step time limit and assess whether a large accumulation scenario has been load-tested.'},
+    {n:3,uncertain:'POST_AUDIT INSERT failure handling: GTMPOST1 logs the SQLCODE but continues posting when a POST_AUDIT INSERT fails. This allows GLEDGER and POST_AUDIT to become out of sync.',businessRisk:'A reconciliation run after a partial POST_AUDIT failure will find fewer audit rows than GLEDGER records, creating a discrepancy that requires manual investigation and correction. In a regulated environment, missing audit rows for settled transactions is a compliance finding.',validation:'Engineer and audit team to agree: should a POST_AUDIT INSERT failure cause GTMPOST1 to roll back the posting and return RC=16, or is the current log-and-continue behaviour acceptable? Document the decision in the program header.'},
+  ],
   businessRules:[
-    {section:'Purpose & Scope',rules:[
-      {text:'GTMPOST1 processes the daily transaction posting run for the GTM settlement domain. It is <strong>always called by GTMSETL0</strong> — it never runs standalone. It receives the confirmed settlement cutoff timestamp and determines which transactions are included in today\'s settlement batch.',citations:[{label:'CALL from GTMSETL0',edge:'GTMSETL0 → GTMPOST1 (CALL)'}]},
+    {section:'Program Identity & Invocation Context',rules:[
+      {id:'BR-001',title:'GTMPOST1 Is a Terminal Posting Module — Never a Standalone Batch Job',
+       trigger:'GTMSETL0 reaches paragraph 4000-CALL-POSTING after validation passes with FAIL-COUNT = 0.',
+       action:'GTMSETL0 executes a static CALL to GTMPOST1, passing WS-POST-PARM via the LINKAGE SECTION. GTMPOST1 takes control and executes its full posting sequence. It has zero outgoing CALLs — it resolves all its work through direct DB2 and file I/O. On completion, it returns LS-TXN-COUNT and LS-POST-RC to GTMSETL0.',
+       outcome:'All validated, in-window transactions for the specified region are posted to GLEDGER and recorded in POST_AUDIT. Control returns to GTMSETL0 with a count and a success or error code.',
+       risk:'If GTMPOST1 is ever added as a standalone JCL step, it will receive no parameters and will either abend on a null LINKAGE reference or process no transactions — it has no parameter-default or self-initialization logic.'},
+      {id:'BR-002',title:'The Caller Interface Is a Versioned Binary Contract',
+       trigger:'GTMSETL0 calls GTMPOST1 passing WS-POST-PARM — a COPYBOOK-defined LINKAGE block with three fields.',
+       action:'GTMPOST1 reads LS-POST-CUTOFF-TS (PIC X(26), the confirmed cutoff timestamp), LS-POST-REGION (PIC X(04), the settlement region code), and two pre-zeroed output counters (LS-TXN-COUNT PIC S9(08) COMP, LS-POST-RC PIC S9(08) COMP). The region code is used as a DB2 host variable in the cursor WHERE clause. The output counters are populated on return.',
+       outcome:'GTMPOST1 processes only transactions for the specified region, within the specified cutoff window. The caller receives an exact count of what was posted and a return code.',
+       risk:'A change to the parameter block — field order, data type, precision, or field length — in either GTMSETL0 or GTMPOST1 without updating both programs will cause GTMPOST1 to interpret the cutoff or region incorrectly. An incorrect cutoff will post the wrong transaction set; an incorrect region will post the wrong region\'s transactions to the wrong GLEDGER feed.'},
     ]},
-    {section:'Transaction Selection Logic',rules:[
-      {text:'The program opens a DB2 cursor against <strong>TRANS_PENDING</strong>, selecting all rows where TRANS_STATUS = \'VALIDATED\' and TRANS_TS ≤ the received cutoff timestamp. Transactions arriving after the cutoff are left in TRANS_PENDING for the next settlement run.',citations:[{label:'TRANS_PENDING (DB2 SELECT)',edge:'GTMPOST1 → TRANS_PENDING'}]},
-      {text:'Each fetched transaction is written as a fixed-format record to the <strong>GLEDGER sequential file</strong>. The record layout includes: transaction ID, amount (packed decimal), currency code, value date, and a posting status code. The downstream General Ledger system consumes this file for end-of-day reconciliation.',citations:[{label:'GLEDGER (WRITE SEQ)',edge:'GTMPOST1 → GLEDGER'}]},
+    {section:'Transaction Eligibility & Selection Rules',rules:[
+      {id:'BR-003',title:'Two-Condition Eligibility Filter Defines the Settlement Set',
+       trigger:'GTMPOST1 opens its DB2 cursor at paragraph 3000-FETCH-PENDING-TXNS.',
+       action:'The cursor executes: SELECT ... FROM TRANS_PENDING WHERE TRANS_STATUS = \'VALIDATED\' AND TRANS_TS &lt;= :cutoff-timestamp AND REGION_CODE = :region-code. Both conditions must be satisfied simultaneously. The cursor is opened once, fetched in a loop, and closed after the last row.',
+       outcome:'Exactly the set of transactions that (a) passed pre-validation by GTMVALD2 and (b) arrived before or at the settlement cutoff for the specified region is processed. No other transactions are touched.',
+       risk:'A change to the TRANS_STATUS vocabulary — for example, adding an intermediate status such as VALIDATED-HELD — will cause those transactions to be excluded from posting if GTMPOST1\'s WHERE clause is not updated simultaneously. Transactions may accumulate in TRANS_PENDING indefinitely with no error signal.'},
+      {id:'BR-004',title:'Post-Cutoff and Non-Validated Transactions Are Deferred, Not Rejected',
+       trigger:'A transaction in TRANS_PENDING does not satisfy the eligibility criteria at the time the cursor is opened.',
+       action:'GTMPOST1 does not read, flag, update, or delete ineligible rows. They remain in TRANS_PENDING in their current state. There is no explicit deferral record, no status update to DEFERRED, and no notification. The next settlement run\'s cursor will re-evaluate these rows against the next cutoff timestamp.',
+       outcome:'Ineligible transactions accumulate silently in TRANS_PENDING until a future run includes them.',
+       risk:'If TRANS_PENDING is not purged of settled rows after each run, it grows unboundedly. The cursor has no row-limit cap — a large accumulation after a failed settlement run may cause the cursor fetch loop to exceed the JES step time limit, aborting the run mid-posting.',
+       gap:'The purge or status-update mechanism for TRANS_PENDING rows after they are successfully posted is not visible in GTMPOST1. It is unknown whether GTMPOST1, GTMSETL0, or a separate maintenance job is responsible for removing or marking settled rows. If rows are never removed, TRANS_PENDING will grow with each run and progressively degrade cursor performance. Engineer to confirm the end-to-end TRANS_PENDING lifecycle.'},
     ]},
-    {section:'Audit & Return Codes',rules:[
-      {text:'After each successfully posted transaction, GTMPOST1 inserts an audit row into <strong>POST_AUDIT</strong> with the transaction ID, posting timestamp, and operator ID. This table is the primary source for post-run reconciliation and exception reporting.',citations:[{label:'POST_AUDIT (DB2 INSERT)',edge:'GTMPOST1 → POST_AUDIT'}]},
-      {text:'GTMPOST1 returns TXN-COUNT and RETURN-CODE to its caller, GTMSETL0. A RETURN-CODE &gt; 0 causes GTMSETL0 to halt the broadcast — the settlement cutoff is not published until posting completes without error.',citations:[{label:'Return to GTMSETL0',edge:'GTMSETL0 → GTMPOST1 (CALL)'}]},
+    {section:'GLEDGER Output Rules',rules:[
+      {id:'BR-005',title:'GLEDGER Record Layout Is a Binary Contract with the GL System',
+       trigger:'GTMPOST1 fetches each eligible transaction row from the TRANS_PENDING cursor.',
+       action:'For each row, GTMPOST1 moves fields into the GLEDGER output record (defined in a COPYBOOK) and executes WRITE. The record contains: transaction ID (PIC X(16)), amount (PIC S9(13)V9(2) COMP-3 — packed decimal, 15 total digits, 2 decimal places), currency code (PIC X(03)), value date (PIC X(08), YYYYMMDD), posting status code (PIC X(02)). The file is opened OUTPUT before the loop and closed after.',
+       outcome:'A fixed-format sequential file is produced with one record per posted transaction. The downstream GL system reads this file with a field-position parser that expects this exact layout.',
+       risk:'Any change to the GLEDGER COPYBOOK — adding a field, changing a field\'s PIC clause, reordering fields, or altering the COMP-3 precision on the AMOUNT field — will silently mis-align all fields after the change point in the GL parser. Packed-decimal encoding changes are especially dangerous: the GL parser reads raw bytes and interprets them as COMP-3 — a precision change produces a numerical value that is off by a power of 10 with no error signal.'},
+      {id:'BR-006',title:'A GLEDGER Write Failure Halts Posting and Leaves a Partial File',
+       trigger:'A WRITE statement to the GLEDGER file returns a non-zero FILE STATUS code.',
+       action:'GTMPOST1 sets RETURN-CODE = 16 (GLEDGER write failure) and branches to its termination paragraph. The GLEDGER file is closed. No further transactions are fetched or written. Transactions already written to GLEDGER in this run remain in the file.',
+       outcome:'The settlement run fails with RC=16. GTMSETL0 suppresses the broadcast. The GLEDGER file is partial — it contains records for transactions processed before the failure but not for those after it. POST_AUDIT may or may not reflect the partial set, depending on when the failure occurred relative to the last successful INSERT.',
+       risk:'A partial GLEDGER file is not self-describing. The GL system may attempt to process it and produce an incomplete reconciliation with no error. Operations must detect the discrepancy by comparing the POST_AUDIT count against the GLEDGER record count manually. There is no automated partial-file detection or rejection mechanism in the current pipeline.',
+       gap:'The recovery procedure for a partial GLEDGER file is an operations runbook item, not coded in GTMPOST1. Whether the GL system has a mechanism to detect and reject partial files, or whether it processes whatever records exist, is not established from this program alone. SME to document: what is the GL system\'s behaviour on a partial GLEDGER file, and what is the recovery procedure?'},
+    ]},
+    {section:'Audit & Return Code Rules',rules:[
+      {id:'BR-007',title:'Every Posted Transaction Produces an Audit Row in POST_AUDIT',
+       trigger:'GTMPOST1 successfully writes a transaction record to GLEDGER.',
+       action:'GTMPOST1 immediately executes EXEC SQL INSERT INTO POST_AUDIT, writing: transaction ID (from the fetched TRANS_PENDING row), posted timestamp (DB2 CURRENT TIMESTAMP — the instant of insert), settlement region code (from the received parameter), posting operator ID (from WS-OPERATOR-ID in WORKING-STORAGE). If the INSERT returns a non-zero SQLCODE, GTMPOST1 logs the SQLCODE to the JES log and continues processing — it does not halt.',
+       outcome:'POST_AUDIT contains one row per successfully posted transaction. Operations and reconciliation teams query this table to verify settlement completeness. The total row count in POST_AUDIT should match the GLEDGER record count for each run.',
+       risk:'The current log-and-continue behaviour on POST_AUDIT INSERT failure means GLEDGER and POST_AUDIT can become permanently out of sync within a single run. A reconciliation check will find fewer audit rows than GLEDGER records — this is a compliance finding in a regulated environment.',
+       gap:'Whether a POST_AUDIT INSERT failure should cause GTMPOST1 to roll back and fail the entire run (RC=16), or whether log-and-continue is an intentional design choice accepted by the audit team, is not documented in the program. This decision should be explicitly recorded — the current behaviour is a potential compliance risk.'},
+      {id:'BR-008',title:'Return Code Scheme Is a Formal Contract with GTMSETL0',
+       trigger:'GTMPOST1 completes processing — successfully or with an error — and returns control to GTMSETL0.',
+       action:'GTMPOST1 sets LS-POST-RC to one of four values before returning: 0 = success (all eligible transactions posted); 8 = no eligible transactions found (cursor returned zero rows — valid for a low-volume period); 12 = DB2 SQL error (SQLCODE ≠ 0 on TRANS_PENDING cursor or POST_AUDIT INSERT after halting); 16 = GLEDGER write failure. LS-TXN-COUNT is set to the number of GLEDGER records successfully written.',
+       outcome:'GTMSETL0 inspects LS-POST-RC in paragraph 4000-CALL-POSTING. RC=0 or RC=8 allow broadcast to proceed. RC=12 or RC=16 suppress broadcast and cause GTMSETL0 to set its own RETURN-CODE to 12 or 16 respectively.',
+       risk:'Adding a new error condition to GTMPOST1 that uses a return code not currently in GTMSETL0\'s decision logic — for example, RC=4 for a warning condition — may be treated by GTMSETL0 as success (RC=0 after masking) and trigger an incorrect broadcast. Any new return code must be co-documented and co-deployed with a corresponding change to GTMSETL0.'},
     ]},
   ],
   changeImpact:{
     query:'What breaks if <strong class="font-mono">GTMPOST1</strong> changes?',
     coverage:96,
-    coverageNote:'Coverage 96% — all dependencies fully resolved. No assembler or dynamic-call edges in this program.',
+    coverageNote:'Coverage 96% — all edges fully resolved. No assembler or dynamic-call edges detected. 4% residual: GL system downstream of GLEDGER file is out-of-scope for this analysis.',
+    mandatoryChecks:['GL system team must approve any GLEDGER record layout change before deployment','Assess TRANS_PENDING shared-reader list before any schema change','Verify GTMSETL0 return-code decision logic is compatible with any new GTMPOST1 return code'],
     items:[
-      {prog:'GTMSETL0',rel:'Direct caller (CALL)',severity:'critical',reason:'GTMSETL0 inspects WS-POST1-RETURN-CODE to decide whether to broadcast the cutoff. If GTMPOST1\'s return-code semantics change, GTMSETL0\'s decision will be wrong — a false success or false failure affects the entire settlement run.',edge:'GTMSETL0 → GTMPOST1 (CALL)'},
-      {prog:'GLEDGER feed consumers',rel:'Downstream data consumer',severity:'high',reason:'Any change to the GLEDGER record layout (field order, field width, packed-decimal format, added/removed fields) breaks the General Ledger system\'s fixed-format parser. The GL system is a downstream consumer with its own independent change cycle.',edge:'GTMPOST1 → GLEDGER (WRITE SEQ)'},
-      {prog:'TRANS_PENDING table',rel:'DB2 data source (SELECT)',severity:'medium',reason:'A schema change to TRANS_PENDING (column rename, data type change, added NOT NULL column) will break GTMPOST1\'s cursor SELECT. TRANS_PENDING is a shared table — assess all other readers.',edge:'GTMPOST1 → TRANS_PENDING (SELECT)'},
-      {prog:'POST_AUDIT table',rel:'DB2 audit sink (INSERT)',severity:'low',reason:'A change to required POST_AUDIT columns or constraints will cause GTMPOST1 to fail at audit write time. Impact is lower since POST_AUDIT is written by GTMPOST1 only — but a failure aborts the posting loop.',edge:'GTMPOST1 → POST_AUDIT (INSERT)'},
+      {prog:'GTMSETL0',rel:'Direct caller (CALL)',hop:1,severity:'critical',
+        reason:'GTMSETL0 invokes GTMPOST1 via a static CALL and inspects LS-POST-RC to decide whether to broadcast the settlement cutoff. If GTMPOST1\'s return-code semantics change (new codes, changed meaning of existing codes), GTMSETL0\'s broadcast decision will be wrong. A false success (RC=0 when posting failed) will broadcast a cutoff for an incomplete settlement run — the GLEDGER feed will be partial but STATUS_CODE = \'BROADCAST\' will tell downstream systems it is complete.',
+        edge:'GTMSETL0 → GTMPOST1 (CALL_STATIC · paragraph 4000-CALL-POSTING)',
+        mitigation:['Treat LS-POST-RC values as a versioned contract — document any new code and assess impact on GTMSETL0 before deployment','If adding a new return code, update GTMSETL0\'s EVALUATE/IF logic to handle it explicitly rather than falling through to a default branch','Co-deploy GTMSETL0 and GTMPOST1 in the same release package when return-code semantics change'],
+        test:'End-to-end settlement test: inject a deliberate GLEDGER write failure; confirm GTMPOST1 returns RC=16 and GTMSETL0 suppresses the broadcast (STATUS_CODE does not become \'BROADCAST\').'},
+      {prog:'General Ledger System (GLEDGER consumer)',rel:'Downstream file consumer (sequential feed)',hop:2,severity:'critical',
+        reason:'The downstream General Ledger (GL) system reads the GLEDGER sequential file using a fixed-format parser. The GLEDGER record layout (field positions, field widths, packed-decimal encoding of the AMOUNT field as COMP-3) is a hard binary contract. Any change — adding a field, changing a field width, moving the AMOUNT field, altering the packed-decimal precision — will cause the GL parser to mis-read every field after the change point. The GL system has its own release cycle and is not co-deployed with GTMPOST1.',
+        edge:'GTMPOST1 → GLEDGER (WRITE SEQUENTIAL · paragraph 4000-WRITE-GLEDGER-RECORD)',
+        mitigation:['Treat the GLEDGER COPYBOOK as a versioned, cross-team contract — any change requires formal sign-off from the GL system team','If layout change is unavoidable, negotiate a dual-format transition period (old and new layout files written in parallel)','Do not change COMP-3 precision on the AMOUNT field without explicit GL team confirmation — packed-decimal encoding changes are silent data corruption'],
+        test:'GL system regression test: pass a test GLEDGER file generated by the updated GTMPOST1 through the GL parser; compare output balances and record counts with expected values.'},
+      {prog:'TRANS_PENDING (DB2 table)',rel:'DB2 data source (SELECT cursor)',hop:1,severity:'high',
+        reason:'GTMPOST1\'s cursor SELECT against TRANS_PENDING uses TRANS_STATUS and TRANS_TS as WHERE clause predicates and fetches specific columns by name. A schema change — column rename, data type change, added NOT NULL column without default, or removal of TRANS_STATUS or TRANS_TS — will cause the cursor to fail with a non-zero SQLCODE. TRANS_PENDING is a shared table — all other readers must be assessed for the same impact.',
+        edge:'GTMPOST1 → TRANS_PENDING (EXEC SQL SELECT · paragraph 3000-FETCH-PENDING-TXNS)',
+        mitigation:['Run full TRANS_PENDING reader assessment (who else SELECTs from this table?) before any schema change','Additive changes (new nullable column) are lower risk; test the cursor OPEN/FETCH/CLOSE with the new schema in a test DB2 environment before production','For TRANS_STATUS vocabulary changes, check that \'VALIDATED\' is either preserved or that GTMPOST1\'s WHERE clause is updated'],
+        test:'TRANS_PENDING schema regression: BIND GTMPOST1\'s DB2 package against the new DDL; run a cursor FETCH with a test row set; confirm record count and field values are correct.'},
+      {prog:'POST_AUDIT (DB2 table)',rel:'DB2 audit sink (INSERT)',hop:1,severity:'medium',
+        reason:'GTMPOST1 inserts one audit row per posted transaction. A schema change to POST_AUDIT — adding a NOT NULL column without a default, adding a CHECK constraint that the inserted data violates, or tightening a column precision — will cause the INSERT to fail with a non-zero SQLCODE. GTMPOST1\'s error handling on audit INSERT failure currently logs the SQLCODE but continues posting — POST_AUDIT and GLEDGER may become out of sync.',
+        edge:'GTMPOST1 → POST_AUDIT (EXEC SQL INSERT · paragraph 4000-WRITE-AUDIT-RECORD)',
+        mitigation:['Additive schema changes are safe if the new column has a default value','If adding a NOT NULL column, coordinate with the GTMPOST1 team to add the new field to the INSERT statement in the same release','Consider hardening the error handling: a POST_AUDIT INSERT failure should arguably cause GTMPOST1 to roll back the transaction, not silently continue — evaluate with the audit team'],
+        test:'POST_AUDIT INSERT test: execute GTMPOST1 with a test transaction set; confirm row count in POST_AUDIT matches GLEDGER row count; confirm each audit row has correct transaction ID and timestamp.'},
     ]
   },
   spec:{
@@ -1017,6 +1309,7 @@ function renderHub(){
   renderBusinessPanel(p);
   renderImpactPanel(p);
   renderSpecPanel(p);
+  renderAgentsPanel();
 }
 
 /* ════════════════════════════════════════════════
@@ -1246,8 +1539,8 @@ function buildGraphSVG(g){
     const pathD=`M${x1},${y1} C${x1+dx*.1},${y1+dy*.4} ${x2-dx*.1},${y2-dy*.4} ${x2},${y2}`;
     edges+=`<path d="${pathD}" fill="none" stroke="${col}" stroke-width="1.8" stroke-dasharray="${da}" marker-end="${mk}" opacity=".8"/>`;
     const mx=(x1+x2)/2,my=(y1+y2)/2;
-    const lbl=e.label.length>24?e.label.slice(0,22)+'…':e.label;
-    const lw=lbl.length*5.2+14;
+    const lbl=e.label.length>32?e.label.slice(0,30)+'…':e.label;
+    const lw=lbl.length*5.0+14;
     edges+=`<rect x="${mx-lw/2}" y="${my-9}" width="${lw}" height="14" rx="3" fill="white" fill-opacity=".88" stroke="${col}" stroke-width=".5"/>
     <text x="${mx}" y="${my+1}" text-anchor="middle" dominant-baseline="middle" font-family="Consolas,monospace" font-size="8" fill="${col}" font-weight="600">${lbl}</text>`;
   });
@@ -1299,19 +1592,86 @@ function setupGraphHovers(wrap,tooltip){
 /* ════════════════════════════════════════════════
    BUSINESS RULES
 ════════════════════════════════════════════════ */
+const CAT_LABELS={timing:'Timing',validation:'Validation',sequencing:'Sequencing',error:'Error Handling',audit:'Audit',eligibility:'Eligibility'};
 function renderBusinessPanel(p){
   document.getElementById('biz-title').textContent='Business Rules — '+p.name;
-  let html='';
-  (p.businessRules||[]).forEach((sec,si)=>{
-    html+=`<div class="biz-section"><div class="biz-section-title">
-      <span style="width:22px;height:22px;background:var(--navy-dark);color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${si+1}</span>
-      ${sec.section}</div>`;
-    sec.rules.forEach(r=>{
-      const cits=(r.citations||[]).map(c=>`<span class="source-citation" title="${c.edge}">${c.label}</span>`).join('');
-      html+=`<div class="biz-rule">${r.text}${cits}</div>`;
-    });
-    html+='</div>';
-  });
+  const sections=p.businessRules||[];
+  const totalRules=sections.reduce((s,sec)=>s+(sec.rules||[]).length,0);
+  const d=new Date();
+  const today=d.getDate()+' '+d.toLocaleString('en-US',{month:'short'})+' '+d.getFullYear();
+
+  const tocRows=sections.map((sec,si)=>{
+    const n=(sec.rules||[]).length;
+    return `<div class="brd-toc-item">
+      <span class="brd-toc-link" onclick="document.getElementById('brd-sec-${si}').scrollIntoView({behavior:'smooth'})">Section ${si+1}: ${sec.section}</span>
+      <span class="brd-toc-count">(${n} rule${n===1?'':'s'})</span>
+    </div>`;
+  }).join('');
+
+  const dataRows=(p.dataTable||[]).map(row=>`<tr><td><strong>${row.name}</strong></td><td>${row.what}</td><td>${row.access}</td></tr>`).join('');
+  const dataTableHtml=dataRows?`<div class="brd-section-lbl">Data Read and Changed</div>
+    <table class="brd-data-table"><thead><tr><th>Business Data Name</th><th>What it represents</th><th>Read / Changed</th></tr></thead><tbody>${dataRows}</tbody></table>`:'';
+
+  const secHtml=sections.map((sec,si)=>{
+    const cards=(sec.rules||[]).map((r,ri)=>{
+      const ruleNum=sections.slice(0,si).reduce((s,s2)=>s+(s2.rules||[]).length,0)+ri+1;
+      const gapHtml=r.gap?`<div class="brd-gap">&#9888; <em>Gap — ${r.gap}</em></div>`:'';
+      return `<div class="brd-rule-card">
+        <div class="brd-rule-title">Rule ${ruleNum}: ${r.title||r.id}</div>
+        <div class="brd-rule-field"><span class="brd-field-lbl">Trigger</span>${r.trigger||''}</div>
+        <div class="brd-rule-field"><span class="brd-field-lbl">Action</span>${r.action||''}</div>
+        <div class="brd-rule-field"><span class="brd-field-lbl">Outcome</span>${r.outcome||''}</div>
+        <div class="brd-rule-field"><span class="brd-field-lbl">Risk</span>${r.risk||''}</div>
+        ${gapHtml}
+      </div>`;
+    }).join('');
+    return `<div class="brd-section" id="brd-sec-${si}">
+      <div class="brd-sec-header">
+        <span class="brd-sec-num">${si+1}</span>
+        <span class="brd-sec-title">Section ${si+1}: ${sec.section}</span>
+      </div>
+      ${cards}
+    </div>`;
+  }).join('');
+
+  const dsRows=(p.downstream||[]).map(row=>`<tr><td><strong>${row.to}</strong></td><td>${row.dependency}</td></tr>`).join('');
+  const dsTableHtml=dsRows?`<div class="brd-section-lbl">What This Service Triggers Next</div>
+    <table class="brd-downstream-table"><thead><tr><th>Downstream</th><th>Dependency</th></tr></thead><tbody>${dsRows}</tbody></table>`:'';
+
+  const gapRows=(p.gaps||[]).map(g=>`<tr><td>${g.n}</td><td>${g.uncertain}</td><td>${g.businessRisk}</td><td>${g.validation}</td></tr>`).join('');
+  const gapsTableHtml=gapRows?`<div class="brd-section-lbl">Gaps and Limitations</div>
+    <table class="brd-gaps-table"><thead><tr><th>#</th><th>What is uncertain</th><th>Business risk</th><th>Recommended validation step</th></tr></thead><tbody>${gapRows}</tbody></table>`:'';
+
+  const html=`<div class="brd-page">
+    <div class="brd-page-header">
+      <div>
+        <div class="brd-label">Business Requirements Document</div>
+        <h1 class="brd-title">BRD — ${p.name}</h1>
+        <p class="brd-subtitle">Plain-language business requirements derived from COBOL source and dependency graph. Each requirement cites its source dependency edge. <strong>DRAFT — awaiting engineer validation.</strong></p>
+      </div>
+      <div class="brd-generated">Generated: ${today}</div>
+    </div>
+    <hr class="brd-divider">
+    <div class="brd-toc-row">
+      <div class="brd-toc">
+        <div class="brd-toc-title">Table of Contents</div>
+        ${tocRows}
+      </div>
+      <div class="brd-source-box">
+        <div class="brd-source-file">${p.name}.cbl</div>
+        <div class="brd-source-note">${p.language||'COBOL'} · ${p.loc||'—'} LOC · ${p.domain||'—'}<br><br>${totalRules} business rules across ${sections.length} sections.</div>
+      </div>
+    </div>
+    ${p.executiveSummary?`<div class="brd-section-lbl">Executive Summary</div><div class="brd-exec-box">${p.executiveSummary}</div>`:''}
+    ${p.businessPurpose?`<div class="brd-section-lbl">Business Purpose</div><div class="brd-exec-box">${p.businessPurpose}</div>`:''}
+    ${p.triggers?`<div class="brd-section-lbl">What Triggers This Service</div><div class="brd-exec-box">${p.triggers}</div>`:''}
+    ${dataTableHtml}
+    <div class="brd-section-lbl">Key Business Rules</div>
+    ${secHtml}
+    ${dsTableHtml}
+    ${gapsTableHtml}
+  </div>`;
+
   document.getElementById('biz-content').innerHTML=html;
 }
 
@@ -1324,36 +1684,57 @@ function renderImpactPanel(p){
   document.getElementById('imp-subtitle').innerHTML=`If <strong>${p.name}</strong> changes, these programs and data stores are affected — traced to the graph edge that proves each relationship.`;
   const sm={critical:'sev-critical',high:'sev-high',medium:'sev-medium',low:'sev-medium',unknown:'sev-unknown'};
   const sl={critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'LOW',unknown:'UNKNOWN'};
-  const rows=d.items.map(it=>`<tr>
-    <td><span class="prog-ref">${it.prog}</span></td>
-    <td><span class="rel-tag">${it.rel}</span></td>
-    <td><span class="severity ${sm[it.severity]||'sev-medium'}">${sl[it.severity]||it.severity.toUpperCase()}</span></td>
-    <td><div class="impact-reason">${it.reason}<br/><span class="edge-ref">Source: ${it.edge}</span></div></td>
-  </tr>`).join('');
+  const counts={critical:0,high:0,medium:0,low:0,unknown:0};
+  d.items.forEach(it=>{if(counts[it.severity]!==undefined)counts[it.severity]++;});
+
+  const rows=d.items.map(it=>{
+    const hopBadge=it.hop?`<span class="hop-badge">${it.hop=== 1?'direct':'via intermediary'} · hop ${it.hop}</span>`:'';
+    const mitHtml=(it.mitigation||[]).length?`<div class="impact-mitigation"><strong>Mitigation required</strong><ul>${it.mitigation.map(m=>`<li>${m}</li>`).join('')}</ul></div>`:'';
+    const testHtml=it.test?`<div class="impact-test"><strong>Testing requirement:</strong> ${it.test}</div>`:'';
+    return `<tr>
+      <td><span class="prog-ref">${it.prog}</span></td>
+      <td><span class="rel-tag">${it.rel}</span>${hopBadge}</td>
+      <td><span class="severity ${sm[it.severity]||'sev-medium'}">${sl[it.severity]||it.severity.toUpperCase()}</span></td>
+      <td><div class="impact-reason">${it.reason}<br/><span class="edge-ref">Source: ${it.edge}</span>${mitHtml}${testHtml}</div></td>
+    </tr>`;
+  }).join('');
+
   const cc=d.coverage>=90?'#27AE60':d.coverage>=70?'#E07B39':'#C0392B';
+  const manualChecks=(d.mandatoryChecks||[]).length?`<div style="margin-top:10px;"><div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Mandatory Manual Checks</div><ul style="font-size:12px;color:var(--text-2);padding-left:16px;">${d.mandatoryChecks.map(c=>`<li style="margin-bottom:4px;">${c}</li>`).join('')}</ul></div>`:'';
+
   document.getElementById('impact-content').innerHTML=`
     <div class="impact-summary">
-      <div class="impact-summary-text"><h2>${d.query}</h2><p>${d.items.length} dependent programs and data stores identified.</p></div>
+      <div class="impact-summary-text"><h2>${d.query}</h2>
+        <p>${d.items.length} dependent programs and data stores identified.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+          ${counts.critical?`<span class="severity sev-critical" style="font-size:11px;">CRITICAL: ${counts.critical}</span>`:''}
+          ${counts.high?`<span class="severity sev-high" style="font-size:11px;">HIGH: ${counts.high}</span>`:''}
+          ${counts.medium?`<span class="severity sev-medium" style="font-size:11px;">MEDIUM: ${counts.medium}</span>`:''}
+          ${counts.low?`<span class="severity sev-medium" style="font-size:11px;">LOW: ${counts.low}</span>`:''}
+          ${counts.unknown?`<span class="severity sev-unknown" style="font-size:11px;">UNKNOWN: ${counts.unknown}</span>`:''}
+        </div>
+      </div>
       <div class="coverage-block">
         <div class="coverage-label"><span>Analysis Coverage</span><span style="color:${cc}">${d.coverage}%</span></div>
         <div class="coverage-bar-wrap"><div class="coverage-bar" style="width:${d.coverage}%;background:${cc}"></div></div>
         <div class="coverage-note">⚠ ${d.coverageNote}</div>
+        ${manualChecks}
       </div>
     </div>
     <div class="impact-table-wrap"><table class="impact-table">
-      <thead><tr><th>Program / Store</th><th>Relationship</th><th>Impact</th><th>Reason &amp; Source</th></tr></thead>
+      <thead><tr><th>Program / Store</th><th>Relationship</th><th>Impact</th><th>Reason, Source &amp; Mitigation</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>
     <div class="validation-gate">
       <div class="gate-icon">🔒</div>
       <div class="gate-text">
         <h3>Engineer Validation Gate</h3>
-        <p>This impact analysis must be reviewed by an engineer before any change is actioned. No automated process uses this output directly.</p>
+        <p>This impact analysis must be reviewed and signed off by an engineer before any change is actioned. No automated process uses this output directly.</p>
         <div class="gate-reviewer">Reviewed by: — awaiting engineer sign-off —</div>
       </div>
       <div class="gate-actions">
         <button class="btn btn-ghost btn-sm" onclick="demoNote()">Generate Draft Spec</button>
-        <button class="btn btn-disabled btn-sm" disabled>Export</button>
+        <button class="btn btn-disabled btn-sm" disabled>Export Report</button>
       </div>
     </div>`;
 }
@@ -1375,6 +1756,142 @@ function renderSpecPanel(p){
     <button class="btn btn-navy btn-sm" onclick="demoNote()">Mark as Validated ✓</button>
   </div>`;
   document.getElementById('spec-content').innerHTML=html;
+}
+
+/* ════════════════════════════════════════════════
+   AGENTS PANEL
+════════════════════════════════════════════════ */
+const AGENTS=[
+  {
+    num:'Agent 1',name:'Dependency Extractor',type:'det',typeLbl:'Deterministic',
+    desc:'Parses COBOL, JCL, CICS, and DB2 using static analysis (CAST engine). Produces a typed dependency graph: every CALL, EXEC SQL, WRITE SEQUENTIAL, and CICS LINK — each with coverage confidence. No LLM involved.',
+    outputLbl:'Output',output:'JSON: nodes[], edges[] with type, paragraph, confidence %',
+    rules:[
+      {icon:'✓',text:'Every edge carries the paragraph name it was found in'},
+      {icon:'✓',text:'Dynamic CALLs flagged with a confidence % and resolution method'},
+      {icon:'✓',text:'Coverage < 100% surfaces as a warning — never silently treated as certain'},
+      {icon:'✓',text:'Assembler modules reported as partial — they cannot be fully parsed statically'},
+    ],
+    promptExcerpt:null,
+  },
+  {
+    num:'Agent 2',name:'Business Rules Analyst',type:'llm',typeLbl:'LLM · grounded',
+    desc:'Translates the dependency graph and parsed code structure into business rules (BR-xxx) that an analyst, auditor, or product owner can read. Every rule must cite its source edge. No structural claims may be made that are not in the graph.',
+    outputLbl:'Output',output:'Structured rules: BR-xxx ID, category, certainty, business statement, source edge, risk if changed',
+    rules:[
+      {icon:'✓',text:'Every BR-xxx rule cites [Source: edge or paragraph]'},
+      {icon:'✓',text:'Inferred rules are explicitly marked [INFERRED]'},
+      {icon:'⚠',text:'Partial-coverage edges produce a [PARTIAL COVERAGE] notice'},
+      {icon:'✗',text:'Agent is prohibited from inventing structural facts not in the graph'},
+    ],
+    promptExcerpt:`You are a senior mainframe business analyst.
+Hard constraints:
+1. Every factual claim MUST cite [Source: edge].
+2. Only make claims provable from the dependency
+   graph or parsed code structure.
+3. If confidence < 100%, say so explicitly.
+4. Assign each rule a stable BR-xxx identifier.`,
+  },
+  {
+    num:'Agent 3',name:'Change Impact Analyst',type:'llm',typeLbl:'LLM · grounded',
+    desc:'Traces impact through the dependency graph for a stated change scenario. Assigns severity using a fixed rubric (CRITICAL / HIGH / MEDIUM / LOW / UNKNOWN). Produces mitigation steps and test requirements for every CRITICAL and HIGH item.',
+    outputLbl:'Output',output:'Per-dependent: severity, hop count, impact statement, edge, mitigation steps, test requirement',
+    rules:[
+      {icon:'✓',text:'Impact claims must be traced to a specific graph edge'},
+      {icon:'✓',text:'Severity assigned by rubric — not by intuition'},
+      {icon:'✓',text:'Partial-coverage edges produce UNKNOWN severity — never Medium or Low'},
+      {icon:'✓',text:'Mitigation and test steps required for every CRITICAL and HIGH item'},
+      {icon:'✗',text:'Agent may not omit a known dependent that appears in the graph'},
+    ],
+    promptExcerpt:`Severity rubric:
+CRITICAL — direct CALL or shared data structure;
+  payment flow at risk.
+HIGH     — runtime read, shared table with
+  structural coupling.
+MEDIUM   — loose coupling, additive change risk.
+LOW      — audit-only sink, no return path.
+UNKNOWN  — confidence < 100% on the edge;
+  manual verification mandatory.`,
+  },
+  {
+    num:'Agent 4',name:'Modernization Spec Generator',type:'llm',typeLbl:'LLM · grounded',
+    desc:'Produces a Java-target specification: service identity, interface contracts, data layer mapping (DB2 → JPA), COBOL-specific type handling (COMP-3, COMP), and open questions for engineer resolution. Output is always DRAFT — never implementation-authorised.',
+    outputLbl:'Output',output:'Sections: service identity, interfaces, BR-xxx rules to preserve, data mapping, error strategy, open questions',
+    rules:[
+      {icon:'✓',text:'All BR-xxx rules from the Business Rules Analyst are listed and mapped to Java'},
+      {icon:'✓',text:'Every COMP-3 and COMP field has an explicit Java/JPA type mapping'},
+      {icon:'⚠',text:'Interfaces to UNKNOWN-coverage programs carry a contract-not-established warning'},
+      {icon:'✓',text:'Output is marked DRAFT — no implementation is authorised without engineer sign-off'},
+      {icon:'✗',text:'Agent does not produce speculative Java implementation — signatures and skeletons only'},
+    ],
+    promptExcerpt:`Hard constraints:
+1. Preserve all BR-xxx rules — list by ID.
+2. Flag every COMP-3/COMP field with its
+   exact Java/JPA mapping.
+3. Mark the spec as DRAFT.
+4. Interfaces to <100% coverage programs:
+   "Contract not fully established —
+    manual verification required."`,
+  },
+  {
+    num:'Agent 5',name:'Coverage & Honesty Auditor',type:'audit',typeLbl:'Quality Gate',
+    desc:'Reviews every MAVEN-generated document against the dependency graph. Classifies each factual claim as GROUNDED, INFERRED (acceptable if labelled), or UNGROUNDED (a finding). Rejects documents with ungrounded claims above threshold. Nothing reaches the user without this gate.',
+    outputLbl:'Output',output:'APPROVED / REJECTED · grounding score % · findings table with corrective action',
+    rules:[
+      {icon:'✓',text:'Grounding score = (grounded + labelled-inferred) / total claims × 100'},
+      {icon:'✓',text:'Threshold for approval: ≥ 95% and zero CRITICAL ungrounded claims'},
+      {icon:'✓',text:'Every UNGROUNDED claim is quoted and corrective action recommended'},
+      {icon:'✗',text:'Agent does not generate documentation — it only reviews it'},
+    ],
+    promptExcerpt:`For each claim in the document:
+  GROUNDED  — traceable to graph edge,
+              paragraph, or SQL statement.
+  INFERRED  — strongly implied; acceptable
+              if labelled [INFERRED].
+  UNGROUNDED — no traceable basis; finding.
+
+Reject if score < 95% OR any CRITICAL
+ungrounded claim is present.`,
+  },
+];
+
+function renderAgentsPanel(){
+  const pipelineHtml=AGENTS.map((a,i)=>`
+    ${i>0?'<div class="agent-arrow">→</div>':''}
+    <div class="agent-card ${a.type}">
+      <div class="agent-num">${a.num}</div>
+      <div class="agent-name">${a.name}</div>
+      <span class="agent-type-badge">${a.typeLbl}</span>
+      <div class="agent-desc">${a.desc}</div>
+      <div class="agent-output-lbl">${a.outputLbl}</div>
+      <div class="agent-output">${a.output}</div>
+    </div>`).join('');
+
+  const detailsHtml=AGENTS.map(a=>`
+    <div class="biz-section">
+      <div class="biz-section-title" style="display:flex;align-items:center;gap:10px;">
+        <span style="width:22px;height:22px;background:var(--navy-dark);color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;">${a.num.split(' ')[1]}</span>
+        ${a.name}
+        <span class="agent-type-badge ${a.type}" style="margin-bottom:0;">${a.typeLbl}</span>
+      </div>
+      <div class="agent-rule-group">
+        <div class="agent-rule-group-name">Grounding rules</div>
+        ${a.rules.map(r=>`<div class="agent-rule-row"><span class="agent-rule-icon">${r.icon}</span><span>${r.text}</span></div>`).join('')}
+      </div>
+      ${a.promptExcerpt?`<div class="agent-rule-group">
+        <div class="agent-rule-group-name">Prompt excerpt (key constraints)</div>
+        <div class="prompt-excerpt">${a.promptExcerpt}</div>
+      </div>`:''}
+    </div>`).join('');
+
+  document.getElementById('agents-content').innerHTML=`
+    <div class="biz-section" style="padding-bottom:0;border-bottom:none;">
+      <div style="font-size:12px;color:var(--text-2);margin-bottom:16px;line-height:1.6;">
+        MAVEN uses a <strong>five-agent pipeline</strong>: one deterministic (CAST-driven) followed by three LLM agents grounded in the deterministic output, capped by a quality-gate auditor. The LLM agents narrate — they never construct structure. The deterministic agent determines structure — and marks any uncertainty explicitly.
+      </div>
+      <div class="agent-pipeline">${pipelineHtml}</div>
+    </div>
+    ${detailsHtml}`;
 }
 
 function demoNote(){
