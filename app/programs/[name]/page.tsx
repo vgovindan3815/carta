@@ -732,9 +732,7 @@ export default function ProgramHubPage() {
             <OverviewDashboard program={programData} onTabChange={setActiveTab} />
           )}
           {activeTab === 'dependency' && (
-            <div className="tab-panel">
-              <DependencyView program={programData} />
-            </div>
+            <DependencyView program={programData} />
           )}
           {activeTab === 'business' && (
             <div className="tab-panel">

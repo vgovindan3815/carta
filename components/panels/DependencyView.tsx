@@ -188,16 +188,44 @@ function CodeInspector({
 
   // Hero node
   if (type === 'hero') {
+    const heroSrc = loadedSource[program.name];
     return (
       <div style={{ padding: 12, fontSize: 12 }}>
         <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: '#fff', background: '#1F3864', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>
           {id} <span style={{ fontWeight: 400, opacity: 0.7, fontSize: 10 }}>— this program</span>
         </div>
-        <div style={{ color: '#6B7280', marginBottom: 8 }}>{program.loc} lines · {program.language} · {program.domain}</div>
+        <div style={{ color: '#6B7280', marginBottom: 10 }}>{program.loc} lines · {program.language} · {program.domain}</div>
+
+        {/* Source code section */}
+        {heroSrc === undefined && (
+          <div style={{ background: '#F0F9FF', border: '1.5px solid #BAE6FD', borderRadius: 8, padding: '10px 14px', marginBottom: 10 }}>
+            <div style={{ fontWeight: 700, color: '#0C4A6E', marginBottom: 4 }}>View source code for {id}</div>
+            <button
+              onClick={() => onLoad(program.name)}
+              disabled={loading === program.name}
+              style={{ padding: '5px 14px', background: '#0891B2', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+            >
+              {loading === program.name ? 'Loading…' : 'Load source'}
+            </button>
+          </div>
+        )}
+        {heroSrc === null && <div style={{ color: '#9CA3AF', fontSize: 11, marginBottom: 10 }}>No source stored for {id}.</div>}
+        {heroSrc && (
+          <pre style={{ fontSize: 10, background: '#0F172A', color: '#E2E8F0', borderRadius: 6, padding: '10px 12px', overflow: 'auto', maxHeight: 360, margin: '0 0 12px', lineHeight: 1.5, fontFamily: 'Consolas,monospace' }}>
+            {heroSrc.split('\n').slice(0, 300).map((line, i) => (
+              <div key={i}>
+                <span style={{ color: '#64748B', userSelect: 'none', display: 'inline-block', width: 36, textAlign: 'right', marginRight: 10 }}>{i + 1}</span>
+                {line}
+              </div>
+            ))}
+            {heroSrc.split('\n').length > 300 && <div style={{ color: '#64748B', marginTop: 6 }}>… {heroSrc.split('\n').length - 300} more lines</div>}
+          </pre>
+        )}
+
         {program.internalFlow && (
           <div>
             <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>Paragraphs ({program.internalFlow.paragraphs.length})</div>
-            <div style={{ maxHeight: 300, overflow: 'auto' }}>
+            <div style={{ maxHeight: 200, overflow: 'auto' }}>
               {program.internalFlow.paragraphs.map(p => (
                 <div key={p.name} style={{ padding: '3px 8px', borderLeft: '3px solid #6366F1', marginBottom: 3, fontSize: 11, fontFamily: 'Consolas,monospace', color: '#374151' }}>
                   {p.name} <span style={{ color: '#9CA3AF', fontFamily: 'sans-serif' }}>L{p.lineStart}–{p.lineEnd}</span>
@@ -253,11 +281,71 @@ function CodeInspector({
     );
   }
 
-  // Data / copybook / proc / sys node
+  // Data / copybook / proc / sys node — find references in hero source
+  const heroSrc = loadedSource[program.name];
+  const refLines: { lineNo: number; text: string }[] = [];
+  if (heroSrc) {
+    const needle = id.toUpperCase();
+    heroSrc.split('\n').forEach((line, i) => {
+      if (line.toUpperCase().includes(needle)) refLines.push({ lineNo: i + 1, text: line });
+    });
+  }
+  const CONTEXT = 2;
+  const refLineNos = new Set(refLines.map(r => r.lineNo));
+  const contextLines: { lineNo: number; text: string; isMatch: boolean }[] = [];
+  if (heroSrc && refLines.length) {
+    const allLines = heroSrc.split('\n');
+    const toShow = new Set<number>();
+    refLines.forEach(r => {
+      for (let i = Math.max(0, r.lineNo - 1 - CONTEXT); i <= Math.min(allLines.length - 1, r.lineNo - 1 + CONTEXT); i++) toShow.add(i);
+    });
+    Array.from(toShow).sort((a, b) => a - b).forEach(idx => {
+      contextLines.push({ lineNo: idx + 1, text: allLines[idx], isMatch: refLineNos.has(idx + 1) });
+    });
+  }
+
   return (
     <div style={{ padding: 12, fontSize: 12 }}>
       <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: C.tx, background: C.fill, border: `1.5px solid ${C.stroke}`, borderRadius: 6, padding: '6px 10px', marginBottom: 6 }}>{id}</div>
-      <div style={{ color: '#6B7280' }}>{NODE_TYPE_LABELS[type] ?? type}</div>
+      <div style={{ color: '#6B7280', marginBottom: 10 }}>{NODE_TYPE_LABELS[type] ?? type}</div>
+
+      {heroSrc === undefined && (
+        <div style={{ background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 14px' }}>
+          <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>Find references to {id} in {program.name}</div>
+          <button
+            onClick={() => onLoad(program.name)}
+            disabled={loading === program.name}
+            style={{ padding: '5px 14px', background: '#1F3864', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 700 }}
+          >
+            {loading === program.name ? 'Loading…' : 'Show relevant code'}
+          </button>
+        </div>
+      )}
+      {loading === program.name && <div style={{ color: '#9CA3AF', fontSize: 11 }}>Loading source…</div>}
+      {heroSrc === null && <div style={{ color: '#9CA3AF', fontSize: 11 }}>No source stored for {program.name}.</div>}
+      {heroSrc && refLines.length === 0 && (
+        <div style={{ color: '#9CA3AF', fontSize: 11 }}>No direct references to &ldquo;{id}&rdquo; found in {program.name} source.</div>
+      )}
+      {contextLines.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, color: '#6B7280', marginBottom: 6 }}>{refLines.length} reference{refLines.length !== 1 ? 's' : ''} in {program.name}</div>
+          <pre style={{ fontSize: 10, background: '#0F172A', color: '#E2E8F0', borderRadius: 6, padding: '10px 12px', overflow: 'auto', maxHeight: 420, margin: 0, lineHeight: 1.5, fontFamily: 'Consolas,monospace' }}>
+            {contextLines.map((cl, i, arr) => {
+              const prev = arr[i - 1];
+              const gap = prev && cl.lineNo > prev.lineNo + 1;
+              return (
+                <div key={cl.lineNo}>
+                  {gap && <div style={{ color: '#475569', padding: '2px 0' }}>  ⋯</div>}
+                  <div style={{ background: cl.isMatch ? 'rgba(99,102,241,0.18)' : 'transparent', borderLeft: cl.isMatch ? '3px solid #6366F1' : '3px solid transparent', paddingLeft: cl.isMatch ? 4 : 7 }}>
+                    <span style={{ color: '#64748B', userSelect: 'none', display: 'inline-block', width: 36, textAlign: 'right', marginRight: 10 }}>{cl.lineNo}</span>
+                    {cl.text}
+                  </div>
+                </div>
+              );
+            })}
+          </pre>
+        </>
+      )}
     </div>
   );
 }
@@ -423,12 +511,7 @@ export default function DependencyView({ program: p }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      <div className="panel-title">Dependency View</div>
-      <div className="panel-subtitle">
-        Click nodes to inspect · Drag to rearrange · Toggle Detail for paragraph breakdown
-      </div>
-
-      <div className="dep-container">
+      <div className="dep-container" style={{ maxWidth: 'none', margin: 0, borderRadius: 0, border: 'none', padding: '16px 24px', boxShadow: 'none', background: 'transparent' }}>
         {/* Toolbar */}
         <div className="dep-header" style={{ flexWrap: 'wrap', gap: 8 }}>
           <h2 style={{ margin: 0 }}>{p.graph.title ?? `${p.name} Dependency Graph`}</h2>
@@ -461,9 +544,9 @@ export default function DependencyView({ program: p }: Props) {
         </div>
 
         {/* Main split view */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', minHeight: 'calc(100vh - 320px)' }}>
           {/* Graph panel */}
-          <div style={{ flex: '0 0 58%', background: '#F8FAFD', borderRadius: 10, border: '1.5px solid #E5E7EB', overflow: 'auto', minHeight: 340 }}>
+          <div style={{ flex: '0 0 58%', background: '#F8FAFD', borderRadius: 10, border: '1.5px solid #E5E7EB', overflow: 'auto', minHeight: 480 }}>
             <svg
               ref={svgRef}
               viewBox={`0 0 ${w} ${h}`}
@@ -523,7 +606,7 @@ export default function DependencyView({ program: p }: Props) {
           </div>
 
           {/* Code inspector panel */}
-          <div style={{ flex: '0 0 40%', background: '#fff', borderRadius: 10, border: '1.5px solid #E5E7EB', minHeight: 340, maxHeight: 560, overflow: 'auto' }}>
+          <div style={{ flex: '1 1 40%', background: '#fff', borderRadius: 10, border: '1.5px solid #E5E7EB', minHeight: 480, overflow: 'auto' }}>
             <div style={{ padding: '10px 12px', borderBottom: '1px solid #F3F4F6', fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Code Inspector
             </div>
