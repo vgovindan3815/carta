@@ -396,7 +396,7 @@ export function businessRulesPrompt(
     ? `\n## JCL Jobs That Invoke This Program\n${jclCallers.map((j) => `- ${j}`).join('\n')}`
     : '';
 
-  return `Analyze the COBOL program below and extract its complete business rules.
+  return `Analyze the COBOL program below and produce a complete Business Requirements Document (BRD).
 
 ## Dependency Graph
 \`\`\`
@@ -413,40 +413,47 @@ ${program.source}
 ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkageSection}\n\`\`\`` : ''}
 
 ## Task
-Extract ALL business rules from the ENTIRE source — not just the first few paragraphs. Scan the full PROCEDURE DIVISION including every SECTION and every PARAGRAPH.
+Scan the ENTIRE source — every SECTION and PARAGRAPH of the PROCEDURE DIVISION. Produce a JSON array with EXACTLY these eight sections in order (never skip a section; if a section has nothing meaningful, write one rule explaining why it is not applicable):
 
-Produce a JSON array with ALL applicable sections (skip only if truly empty for this program):
-1. "Input Processing" — how data enters the program (LINKAGE, files, DB reads)
-2. "Core Business Logic" — calculations, decisions, validations, EVALUATE/IF blocks
-3. "Data Persistence" — database reads/writes (cite SQL tables), file I/O (cite file names)
-4. "External Integrations" — calls to other programs, CICS interactions
-5. "Error Handling" — error conditions, abend handling, rollback, status code checks
-6. "JCL/Batch Execution Context" — how this program fits in the batch job, step inputs/outputs, DD datasets (include only if JCL callers are provided)
-7. "Copybook Field Dependencies" — key data structures defined in copybooks that drive this program's logic (include only if copybook context is provided)
+1. "Service Invocation Context" — WHAT TRIGGERS THIS SERVICE: which JCL jobs, upstream programs, or CICS transactions invoke this program; how control is passed (CALL, JCL EXEC, CICS LINK); what parameters/LINKAGE fields are required on entry. Use the dependency graph and JCL callers list above.
 
-For each rule, produce a structured Business Requirements Document (BRD) entry with these fields:
-- id: BR-NNN (sequential within section, e.g. BR-001, BR-002)
-- title: Short noun-phrase title (max 10 words)
-- trigger: WHEN/IF condition that activates this rule — mention specific COBOL fields, status codes, or conditions (1–2 sentences)
-- action: THE SYSTEM SHALL statement — what the program does, referencing COBOL fields, DB2 tables, called programs, file names with PIC clauses where relevant (2–4 sentences)
-- outcome: Expected business outcome when rule executes correctly (1–2 sentences)
-- risk: What breaks if this rule fails, is missing, or is incorrectly implemented (1–2 sentences)
-- gap (optional): Any identified gap, ambiguity, missing validation, or undocumented assumption — omit field entirely if none
+2. "Data Reads" — WHAT DATA THIS SERVICE READS: every DB2 table read (SELECT), file opened for INPUT, copybook structures populated on entry, Working-Storage fields loaded from external sources. Name each table/file/field explicitly.
+
+3. "Core Business Logic" — the calculations, decisions, validations, EVALUATE/IF blocks, loops, and sequence rules that form the heart of this program's processing.
+
+4. "Downstream Service Calls" — WHAT THIS SERVICE TRIGGERS NEXT: every program CALLed, CICS LINKed, or file/queue written that kicks off downstream processing. For each: name the called program, the paragraph that issues the call, and what data is passed.
+
+5. "Data Writes & Persistence" — every DB2 INSERT/UPDATE/DELETE, file WRITE/REWRITE, and audit record produced. Name each table/file and the business event it records.
+
+6. "Error Handling & Return Codes" — how errors, bad status codes, and exception paths are managed; what ABEND codes or return codes are set; rollback logic; how errors are communicated to callers.
+
+7. "Copybook & Data Structure Dependencies" — key copybook layouts (PIC clauses, REDEFINES, OCCURS) that control processing; important Working-Storage flags and their value semantics. Include only if copybook context is provided, otherwise explain what copybooks are referenced but not resolved.
+
+8. "Gaps & Limitations" — missing validations, hardcoded values, undocumented assumptions, potential race conditions, fields with no bounds check, dead code, incomplete error handling, or any place where the implementation may not match the business intent.
+
+For each rule within a section, produce:
+- id: BR-NNN (sequential within section, e.g. BR-001)
+- title: Short noun-phrase (max 10 words)
+- trigger: WHEN/IF condition — specific COBOL fields, status codes, or events (1–2 sentences)
+- action: THE SYSTEM SHALL statement — what happens, naming COBOL fields, DB2 tables, called programs (2–4 sentences)
+- outcome: Expected business result (1–2 sentences)
+- risk: What breaks if this rule fails or is absent (1–2 sentences)
+- gap (optional): Specific gap, ambiguity, or limitation in THIS rule — omit if none
 
 Output schema:
 \`\`\`json
 [
   {
-    "section": "section name",
+    "section": "Service Invocation Context",
     "rules": [
       {
         "id": "BR-001",
-        "title": "Settlement Cutoff Determination",
-        "trigger": "When batch job GTMJOB01 invokes GTMSETL0 and WS-RUN-DATE is populated in the LINKAGE SECTION...",
-        "action": "The system SHALL read the SETLCTRL file using WS-CUTOFF-KEY to retrieve WS-CUTOFF-TIME (PIC 9(6)), then set WS-PROCESS-FLAG to 'Y' for all transactions with TRANS-TIME <= WS-CUTOFF-TIME.",
-        "outcome": "Only transactions submitted before the cutoff time are included in settlement processing.",
-        "risk": "If WS-CUTOFF-TIME is read incorrectly, transactions may be erroneously included or excluded from settlement.",
-        "gap": "No validation that WS-RUN-DATE matches the expected PIC 9(8) format before use."
+        "title": "Batch Invocation via JCL Step",
+        "trigger": "JCL job GTMJOB01 executes GTMSETL0 in step SETLSTEP, passing WS-RUN-DATE (PIC 9(8)) via PARM.",
+        "action": "The system SHALL accept WS-RUN-DATE from the JCL PARM field into the LINKAGE SECTION, validate it is numeric, then move it to WS-PROCESS-DATE for downstream use.",
+        "outcome": "The program begins execution with a valid processing date for the settlement cycle.",
+        "risk": "If WS-RUN-DATE is blank or non-numeric the program proceeds with an uninitialised date, silently corrupting settlement records.",
+        "gap": "No validation that WS-RUN-DATE is a valid calendar date — only a numeric check is performed."
       }
     ]
   }
