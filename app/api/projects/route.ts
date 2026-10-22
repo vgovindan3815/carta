@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
 
   if (body.startScan) {
     try {
-      const { createScan } = await import('@/lib/db/queries');
+      const { createP1Scan } = await import('@/lib/db/queries');
       const { inngest } = await import('@/lib/inngest/client');
-      const scan = await createScan({ projectId: project.id });
+      const scan = await createP1Scan({ projectId: project.id });
       await inngest.send({ name: 'maven/scan.requested', data: { scanId: scan.id, projectId: project.id } });
     } catch {
       // non-fatal — project created, scan will need to be triggered manually

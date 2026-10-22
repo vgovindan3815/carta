@@ -1,6 +1,6 @@
 import { FF_PROJECTS } from '@/lib/flags';
 import { redirect, notFound } from 'next/navigation';
-import { getProject, getSourceConnectionsForProject, listScansForProject } from '@/lib/db/queries';
+import { getProject, getSourceConnectionsForProject, listP1ScansForProject } from '@/lib/db/queries';
 import Link from 'next/link';
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,12 +10,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
   const [project, connections, scans] = await Promise.all([
     getProject(id),
     getSourceConnectionsForProject(id),
-    listScansForProject(id),
+    listP1ScansForProject(id),
   ]);
 
   if (!project) notFound();
 
-  const latestScan = scans[0] ?? null;
+  type P1Scan = Awaited<ReturnType<typeof listP1ScansForProject>>[number];
+  const scansTyped = scans as P1Scan[];
+  const latestScan = scansTyped[0] ?? null;
   const conn = connections[0] ?? null;
 
   const statusColor = (s: string | null) =>
@@ -82,11 +84,11 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
         </div>
 
         {/* Scan history */}
-        {scans.length > 0 ? (
+        {scansTyped.length > 0 ? (
           <div>
             <h2 className="text-sm font-medium text-gray-400 uppercase tracking-wider mb-3">Scan history</h2>
             <div className="space-y-2">
-              {scans.map(scan => (
+              {scansTyped.map(scan => (
                 <div
                   key={scan.id}
                   className="flex items-center justify-between border border-gray-800 rounded-lg px-4 py-3 text-sm"
