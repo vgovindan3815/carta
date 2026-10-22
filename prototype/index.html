@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MAVEN — Mainframe Analysis, Visualization &amp; Engineering iNtelligence</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy-dark:#1F3864; --navy:#065A82; --teal:#1C7293; --teal-light:#2A9FC0;
+      --mid:#21295C; --accent:#E07B39; --success:#2E7D5E; --warning:#B45309;
+      --danger:#C0392B; --partial:#7C5E14;
+      --bg:#EEF2F7; --surface:#FFFFFF; --surface-2:#F4F7FB; --border:#CBD5E8;
+      --text:#1A2340; --text-2:#4A5568; --text-3:#718096;
+      --font-body:'Segoe UI',Arial,sans-serif; --font-mono:'Consolas','Courier New',monospace;
+      --radius:8px;
+      --shadow-sm:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+      --shadow-md:0 4px 12px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.08);
+      --shadow-lg:0 10px 32px rgba(0,0,0,.14),0 4px 8px rgba(0,0,0,.08);
+    }
+    html,body{height:100%;}
+    body{font-family:var(--font-body);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+    .screen{display:none;flex-direction:column;min-height:100vh;}
+    .screen.active{display:flex;}
+
+    /* ── App header ── */
+    .app-header{background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,var(--teal) 100%);padding:0 32px;display:flex;align-items:center;gap:24px;height:60px;box-shadow:var(--shadow-md);flex-shrink:0;position:sticky;top:0;z-index:100;}
+    .app-header .logo{display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;}
+    .logo-mark{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:4px 8px;font-weight:700;font-size:15px;letter-spacing:1px;color:#fff;}
+    .logo-name{font-size:16px;font-weight:600;color:#fff;}
+    .logo-tagline{font-size:11px;color:rgba(255,255,255,.6);}
+    .header-spacer{flex:1;}
+    .prototype-badge{background:rgba(224,123,57,.25);border:1px solid rgba(224,123,57,.5);color:#FFB380;font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:.5px;}
+    .breadcrumb{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px;}
+    .breadcrumb .sep{opacity:.4;}
+    .crumb-link{color:rgba(255,255,255,.7);cursor:pointer;border-bottom:1px solid transparent;transition:color .2s,border-color .2s;}
+    .crumb-link:hover{color:#fff;border-color:rgba(255,255,255,.5);}
+    .crumb-current{color:#fff;font-weight:600;}
+
+    /* ── Buttons ── */
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border:none;border-radius:var(--radius);font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;}
+    .btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(28,114,147,.4);}
+    .btn-primary:hover{background:var(--teal-light);transform:translateY(-1px);}
+    .btn-navy{background:var(--navy-dark);color:#fff;}
+    .btn-navy:hover{background:var(--navy);}
+    .btn-ghost{background:transparent;color:var(--navy);border:1.5px solid var(--navy);}
+    .btn-ghost:hover{background:var(--navy);color:#fff;}
+    .btn-ghost-light{background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);font-size:12px;padding:6px 14px;border-radius:6px;}
+    .btn-ghost-light:hover{background:rgba(255,255,255,.15);color:#fff;}
+    .btn-sm{padding:7px 16px;font-size:13px;}
+    .btn-disabled{background:var(--border);color:var(--text-3);cursor:not-allowed;box-shadow:none;}
+
+    /* ── Badges ── */
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.3px;}
+    .badge-deterministic{background:#EBF5EE;border:1px solid #A7D7B2;color:#1D6B37;}
+    .badge-llm{background:#EBF0FA;border:1px solid #A7B8E8;color:#2D4EA0;}
+    .badge-partial{background:#FEF6E4;border:1px solid #E8C97A;color:var(--partial);}
+    .badge-draft{background:#FEF0E4;border:1px solid #F0A96B;color:#8B4513;}
+    .badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+    /* ── Simulation disclaimer banner ── */
+    .sim-disclaimer{background:#FEF8ED;border-bottom:1px solid #EDD496;overflow:hidden;transition:max-height .35s ease,opacity .35s ease,padding .35s ease;max-height:80px;}
+    .sim-disclaimer.dismissed{max-height:0;opacity:0;padding:0!important;}
+    .disclaimer-inner{display:flex;align-items:flex-start;gap:12px;padding:9px 32px;max-width:1300px;margin:0 auto;}
+    .disclaimer-icon{font-size:15px;color:#92600A;flex-shrink:0;margin-top:1px;}
+    .disclaimer-text{flex:1;font-size:12px;color:#7C4A0A;line-height:1.55;}
+    .disclaimer-text strong{color:#5C3408;}
+    .disclaimer-dismiss{background:none;border:none;color:#B45309;cursor:pointer;font-size:15px;padding:0 2px;opacity:.55;flex-shrink:0;line-height:1;}
+    .disclaimer-dismiss:hover{opacity:1;}
+
+    /* ══════════════════════════════════════════════
+       SCREEN 0 — WELCOME
+    ══════════════════════════════════════════════ */
+    #screen-welcome{background:linear-gradient(160deg,#0B2044 0%,#0F3460 40%,#1C7293 100%);align-items:center;justify-content:center;padding:40px;}
+    .welcome-frame{max-width:740px;width:100%;text-align:center;}
+    .welcome-logo-row{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px;}
+    .welcome-logo-mark{background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.3);border-radius:12px;padding:10px 18px;font-size:26px;font-weight:800;letter-spacing:3px;color:#fff;}
+    .welcome-logo-text{text-align:left;}
+    .welcome-logo-name{font-size:22px;font-weight:700;color:#fff;line-height:1.2;}
+    .welcome-logo-expand{font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;}
+    .welcome-tagline{font-size:32px;font-weight:700;color:#fff;line-height:1.25;margin:32px 0 20px;}
+    .welcome-tagline span{color:#5BC8E8;}
+    .welcome-subtitle{font-size:16px;color:rgba(255,255,255,.75);max-width:560px;margin:0 auto 40px;line-height:1.7;}
+    .framing-box{background:rgba(255,255,255,.07);border:1px solid rgba(255,200,100,.4);border-left:4px solid #E07B39;border-radius:var(--radius);padding:16px 20px;text-align:left;margin:0 auto 40px;max-width:620px;}
+    .framing-box .framing-label{font-size:10px;font-weight:700;letter-spacing:1px;color:#E8A05A;text-transform:uppercase;margin-bottom:6px;}
+    .framing-box p{font-size:13px;color:rgba(255,255,255,.8);line-height:1.6;}
+    .welcome-cta{margin-bottom:24px;}
+    .welcome-meta{font-size:12px;color:rgba(255,255,255,.4);}
+    .welcome-bullets{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:40px;}
+    .welcome-bullet{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.7);font-size:13px;}
+    .welcome-bullet-icon{width:24px;height:24px;border-radius:50%;background:rgba(28,114,147,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+    /* ══════════════════════════════════════════════
+       SCREEN 1 — ENTRY
+    ══════════════════════════════════════════════ */
+    .entry-body{flex:1;padding:32px 48px;max-width:1100px;width:100%;margin:0 auto;}
+    .entry-hero{margin-bottom:32px;}
+    .entry-hero h1{font-size:28px;font-weight:700;color:var(--navy-dark);margin-bottom:8px;}
+    .entry-hero p{color:var(--text-2);font-size:15px;max-width:560px;}
+    .search-bar{display:flex;align-items:center;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:12px 18px;gap:12px;max-width:520px;box-shadow:var(--shadow-sm);margin-bottom:40px;}
+    .search-bar input{border:none;outline:none;background:transparent;font-family:var(--font-body);font-size:15px;color:var(--text);flex:1;}
+    .search-bar input::placeholder{color:var(--text-3);}
+    .section-label{font-size:11px;font-weight:700;letter-spacing:1px;color:var(--text-3);text-transform:uppercase;margin-bottom:16px;}
+    .program-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+    .program-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+    .program-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--teal);transform:scaleX(0);transform-origin:left;transition:transform .2s;}
+    .program-card:hover{border-color:var(--teal);box-shadow:var(--shadow-md);transform:translateY(-2px);}
+    .program-card:hover::before{transform:scaleX(1);}
+    .program-card.hero-card{border-color:var(--teal);}
+    .program-card.hero-card::before{transform:scaleX(1);}
+    .program-card.unavailable{cursor:default;opacity:.65;}
+    .program-card.unavailable:hover{transform:none;border-color:var(--border);box-shadow:var(--shadow-sm);}
+    .program-card.unavailable::before{display:none;}
+    .card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .card-name{font-family:var(--font-mono);font-size:16px;font-weight:700;color:var(--navy-dark);}
+    .lang-pill{font-size:10px;font-weight:700;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:var(--bg);border:1px solid var(--border);color:var(--text-2);}
+    .lang-pill.asm{background:#F9F0FF;border-color:#D4B8F0;color:#6B3FA0;}
+    .card-role{font-size:13px;color:var(--text-2);margin-bottom:10px;line-height:1.4;}
+    .card-meta{display:flex;gap:12px;font-size:11px;color:var(--text-3);}
+    .card-action{margin-top:14px;padding-top:12px;border-top:1px solid var(--bg);display:flex;justify-content:space-between;align-items:center;}
+    .card-action .open-link{font-size:12px;font-weight:600;color:var(--teal);}
+    .card-unavailable-note{font-size:11px;color:var(--text-3);margin-top:12px;}
+
+    /* ══════════════════════════════════════════════
+       SCREEN P — PROCESSING / SIMULATION
+    ══════════════════════════════════════════════ */
+    #screen-processing{background:linear-gradient(160deg,#080E1E 0%,#0D1E3A 50%,#0F2D4A 100%);}
+    .proc-body{flex:1;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .proc-frame{width:100%;max-width:800px;border-radius:14px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.08);}
+    .proc-header{background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);padding:18px 24px;}
+    .proc-title-row{display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .proc-prog-name{font-family:var(--font-mono);font-size:22px;font-weight:800;color:#fff;margin-bottom:3px;}
+    .proc-subtitle{font-size:11px;color:rgba(255,255,255,.4);letter-spacing:.3px;}
+    /* Terminal */
+    .terminal{background:#0D1117;padding:14px 18px;min-height:280px;max-height:380px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1F3864 transparent;}
+    .terminal::-webkit-scrollbar{width:4px;}
+    .terminal::-webkit-scrollbar-thumb{background:#1F3864;border-radius:4px;}
+    .phase-section-header{padding:8px 0 4px;display:flex;align-items:center;gap:10px;}
+    .phase-section-header:not(:first-child){margin-top:10px;border-top:1px solid rgba(255,255,255,.05);padding-top:12px;}
+    .phase-lbl{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.3);font-family:var(--font-mono);}
+    .phase-nm{font-size:11px;font-weight:700;color:rgba(255,255,255,.6);font-family:var(--font-mono);}
+    .phase-eng{font-size:9px;padding:1px 7px;border-radius:8px;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.35);margin-left:auto;font-family:var(--font-mono);}
+    .log-line{display:flex;align-items:flex-start;gap:8px;font-family:var(--font-mono);font-size:12px;line-height:1.75;opacity:0;transform:translateY(3px);transition:opacity .12s,transform .12s;}
+    .log-line.vis{opacity:1;transform:none;}
+    .lvl{font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:3px;min-width:38px;text-align:center;flex-shrink:0;margin-top:3px;letter-spacing:.3px;}
+    .lvl-INFO{background:rgba(100,116,139,.18);color:#8899AA;}
+    .lvl-CALL{background:rgba(28,114,147,.3);color:#5BC8E8;}
+    .lvl-SQL {background:rgba(147,51,234,.25);color:#C084FC;}
+    .lvl-DATA{background:rgba(46,125,94,.25);color:#4ADE80;}
+    .lvl-WARN{background:rgba(224,123,57,.3);color:#FBB96F;}
+    .lvl-LLM {background:rgba(37,99,235,.25);color:#93C5FD;}
+    .lvl-DONE{background:rgba(22,163,74,.25);color:#4ADE80;font-weight:800;}
+    .log-txt{color:#C8D8E8;flex:1;}
+    .log-txt .hl{color:#fff;font-weight:600;}
+    .cursor-blink{display:inline-block;width:7px;height:12px;background:#5BC8E8;vertical-align:text-bottom;margin-left:2px;animation:blink 0.9s steps(1) infinite;}
+    @keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+    /* Footer */
+    .proc-footer{background:rgba(0,0,0,.25);border-top:1px solid rgba(255,255,255,.06);padding:12px 24px;}
+    .proc-progress-wrap{height:3px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:10px;}
+    .proc-progress-fill{height:100%;background:linear-gradient(90deg,var(--teal),var(--teal-light));border-radius:3px;width:0%;transition:width .5s ease;}
+    .proc-status-row{display:flex;align-items:center;justify-content:space-between;}
+    .proc-status{font-size:11.5px;color:rgba(255,255,255,.4);font-family:var(--font-mono);}
+    .proc-ready-msg{color:#4ADE80;font-weight:700;font-size:12px;font-family:var(--font-mono);}
+    .proc-open-btn{display:none;margin-top:10px;}
+
+    /* ══════════════════════════════════════════════
+       SCREEN 2 — HUB
+    ══════════════════════════════════════════════ */
+    .hub-body{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+    .program-identity{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 40px;display:flex;align-items:center;gap:24px;flex-shrink:0;}
+    .prog-name{font-family:var(--font-mono);font-size:24px;font-weight:800;color:var(--navy-dark);}
+    .prog-desc{font-size:13px;color:var(--text-2);margin-top:3px;max-width:560px;}
+    .prog-meta-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+    .meta-chip{font-size:11px;padding:3px 10px;border-radius:20px;background:var(--bg);border:1px solid var(--border);color:var(--text-2);display:flex;align-items:center;gap:5px;}
+    .chip-label{color:var(--text-3);}
+    .identity-spacer{flex:1;}
+    .trust-badges{display:flex;flex-direction:column;gap:6px;align-items:flex-end;}
+    .freshness-note{font-size:11px;color:var(--text-3);display:flex;align-items:center;gap:5px;margin-top:4px;}
+    .freshness-dot{width:6px;height:6px;border-radius:50%;background:#27AE60;flex-shrink:0;}
+    /* Tabs */
+    .tab-nav{background:var(--surface);border-bottom:2px solid var(--border);padding:0 40px;display:flex;flex-shrink:0;}
+    .tab-btn{padding:14px 22px;border:none;background:transparent;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--text-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;display:flex;align-items:center;gap:7px;}
+    .tab-btn:hover{color:var(--teal);}
+    .tab-btn.active{color:var(--navy-dark);border-bottom-color:var(--teal);}
+    .tab-content{flex:1;overflow:auto;}
+    .tab-panel{display:none;padding:32px 40px;}
+    .tab-panel.active{display:block;}
+    /* Overview */
+    .overview-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;max-width:960px;}
+    .overview-card{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:24px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm);}
+    .overview-card:hover{border-color:var(--teal);box-shadow:var(--shadow-md);transform:translateY(-2px);}
+    .ov-card-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+    .ov-card-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+    .icon-dep{background:#E8F4FD;} .icon-biz{background:#E8F5EE;} .icon-imp{background:#FEF3EA;} .icon-spec{background:#F0EAF8;}
+    .ov-card-title{font-size:16px;font-weight:700;color:var(--navy-dark);}
+    .ov-card-subtitle{font-size:12px;color:var(--text-3);margin-top:2px;}
+    .ov-card-desc{font-size:13px;color:var(--text-2);line-height:1.6;}
+    .ov-card-cta{margin-top:14px;font-size:12px;font-weight:600;color:var(--teal);}
+    /* Dependency */
+    .dep-container{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:980px;box-shadow:var(--shadow-sm);margin-bottom:20px;}
+    .dep-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+    .dep-header h2{font-size:17px;font-weight:700;color:var(--navy-dark);}
+    .graph-svg-wrap{width:100%;overflow:hidden;border-radius:8px;background:#F8FAFD;border:1px solid var(--border);position:relative;}
+    .graph-svg-wrap svg{width:100%;height:auto;display:block;}
+    .graph-legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;padding-top:14px;border-top:1px solid var(--bg);}
+    .legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);}
+    .legend-swatch{width:14px;height:14px;border-radius:3px;flex-shrink:0;}
+    .swatch-hero{background:var(--navy-dark);border:2px solid var(--teal-light);}
+    .swatch-prog{background:var(--surface);border:2px solid var(--navy);}
+    .swatch-data{background:#EBF5EE;border:2px solid var(--teal);}
+    .swatch-asm{background:#F9F0FF;border:2px dashed #9CA3AF;}
+    /* Business Rules */
+    .biz-container{max-width:820px;}
+    .biz-section{margin-bottom:28px;}
+    .biz-section-title{font-size:14px;font-weight:700;color:var(--navy-dark);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--bg);display:flex;align-items:center;gap:8px;}
+    .biz-rule{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin-bottom:10px;line-height:1.65;font-size:14px;color:var(--text);}
+    .source-citation{display:inline-flex;align-items:center;gap:5px;background:#EBF5FA;border:1px solid #A8D4E8;color:#1C5A7A;border-radius:4px;font-size:11px;font-weight:600;padding:2px 8px;margin-left:4px;font-family:var(--font-mono);cursor:default;white-space:nowrap;}
+    .source-citation::before{content:'⌥';margin-right:2px;}
+    .honesty-note{background:#FEF6E4;border:1px solid #F0D08A;border-left:4px solid #E09B30;border-radius:6px;padding:12px 16px;font-size:13px;color:#7A5010;margin-top:14px;}
+    /* Impact */
+    .impact-container{max-width:900px;}
+    .impact-summary{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+    .impact-summary-text{flex:1;min-width:240px;}
+    .impact-summary-text h2{font-size:16px;font-weight:700;color:var(--navy-dark);margin-bottom:4px;}
+    .impact-summary-text p{font-size:13px;color:var(--text-2);}
+    .coverage-block{display:flex;flex-direction:column;gap:6px;min-width:220px;}
+    .coverage-label{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--text-2);}
+    .coverage-bar-wrap{height:10px;background:var(--bg);border-radius:10px;overflow:hidden;}
+    .coverage-bar{height:100%;border-radius:10px;background:linear-gradient(90deg,var(--success),#27AE60);}
+    .coverage-note{font-size:11px;color:var(--partial);display:flex;align-items:center;gap:4px;}
+    .impact-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+    table.impact-table{width:100%;border-collapse:collapse;}
+    .impact-table thead tr{background:var(--navy-dark);color:#fff;}
+    .impact-table th{padding:12px 16px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+    .impact-table td{padding:14px 16px;border-top:1px solid var(--bg);font-size:13px;vertical-align:top;}
+    .impact-table tbody tr:hover{background:#FAFBFE;}
+    .prog-ref{font-family:var(--font-mono);font-weight:700;color:var(--navy-dark);font-size:13px;}
+    .rel-tag{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);}
+    .severity{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .sev-critical{background:#FDE8E8;color:#C0392B;}
+    .sev-high{background:#FEF3EA;color:#B45309;}
+    .sev-medium{background:#EBF5FA;color:#1C5A7A;}
+    .sev-unknown{background:#F9F0FF;color:#5C3A9E;}
+    .impact-reason{color:var(--text-2);font-size:13px;}
+    .edge-ref{font-family:var(--font-mono);font-size:11px;color:var(--text-3);margin-left:4px;}
+    .validation-gate{background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+    .gate-icon{width:44px;height:44px;border-radius:50%;background:#FEF6E4;border:2px solid #E8C060;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .gate-text{flex:1;min-width:200px;}
+    .gate-text h3{font-size:15px;font-weight:700;color:var(--navy-dark);margin-bottom:3px;}
+    .gate-text p{font-size:12px;color:var(--text-2);}
+    .gate-reviewer{font-size:12px;color:var(--text-3);font-style:italic;margin-top:4px;}
+    .gate-actions{display:flex;gap:10px;align-items:center;}
+    /* Spec */
+    .spec-container{max-width:860px;}
+    .draft-banner{background:#FEF0E0;border:1.5px solid #F0A870;border-left:5px solid #E07830;border-radius:8px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;}
+    .draft-banner-icon{font-size:22px;}
+    .draft-banner-text h3{font-size:14px;font-weight:700;color:#7A3810;margin-bottom:3px;}
+    .draft-banner-text p{font-size:12px;color:#8B4520;}
+    .spec-section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:16px;box-shadow:var(--shadow-sm);}
+    .spec-section h3{font-size:15px;font-weight:700;color:var(--navy-dark);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--bg);}
+    .spec-num{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--navy-dark);color:#fff;font-size:11px;margin-right:8px;}
+    .code-block{background:#1E2A3A;color:#CBD5E0;border-radius:8px;padding:16px 20px;font-family:var(--font-mono);font-size:12px;line-height:1.8;overflow-x:auto;}
+    .code-kw{color:#7DD3FC;} .code-type{color:#86EFAC;} .code-str{color:#FDE68A;} .code-cmt{color:#64748B;font-style:italic;}
+    .spec-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .spec-table th{background:var(--bg);padding:9px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);border-bottom:1px solid var(--border);}
+    .spec-table td{padding:10px 14px;border-bottom:1px solid var(--bg);vertical-align:top;}
+    .spec-table td:first-child{font-family:var(--font-mono);font-weight:700;color:var(--navy-dark);}
+    .open-question{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--bg);}
+    .open-question:last-child{border-bottom:none;}
+    .oq-num{width:22px;height:22px;border-radius:50%;background:#FEF0E0;border:1px solid #F0A870;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8B4020;flex-shrink:0;margin-top:1px;}
+    .spec-export-row{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;padding-top:20px;border-top:1px solid var(--border);}
+    /* Shared */
+    .panel-title{font-size:18px;font-weight:700;color:var(--navy-dark);margin-bottom:6px;}
+    .panel-subtitle{font-size:13px;color:var(--text-2);margin-bottom:24px;}
+    .flex{display:flex;} .items-center{align-items:center;} .gap-12{gap:12px;}
+    .mb-16{margin-bottom:16px;}
+    .font-mono{font-family:var(--font-mono);}
+    /* Tooltip */
+    .node-tooltip{position:absolute;pointer-events:none;background:var(--navy-dark);color:#fff;font-size:12px;padding:8px 12px;border-radius:6px;box-shadow:var(--shadow-md);z-index:200;max-width:200px;line-height:1.4;display:none;}
+    /* ── Overview 3-panel dashboard ── */
+    .tab-panel#panel-overview.active{display:flex;flex-direction:column;padding:0;}
+    .ov-dashboard{display:flex;flex:1;overflow:hidden;min-height:0;}
+    .ov-left{width:220px;flex-shrink:0;border-right:1px solid var(--border);overflow-y:auto;padding:16px;background:var(--surface);}
+    .ov-section-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin-bottom:8px;}
+    .ov-focus-card{background:var(--navy-dark);border-radius:8px;padding:14px;margin-bottom:16px;}
+    .ov-focus-name{font-family:var(--font-mono);font-size:17px;font-weight:800;color:#fff;}
+    .ov-focus-meta{font-size:11px;color:rgba(255,255,255,.55);margin-top:4px;line-height:1.5;}
+    .ov-affected-list{display:flex;flex-direction:column;gap:1px;}
+    .ov-aff-row{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-radius:5px;cursor:pointer;transition:background .15s;}
+    .ov-aff-row:hover{background:var(--bg);}
+    .ov-aff-name{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--navy-dark);}
+    .ov-aff-pill{font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;background:var(--bg);border:1px solid var(--border);color:var(--text-3);}
+    .ov-aff-pill.asm-pill{background:#F9F0FF;border-color:#D4B8F0;color:#6B3FA0;}
+    .ov-aff-pill.cics-pill{background:#EBF4FB;border-color:#A8C8E8;color:#1C5A80;}
+    .ov-more-link{font-size:11px;color:var(--teal);padding:6px 8px;cursor:pointer;font-weight:600;}
+    .ov-center{flex:1;overflow:hidden;background:#F8FAFD;display:flex;flex-direction:column;padding:14px 16px;}
+    .ov-center-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-shrink:0;}
+    .ov-center-lbl{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3);}
+    .ov-graph-area{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+    .ov-graph-area svg{max-width:100%;max-height:100%;height:auto;}
+    .ov-center-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);flex-shrink:0;}
+    .ov-leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text-2);}
+    .ov-leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .ov-right{width:310px;flex-shrink:0;border-left:1px solid var(--border);overflow-y:auto;padding:16px;background:var(--surface);}
+    .ov-ask-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;}
+    .ov-ask-box{background:#EEF4FA;border:1.5px solid #B8D0E8;border-radius:7px;padding:10px 13px;font-size:13px;color:var(--navy-dark);font-style:italic;margin-bottom:12px;line-height:1.5;}
+    .ov-expl-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:#2D4EA0;margin-bottom:10px;}
+    .ov-expl-dot{width:6px;height:6px;border-radius:50%;background:#2D4EA0;}
+    .ov-cov-warn{background:#FEF6E4;border:1px solid #E8C97A;border-left:3px solid #E09B30;border-radius:5px;padding:8px 10px;margin-bottom:10px;font-size:11.5px;color:#7A5010;display:flex;gap:7px;line-height:1.5;}
+    .ov-narrative{font-size:13px;color:var(--text);line-height:1.72;margin-bottom:12px;}
+    .ov-edge-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+    .ov-edge-row{display:flex;align-items:flex-start;gap:7px;background:var(--bg);border-radius:5px;padding:6px 9px;}
+    .ov-edge-num{width:15px;height:15px;border-radius:50%;background:var(--navy-dark);color:#fff;font-size:8px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+    .ov-edge-txt{font-family:var(--font-mono);font-size:10.5px;color:var(--text-2);line-height:1.5;}
+    .ov-gate{background:#FFFBF0;border:1.5px solid #E8C060;border-radius:8px;padding:12px 14px;}
+    .ov-gate-hdr{font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#B45309;margin-bottom:5px;}
+    .ov-gate-body{font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:6px;}
+    .ov-gate-rev{font-size:11px;color:var(--text-3);font-style:italic;margin-bottom:10px;}
+    .ov-gate-btn1{display:block;width:100%;background:var(--navy-dark);color:#fff;border:none;border-radius:6px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:6px;transition:background .2s;text-align:center;}
+    .ov-gate-btn1:hover{background:var(--navy);}
+    .ov-gate-btn2{display:block;width:100%;background:transparent;color:var(--navy-dark);border:1.5px solid var(--navy-dark);border-radius:6px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+    .ov-gate-btn2:hover{background:var(--navy-dark);color:#fff;}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 0 — WELCOME
+════════════════════════════════════════════════ -->
+<div id="screen-welcome" class="screen active">
+  <div class="welcome-frame">
+    <div class="welcome-logo-row">
+      <div class="welcome-logo-mark">MAVEN</div>
+      <div class="welcome-logo-text">
+        <div class="welcome-logo-name">CARTA</div>
+        <div class="welcome-logo-expand">Mainframe Analysis, Visualization &amp; Engineering iNtelligence</div>
+      </div>
+    </div>
+    <div class="welcome-tagline">Dead documentation, replaced by<br><span>living comprehension.</span></div>
+    <div class="welcome-subtitle">On-demand, grounded understanding of your COBOL estate — dependency structure determined by static analysis, narratives grounded in that structure, and a human-validation gate before any artifact drives a code change.</div>
+    <div class="welcome-bullets">
+      <div class="welcome-bullet"><div class="welcome-bullet-icon">🔗</div>Dependency mapping</div>
+      <div class="welcome-bullet"><div class="welcome-bullet-icon">📋</div>Business rules</div>
+      <div class="welcome-bullet"><div class="welcome-bullet-icon">💥</div>Change impact</div>
+      <div class="welcome-bullet"><div class="welcome-bullet-icon">🏗️</div>Modernization spec</div>
+    </div>
+    <div class="framing-box">
+      <div class="framing-label">⚠ Prototype framing — please read</div>
+      <p><strong>This is an illustrative prototype of the intended MAVEN experience.</strong> Content is pre-generated on a synthetic COBOL estate authored for this demonstration. No parser is running, no LLM is called, no live code is analysed. The prototype shows the experience; the proposal describes the engine (CAST deterministic analysis + BNY-internal LLM) that produces it for real.</p>
+    </div>
+    <div class="welcome-cta">
+      <button class="btn btn-primary" style="font-size:16px;padding:14px 40px;" onclick="goTo('screen-entry')">Begin Demo &nbsp;→</button>
+    </div>
+    <div class="welcome-meta">Settlement / Global Transaction Management · Synthetic estate</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 1 — ENTRY
+════════════════════════════════════════════════ -->
+<div id="screen-entry" class="screen">
+  <header class="app-header">
+    <div class="logo" onclick="goTo('screen-welcome')">
+      <span class="logo-mark">MAVEN</span>
+      <div><div class="logo-name">CARTA</div><div class="logo-tagline">Mainframe Intelligence</div></div>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
+  </header>
+
+  <div class="sim-disclaimer" id="entry-disclaimer">
+    <div class="disclaimer-inner">
+      <span class="disclaimer-icon">ℹ</span>
+      <div class="disclaimer-text">
+        <strong>Simulation Mode</strong> — Selecting a program below will run a live simulation of the MAVEN analysis workflow: deterministic dependency analysis followed by on-demand LLM documentation generation. The content rendered is pre-authored on a synthetic COBOL estate for this demonstration. In production, MAVEN executes this workflow live against your actual codebase.
+      </div>
+      <button class="disclaimer-dismiss" onclick="dismissDisclaimer()" title="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <div class="entry-body">
+    <div class="entry-hero">
+      <h1>Program Knowledge Base</h1>
+      <p>Select a program to analyse. MAVEN will run deterministic dependency mapping, then generate all four documentation types on demand.</p>
+    </div>
+    <div class="search-bar">
+      <span style="color:var(--text-3);font-size:18px;">⌕</span>
+      <input type="text" placeholder="Enter program name (e.g. GTMSETL0)…" id="search-input" oninput="filterCards()" />
+    </div>
+    <div class="section-label">Settlement / GTM Domain — Synthetic Estate</div>
+    <div class="program-grid" id="program-grid">
+
+      <div class="program-card hero-card" onclick="startProcessing('GTMSETL0')">
+        <div class="card-header">
+          <div><span class="lang-pill">COBOL</span><div class="card-name" style="margin-top:6px;">GTMSETL0</div></div>
+          <div style="font-size:20px;opacity:.6;">★</div>
+        </div>
+        <div class="card-role">Settlement cutoff calculation — determines and broadcasts the daily transaction cutoff timestamp for all GTM payment flows.</div>
+        <div class="card-meta"><span>📏 847 LOC</span><span>🗓 Active</span><span>↔ 5 dependencies</span></div>
+        <div class="card-action">
+          <span class="open-link">Analyse with MAVEN →</span>
+          <span class="badge badge-deterministic"><span class="badge-dot"></span>Rich coverage</span>
+        </div>
+      </div>
+
+      <div class="program-card" onclick="startProcessing('GTMPOST1')">
+        <div class="card-header">
+          <span class="lang-pill">COBOL</span>
+          <div class="card-name" style="margin-top:6px;">GTMPOST1</div>
+        </div>
+        <div class="card-role">Transaction posting — processes pending transactions against the settlement cutoff and writes to the GLEDGER feed.</div>
+        <div class="card-meta"><span>📏 612 LOC</span><span>🗓 Active</span><span>↔ 3 dependencies</span></div>
+        <div class="card-action">
+          <span class="open-link">Analyse with MAVEN →</span>
+          <span class="badge badge-deterministic"><span class="badge-dot"></span>Rich coverage</span>
+        </div>
+      </div>
+
+      <div class="program-card unavailable">
+        <div class="card-header"><span class="lang-pill">COBOL</span><div class="card-name" style="margin-top:6px;">GTMVALD2</div></div>
+        <div class="card-role">Pre-cutoff validation — validates all pending transactions before the settlement run proceeds.</div>
+        <div class="card-meta"><span>📏 534 LOC</span><span>🗓 Active</span><span>↔ 2 dependencies</span></div>
+        <div class="card-unavailable-note">Available in full MAVEN build · Not in demo scope</div>
+      </div>
+
+      <div class="program-card unavailable">
+        <div class="card-header"><span class="lang-pill">COBOL</span><div class="card-name" style="margin-top:6px;">GTMCICS4</div></div>
+        <div class="card-role">CICS online transaction — allows online users to query the current settlement cutoff status at runtime.</div>
+        <div class="card-meta"><span>📏 328 LOC</span><span>🗓 Active</span><span>↔ 1 dependency</span></div>
+        <div class="card-unavailable-note">Available in full MAVEN build · Not in demo scope</div>
+      </div>
+
+      <div class="program-card unavailable">
+        <div class="card-header"><span class="lang-pill">COBOL</span><div class="card-name" style="margin-top:6px;">GTMDB2IO</div></div>
+        <div class="card-role">DB2 access module — owns all I/O operations against the SETL_CTRL table; called by GTMVALD2.</div>
+        <div class="card-meta"><span>📏 489 LOC</span><span>🗓 Active</span><span>↔ 1 dependency</span></div>
+        <div class="card-unavailable-note">Available in full MAVEN build · Not in demo scope</div>
+      </div>
+
+      <div class="program-card unavailable">
+        <div class="card-header"><span class="lang-pill asm">HLASM</span><div class="card-name" style="margin-top:6px;">GTMASM01</div></div>
+        <div class="card-role">Assembler bit-field utility — called dynamically by GTMVALD2 for packed-byte flag manipulation. Partial coverage.</div>
+        <div class="card-meta"><span>📏 143 LOC</span><span>🗓 Active</span><span>↔ dynamic call</span></div>
+        <div class="card-unavailable-note" style="color:var(--partial);">⚠ Partial coverage (71%) — assembler analysis limited</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN P — PROCESSING / SIMULATION
+════════════════════════════════════════════════ -->
+<div id="screen-processing" class="screen">
+  <header class="app-header">
+    <div class="logo" onclick="skipProcessing()">
+      <span class="logo-mark">MAVEN</span>
+      <div><div class="logo-name">CARTA</div><div class="logo-tagline">Mainframe Intelligence</div></div>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
+  </header>
+
+  <div class="proc-body">
+    <div class="proc-frame">
+      <div class="proc-header">
+        <div class="proc-title-row">
+          <div>
+            <div class="proc-prog-name" id="proc-prog-name">GTMSETL0</div>
+            <div class="proc-subtitle">MAVEN Analysis Engine &nbsp;·&nbsp; Running simulation</div>
+          </div>
+          <button class="btn-ghost-light" onclick="skipProcessing()">Skip to results →</button>
+        </div>
+      </div>
+
+      <div class="terminal" id="proc-terminal"></div>
+
+      <div class="proc-footer">
+        <div class="proc-progress-wrap">
+          <div class="proc-progress-fill" id="proc-progress-fill"></div>
+        </div>
+        <div class="proc-status-row">
+          <div class="proc-status" id="proc-status">Initialising analysis engine…</div>
+        </div>
+        <div class="proc-open-btn" id="proc-open-btn">
+          <button class="btn btn-primary" style="width:100%;" onclick="finishProcessing()">Open documentation →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     SCREEN 2 — HUB & DOC VIEWER
+════════════════════════════════════════════════ -->
+<div id="screen-hub" class="screen">
+  <header class="app-header">
+    <div class="logo" onclick="goTo('screen-welcome')">
+      <span class="logo-mark">MAVEN</span>
+      <div><div class="logo-name">CARTA</div><div class="logo-tagline">Mainframe Intelligence</div></div>
+    </div>
+    <div class="breadcrumb" style="margin-left:12px;">
+      <span class="crumb-link" onclick="goTo('screen-entry')">All Programs</span>
+      <span class="sep">/</span>
+      <span class="crumb-current" id="bc-prog-name">GTMSETL0</span>
+    </div>
+    <div class="header-spacer"></div>
+    <span class="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
+  </header>
+
+  <div class="sim-disclaimer" id="hub-disclaimer">
+    <div class="disclaimer-inner">
+      <span class="disclaimer-icon">ℹ</span>
+      <div class="disclaimer-text">
+        <strong>Simulation Mode</strong> — The analysis workflow above was simulated for demonstration purposes. Documentation rendered below is pre-authored on a synthetic COBOL estate. In production, MAVEN executes live deterministic analysis (CAST engine) and on-demand LLM generation, producing this output in real time against your actual codebase.
+      </div>
+      <button class="disclaimer-dismiss" onclick="dismissDisclaimer()" title="Dismiss">✕</button>
+    </div>
+  </div>
+
+  <div class="hub-body">
+    <div class="program-identity">
+      <div>
+        <div class="prog-name" id="hub-prog-name">GTMSETL0</div>
+        <div class="prog-desc" id="hub-prog-desc">Settlement cutoff calculation</div>
+        <div class="prog-meta-chips" id="hub-prog-chips"></div>
+      </div>
+      <div class="identity-spacer"></div>
+      <div class="trust-badges">
+        <span class="badge badge-deterministic"><span class="badge-dot"></span>Structure: deterministic analysis</span>
+        <span class="badge badge-llm"><span class="badge-dot"></span>Explanation: LLM, grounded in graph</span>
+        <div class="freshness-note"><span class="freshness-dot"></span>Graph refreshed on last commit · just now</div>
+      </div>
+    </div>
+
+    <nav class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('overview')" data-tab="overview"><span>⊞</span> Overview</button>
+      <button class="tab-btn" onclick="showTab('dependency')" data-tab="dependency"><span>🔗</span> Dependency View</button>
+      <button class="tab-btn" onclick="showTab('business')" data-tab="business"><span>📋</span> Business Rules</button>
+      <button class="tab-btn" onclick="showTab('impact')" data-tab="impact"><span>💥</span> Change Impact</button>
+      <button class="tab-btn" onclick="showTab('spec')" data-tab="spec"><span>🏗️</span> Modernization Spec</button>
+    </nav>
+
+    <div class="tab-content">
+      <div class="tab-panel active" id="panel-overview">
+        <div class="ov-dashboard" id="ov-dashboard"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-dependency">
+        <div class="panel-title">Dependency View</div>
+        <div class="panel-subtitle" id="dep-subtitle">Every call and data edge — structure determined by static analysis, not inferred.</div>
+        <div class="dep-container">
+          <div class="dep-header">
+            <h2 id="dep-graph-title">Call &amp; Data Graph</h2>
+            <span class="badge badge-deterministic"><span class="badge-dot"></span>Structure: deterministic</span>
+          </div>
+          <div class="graph-svg-wrap" id="graph-svg-wrap"><div id="node-tooltip" class="node-tooltip"></div></div>
+          <div class="graph-legend">
+            <div class="legend-item"><div class="legend-swatch swatch-hero"></div>Focus program</div>
+            <div class="legend-item"><div class="legend-swatch swatch-prog"></div>COBOL program</div>
+            <div class="legend-item"><div class="legend-swatch swatch-data"></div>DB2 / data store</div>
+            <div class="legend-item"><div class="legend-swatch swatch-asm"></div>Assembler (partial)</div>
+            <div class="legend-item"><svg width="28" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="28" y2="6" stroke="#065A82" stroke-width="2"/></svg>CALL edge</div>
+            <div class="legend-item"><svg width="28" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="28" y2="6" stroke="#1C7293" stroke-width="2"/></svg>Data edge</div>
+            <div class="legend-item"><svg width="28" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="28" y2="6" stroke="#E07B39" stroke-width="2" stroke-dasharray="5,3"/></svg>Runtime read</div>
+            <div class="legend-item"><svg width="28" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="28" y2="6" stroke="#9CA3AF" stroke-width="2" stroke-dasharray="4,3"/></svg>Dynamic call (partial)</div>
+          </div>
+        </div>
+        <div class="honesty-note" style="max-width:900px;">
+          <strong>Coverage note:</strong> GTMASM01 is called dynamically (non-static CALL literal) from GTMVALD2. Static analysis recovered the call target at 71% confidence — manual verification recommended for this edge. All other edges are fully verified.
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-business">
+        <div class="flex items-center gap-12 mb-16">
+          <div><div class="panel-title" id="biz-title">Business Rules</div><div class="panel-subtitle" style="margin-bottom:0;" id="biz-subtitle">Plain-language explanation. Each claim cites its source dependency edge.</div></div>
+          <div style="margin-left:auto;flex-shrink:0;"><span class="badge badge-llm"><span class="badge-dot"></span>LLM · grounded in deterministic graph</span></div>
+        </div>
+        <div class="biz-container" id="biz-content"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-impact">
+        <div class="flex items-center gap-12 mb-16">
+          <div><div class="panel-title" id="imp-title">Change Impact</div><div class="panel-subtitle" style="margin-bottom:0;" id="imp-subtitle">Affected programs traced to graph edges.</div></div>
+          <div style="margin-left:auto;flex-shrink:0;"><span class="badge badge-deterministic"><span class="badge-dot"></span>Traced · graph-grounded</span></div>
+        </div>
+        <div class="impact-container" id="impact-content"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-spec">
+        <div class="flex items-center gap-12 mb-16">
+          <div><div class="panel-title" id="spec-title">Modernization Spec</div><div class="panel-subtitle" style="margin-bottom:0;" id="spec-subtitle">Java-target specification draft. Engineer sign-off required before use.</div></div>
+          <div style="margin-left:auto;flex-shrink:0;"><span class="badge badge-draft"><span class="badge-dot"></span>Draft — awaiting engineer validation</span></div>
+        </div>
+        <div class="spec-container" id="spec-content"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════
+   PROCESSING STEPS DATA
+════════════════════════════════════════════════ */
+const STEPS = {
+  GTMSETL0: {
+    p1: [
+      {d:0,    lv:'INFO', t:'Locating <span class="hl">GTMSETL0</span> in estate index…'},
+      {d:320,  lv:'INFO', t:'Source confirmed — COBOL 85 · <span class="hl">847 LOC</span> · batch scheduled'},
+      {d:650,  lv:'INFO', t:'Parsing IDENTIFICATION and ENVIRONMENT divisions…'},
+      {d:950,  lv:'INFO', t:'Scanning PROCEDURE DIVISION for CALL statements…'},
+      {d:1230, lv:'CALL', t:'→ <span class="hl">GTMPOST1</span> identified (static literal · 5000-EXECUTE-POSTING)'},
+      {d:1470, lv:'CALL', t:'→ <span class="hl">GTMVALD2</span> identified (static literal · 4000-VALIDATE-PENDING-TXNS)'},
+      {d:1740, lv:'WARN', t:'→ <span class="hl">GTMASM01</span> detected — DYNAMIC CALL, target resolved at 71% confidence'},
+      {d:2050, lv:'INFO', t:'Scanning for embedded SQL (EXEC SQL blocks)…'},
+      {d:2310, lv:'SQL',  t:'→ <span class="hl">SETL_CTRL</span>: SELECT (2000-GET-CONTROL-PARMS)'},
+      {d:2520, lv:'SQL',  t:'→ <span class="hl">SETL_CTRL</span>: UPDATE (6000-BROADCAST-CUTOFF)'},
+      {d:2780, lv:'INFO', t:'Resolving transitive dependencies…'},
+      {d:3010, lv:'CALL', t:'→ <span class="hl">GTMDB2IO</span> (via GTMVALD2 · 3000-VALIDATE-TRANS)'},
+      {d:3210, lv:'DATA', t:'→ <span class="hl">GLEDGER</span> feed (via GTMPOST1 · WRITE SEQUENTIAL)'},
+      {d:3460, lv:'DONE', t:'Dependency graph complete — <span class="hl">8 nodes · 8 edges</span> · analysed in 2.3s ✓'},
+    ],
+    p1dur: 3460,
+    p2: [
+      {d:0,    lv:'INFO', t:'Serialising dependency graph for LLM context window…'},
+      {d:300,  lv:'INFO', t:'Context payload: 8 nodes, 8 typed edges, 847 LOC of parsed source'},
+      {d:580,  lv:'LLM',  t:'Generating <span class="hl">business rules</span> — 4 sections, analyst readability target…'},
+      {d:1100, lv:'LLM',  t:'Grounding each claim against deterministic graph edges…'},
+      {d:1420, lv:'DONE', t:'Business rules complete — <span class="hl">4 sections · 8 rules · 12 edge citations</span> ✓'},
+      {d:1650, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 5 dependent programs…'},
+      {d:2030, lv:'LLM',  t:'Scoring severity by edge type (direct CALL → CRITICAL, runtime read → HIGH)…'},
+      {d:2340, lv:'DONE', t:'Change impact complete — <span class="hl">5 programs · coverage 91%</span> ✓'},
+      {d:2570, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Java Spring Boot target)…'},
+      {d:2980, lv:'LLM',  t:'Mapping COBOL data structures → JPA entities, COMP-3 → BigDecimal…'},
+      {d:3290, lv:'LLM',  t:'Identifying open questions for engineer review…'},
+      {d:3550, lv:'DONE', t:'Modernisation spec complete — <span class="hl">5 sections</span> ✓'},
+      {d:3800, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 6.4s</span>'},
+    ],
+    p2dur: 3800,
+  },
+  GTMPOST1: {
+    p1: [
+      {d:0,    lv:'INFO', t:'Locating <span class="hl">GTMPOST1</span> in estate index…'},
+      {d:290,  lv:'INFO', t:'Source confirmed — COBOL 85 · <span class="hl">612 LOC</span> · batch (called module)'},
+      {d:580,  lv:'INFO', t:'Parsing LINKAGE SECTION — 3 parameters received from caller GTMSETL0…'},
+      {d:870,  lv:'INFO', t:'Scanning PROCEDURE DIVISION for CALL statements…'},
+      {d:1100, lv:'INFO', t:'No outgoing CALL statements found — terminal posting module'},
+      {d:1360, lv:'INFO', t:'Scanning for embedded SQL (EXEC SQL blocks)…'},
+      {d:1590, lv:'SQL',  t:'→ <span class="hl">TRANS_PENDING</span>: SELECT with cursor (3000-FETCH-PENDING-TXNS)'},
+      {d:1810, lv:'SQL',  t:'→ <span class="hl">POST_AUDIT</span>: INSERT per transaction (4000-WRITE-AUDIT-RECORD)'},
+      {d:2060, lv:'INFO', t:'Scanning for sequential file I/O…'},
+      {d:2290, lv:'DATA', t:'→ <span class="hl">GLEDGER</span>: WRITE SEQUENTIAL (4000-WRITE-GLEDGER-RECORD)'},
+      {d:2520, lv:'INFO', t:'Resolving callers via reverse dependency index…'},
+      {d:2740, lv:'CALL', t:'→ Called by <span class="hl">GTMSETL0</span> (paragraph 5000-EXECUTE-POSTING)'},
+      {d:2960, lv:'DONE', t:'Dependency graph complete — <span class="hl">5 nodes · 4 edges</span> · analysed in 2.1s ✓'},
+    ],
+    p1dur: 2960,
+    p2: [
+      {d:0,    lv:'INFO', t:'Serialising dependency graph for LLM context window…'},
+      {d:270,  lv:'INFO', t:'Context payload: 5 nodes, 4 typed edges, 612 LOC of parsed source'},
+      {d:530,  lv:'LLM',  t:'Generating <span class="hl">business rules</span> — 3 sections…'},
+      {d:970,  lv:'LLM',  t:'Grounding claims against graph edges…'},
+      {d:1240, lv:'DONE', t:'Business rules complete — <span class="hl">3 sections · 6 rules</span> ✓'},
+      {d:1460, lv:'LLM',  t:'Generating <span class="hl">change-impact analysis</span> — 4 dependent programs/stores…'},
+      {d:1820, lv:'LLM',  t:'Flagging GLEDGER format change as CRITICAL (fixed-format downstream consumer)…'},
+      {d:2090, lv:'DONE', t:'Change impact complete — <span class="hl">4 items · coverage 96%</span> ✓'},
+      {d:2310, lv:'LLM',  t:'Generating <span class="hl">modernisation specification</span> (Spring Batch target)…'},
+      {d:2680, lv:'LLM',  t:'Mapping COBOL cursor pattern → Spring Batch chunk-oriented model…'},
+      {d:2950, lv:'DONE', t:'Modernisation spec complete — <span class="hl">3 sections</span> ✓'},
+      {d:3150, lv:'DONE', t:'All documentation generated — <span class="hl">total elapsed 5.8s</span>'},
+    ],
+    p2dur: 3150,
+  }
+};
+
+/* ════════════════════════════════════════════════
+   PROGRAM DATA
+════════════════════════════════════════════════ */
+const PROGRAMS = {
+GTMSETL0:{
+  name:'GTMSETL0',language:'COBOL',loc:847,domain:'Settlement / GTM',
+  desc:'Settlement cutoff calculation — determines and broadcasts the daily transaction cutoff timestamp that governs all GTM payment flows.',
+  chips:[{label:'Lang',val:'COBOL'},{label:'LOC',val:'847'},{label:'Domain',val:'Settlement / GTM'},{label:'Status',val:'Active'}],
+  overviewQuery:'What breaks if I change the settlement cutoff?',
+  overviewNarrative:'Changing the settlement cutoff in <strong>GTMSETL0</strong> directly affects <strong>5 programs and data stores</strong>. Posting (<strong class="font-mono">GTMPOST1</strong>) and validation (<strong class="font-mono">GTMVALD2</strong>) consume the cutoff timestamp via direct CALL; the CICS transaction <strong class="font-mono">GTMCICS4</strong> reads the broadcast result at runtime. Downstream, the general ledger feed and the DB2 control table inherit any structural change. One Assembler dependency (GTMASM01 via GTMVALD2) is partially analysed — verify manually.',
+  overviewEdges:[
+    'CAST edge: GTMSETL0 → GTMPOST1 (CALL, static)',
+    'CAST edge: GTMSETL0 → GTMVALD2 (CALL, static)',
+    'CAST edge: GTMCICS4 → SETL_CTRL (runtime read, indirect)',
+  ],
+  cLayout:{
+    w:580,h:468,
+    nodes:[
+      {id:'GTMSETL0',label:'GTMSETL0',sub:'in focus',   type:'hero',cx:290,cy:220,r:44},
+      {id:'GTMCICS4',label:'GTMCICS4',sub:'CICS caller', type:'prog',cx:290,cy:75, r:30},
+      {id:'GTMPOST1',label:'GTMPOST1',sub:'posting',     type:'prog',cx:120,cy:325,r:30},
+      {id:'GTMVALD2',label:'GTMVALD2',sub:'validation',  type:'prog',cx:440,cy:305,r:30},
+      {id:'GLEDGER', label:'GLEDGER', sub:'data feed',   type:'data',cx:58, cy:425,r:24},
+      {id:'SETLCTRL',label:'SETL_CTRL',sub:'DB2 control',type:'data',cx:270,cy:435,r:24},
+      {id:'GTMDB2IO',label:'GTMDB2IO',sub:'DB2 module',  type:'prog',cx:460,cy:415,r:26},
+      {id:'GTMASM01',label:'GTMASM01',sub:'ASM · 71%',   type:'asm', cx:535,cy:305,r:23},
+    ],
+    edges:[
+      {from:'GTMCICS4',to:'GTMSETL0',type:'cics'},
+      {from:'GTMSETL0',to:'GTMPOST1',type:'call'},
+      {from:'GTMSETL0',to:'GTMVALD2',type:'call'},
+      {from:'GTMSETL0',to:'SETLCTRL',type:'data'},
+      {from:'GTMPOST1',to:'GLEDGER', type:'data'},
+      {from:'GTMVALD2',to:'GTMDB2IO',type:'call'},
+      {from:'GTMVALD2',to:'GTMASM01',type:'dyn'},
+      {from:'GTMDB2IO',to:'SETLCTRL',type:'data'},
+    ]
+  },
+  graph:{
+    title:'GTMSETL0 — Call &amp; Data Graph',
+    nodes:[
+      {id:'GTMCICS4',label:'GTMCICS4',sub:'CICS Online Transaction',type:'prog',x:310,y:28,w:160,h:56},
+      {id:'GTMSETL0',label:'GTMSETL0',sub:'Settlement Cutoff · HERO',type:'hero',x:310,y:183,w:160,h:60},
+      {id:'GTMPOST1',label:'GTMPOST1',sub:'Transaction Posting',type:'prog',x:55,y:343,w:150,h:56},
+      {id:'GTMVALD2',label:'GTMVALD2',sub:'Pre-cutoff Validation',type:'prog',x:615,y:343,w:150,h:56},
+      {id:'GTMDB2IO',label:'GTMDB2IO',sub:'DB2 Access Module',type:'prog',x:700,y:453,w:150,h:52},
+      {id:'GTMASM01',label:'GTMASM01',sub:'Assembler Utility (71%)',type:'asm',x:540,y:453,w:145,h:52},
+      {id:'GLEDGER', label:'GLEDGER', sub:'General Ledger Feed',type:'data',x:30, y:453,w:150,h:52},
+      {id:'SETLCTRL',label:'SETL_CTRL',sub:'DB2 · Settlement Control',type:'data',x:250,y:453,w:170,h:52},
+    ],
+    edges:[
+      {from:'GTMCICS4',to:'GTMSETL0',type:'cics',label:'reads cutoff at runtime',fd:'bottom',td:'top'},
+      {from:'GTMSETL0',to:'GTMPOST1',type:'call',label:'CALL — cutoff timestamp',fd:'bl',td:'top'},
+      {from:'GTMSETL0',to:'GTMVALD2',type:'call',label:'CALL — validate pending',fd:'br',td:'top'},
+      {from:'GTMSETL0',to:'SETLCTRL',type:'data',label:'EXEC SQL SELECT',fd:'bottom',td:'top'},
+      {from:'GTMPOST1',to:'GLEDGER', type:'data',label:'WRITE — GLEDGER feed',fd:'bottom',td:'top'},
+      {from:'GTMVALD2',to:'GTMDB2IO',type:'call',label:'CALL — cursor ops',fd:'bottom',td:'top'},
+      {from:'GTMVALD2',to:'GTMASM01',type:'dyn', label:'DYNAMIC CALL (71%)',fd:'bl',td:'top'},
+      {from:'GTMDB2IO',to:'SETLCTRL',type:'data',label:'READ/WRITE — table owner',fd:'left',td:'right'},
+    ]
+  },
+  businessRules:[
+    {section:'Purpose & Scope',rules:[
+      {text:'GTMSETL0 is the <strong>authoritative source of the daily settlement cutoff timestamp</strong> for all Global Transaction Management (GTM) payment flows. Its output determines which transactions are included in today\'s settlement run — any transaction timestamped after the broadcast cutoff is deferred to the next business day.',citations:[]},
+      {text:'The program runs once per business day during the end-of-day window. It reads the configured cutoff parameters from DB2, validates all pending transactions, triggers posting, then broadcasts the confirmed cutoff to the shared control table.',citations:[{label:'SETL_CTRL (DB2 READ)',edge:'GTMSETL0 → SETL_CTRL'}]},
+    ]},
+    {section:'Cutoff Time Rules',rules:[
+      {text:'The standard settlement cutoff is <strong>17:00 ET</strong>, stored in SETL_CTRL as CUTOFF_TIME. A UTC_OFFSET column adjusts for timezone differences when MAVEN is run from non-New York infrastructure.',citations:[{label:'SETL_CTRL.CUTOFF_TIME',edge:'GTMSETL0 → SETL_CTRL SELECT'}]},
+      {text:'If OVERRIDE_FLAG = \'Y\' in SETL_CTRL (set by settlement operations), the program substitutes the OVERRIDE_TIME value. This mechanism handles emergency cutoff extensions approved by treasury.',citations:[{label:'SETL_CTRL.OVERRIDE_FLAG',edge:'GTMSETL0 → SETL_CTRL SELECT'}]},
+      {text:'On bank holidays (HOLIDAY_FLAG = \'Y\'), the program suppresses the settlement run and sets STATUS_CODE = \'HOLIDAY_SKIP\'. GTMCICS4 reads this status at runtime to display the correct message to online users.',citations:[{label:'SETL_CTRL.HOLIDAY_FLAG',edge:'GTMSETL0 → SETL_CTRL SELECT'},{label:'GTMCICS4 reads status',edge:'GTMCICS4 → GTMSETL0'}]},
+    ]},
+    {section:'Validation Gate (Pre-posting)',rules:[
+      {text:'Before any posting occurs, GTMSETL0 calls <strong>GTMVALD2</strong> with the computed cutoff timestamp. GTMVALD2 validates all pending transactions. If any transaction fails (VALD2-FAIL-COUNT &gt; 0), the entire settlement run is held — posting does not proceed.',citations:[{label:'CALL GTMVALD2',edge:'GTMSETL0 → GTMVALD2'}]},
+      {text:'GTMVALD2 in turn uses <strong>GTMDB2IO</strong> for all DB2 cursor operations, and dynamically calls <strong>GTMASM01</strong> for packed-byte flag inspection. The GTMASM01 dependency is partially resolved (71%) — if its bit-field contract changes, downstream effects may not be fully detectable by automated analysis.',citations:[{label:'CALL GTMDB2IO',edge:'GTMVALD2 → GTMDB2IO'},{label:'DYNAMIC CALL GTMASM01',edge:'GTMVALD2 → GTMASM01 (71%)'}]},
+    ]},
+    {section:'Posting & Broadcast',rules:[
+      {text:'Once validation passes, GTMSETL0 calls <strong>GTMPOST1</strong>, passing the confirmed cutoff timestamp and region code. GTMPOST1 selects all transactions with TRANS_TS ≤ cutoff and writes them to the GLEDGER sequential feed. A non-zero return code halts the broadcast.',citations:[{label:'CALL GTMPOST1',edge:'GTMSETL0 → GTMPOST1'}]},
+      {text:'After successful posting, GTMSETL0 writes the computed cutoff back to SETL_CTRL — setting COMPUTED_CUTOFF_TS and STATUS_CODE = \'BROADCAST\'. This is the signal that GTMCICS4 polls at online-transaction time to confirm today\'s cutoff is final.',citations:[{label:'EXEC SQL UPDATE SETL_CTRL',edge:'GTMSETL0 → SETL_CTRL UPDATE'},{label:'GTMCICS4 reads COMPUTED_CUTOFF_TS',edge:'GTMCICS4 → GTMSETL0'}]},
+    ]},
+  ],
+  changeImpact:{
+    query:'What breaks if <strong class="font-mono">GTMSETL0</strong> changes?',
+    coverage:91,
+    coverageNote:'Coverage 91% — GTMASM01 (dynamic call via GTMVALD2) partially analysed. Verify manually.',
+    items:[
+      {prog:'GTMPOST1',rel:'Direct callee (CALL)',severity:'critical',reason:'Receives cutoff timestamp via WS-POST1-PARM. Any change to parameter structure, data type, or timestamp format in GTMSETL0 will break the posting run — GTMPOST1 may read the wrong cutoff boundary or fail to start.',edge:'GTMSETL0 → GTMPOST1 (CALL)'},
+      {prog:'GTMVALD2',rel:'Direct callee (CALL)',severity:'critical',reason:'Called synchronously before posting. The interface contract (WS-VALD2-PARM: cutoff timestamp + region code + return counters) must remain stable. A parameter or calling-convention change will stall or mis-gate the settlement run.',edge:'GTMSETL0 → GTMVALD2 (CALL)'},
+      {prog:'GTMCICS4',rel:'Runtime reader (CICS)',severity:'high',reason:'Queries COMPUTED_CUTOFF_TS from SETL_CTRL at online-transaction time, relying on GTMSETL0 having set STATUS_CODE = \'BROADCAST\'. A change to the broadcast update logic could leave GTMCICS4 reading a stale or absent cutoff.',edge:'GTMCICS4 → SETL_CTRL (reads COMPUTED_CUTOFF_TS set by GTMSETL0)'},
+      {prog:'GTMDB2IO',rel:'Indirect (via GTMVALD2)',severity:'medium',reason:'Owns all I/O to SETL_CTRL. A schema change to SETL_CTRL driven by a GTMSETL0 requirement propagates directly to GTMDB2IO\'s SELECT and cursor definitions — and since GTMDB2IO is shared, the impact extends to any other caller.',edge:'GTMVALD2 → GTMDB2IO (CALL) → SETL_CTRL (READ/WRITE)'},
+      {prog:'GTMASM01',rel:'Dynamic call (partial · via GTMVALD2)',severity:'unknown',reason:'Called dynamically by GTMVALD2 for bit-field manipulation. Static analysis resolved this edge at 71% confidence. If a GTMSETL0 change modifies the validation logic path that invokes GTMASM01, its contract may break in ways this analysis cannot fully predict.',edge:'GTMVALD2 → GTMASM01 (DYNAMIC CALL · 71% coverage)'},
+    ]
+  },
+  spec:{
+    title:'Modernization Specification — GTMSETL0',
+    subtitle:'Target: Java Spring Boot microservice · Settlement Cutoff Service',
+    sections:[
+      {num:'1',title:'Service Overview',content:`<p style="margin-bottom:12px;font-size:14px;">GTMSETL0 maps to a <strong>SettlementCutoffService</strong> Spring Boot microservice within the GTM domain. It exposes a synchronous REST endpoint invoked once per business day by the settlement scheduler, and a read endpoint for the online CICS replacement.</p><div class="code-block"><span class="code-kw">@Service</span>\n<span class="code-kw">public class</span> <span class="code-type">SettlementCutoffService</span> {\n  <span class="code-cmt">// Orchestrates: load params → validate → post → broadcast</span>\n  <span class="code-kw">public</span> <span class="code-type">CutoffResult</span> calculateAndBroadcast(<span class="code-type">CutoffRequest</span> request);\n  <span class="code-cmt">// Read-only — for online query (replaces GTMCICS4 runtime read)</span>\n  <span class="code-kw">public</span> <span class="code-type">Optional&lt;CutoffStatus&gt;</span> getCurrentCutoff(<span class="code-type">String</span> regionId);\n}</div>`},
+      {num:'2',title:'Interface Contracts',content:`<table class="spec-table"><thead><tr><th>COBOL Interface</th><th>Java Equivalent</th><th>Notes</th></tr></thead><tbody><tr><td>LS-PARM (LINKAGE)</td><td>CutoffRequest record</td><td>regionId, forceFlag → Boolean</td></tr><tr><td>WS-POST1-PARM → GTMPOST1</td><td>PostingServiceClient.post(CutoffEvent)</td><td>Async event or REST — TBD per §5 OQ1</td></tr><tr><td>WS-VALD2-PARM → GTMVALD2</td><td>ValidationServiceClient.validate(CutoffRequest)</td><td>Returns ValidationResult with failCount</td></tr><tr><td>SETL_CTRL READ</td><td>CutoffControlRepository.findActive(regionId, date)</td><td>JPA entity — see §4</td></tr><tr><td>SETL_CTRL UPDATE (BROADCAST)</td><td>CutoffControlRepository.setBroadcast(regionId, ts)</td><td>Transactional; must match GTMCICS4 read path</td></tr></tbody></table>`},
+      {num:'3',title:'Business Logic to Preserve',content:`<ul style="list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13px;"><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Standard cutoff 17:00 ET from SETL_CTRL.CUTOFF_TIME; UTC offset applied</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Manual override path: OVERRIDE_FLAG = 'Y' → use OVERRIDE_TIME (treasury emergency path)</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Holiday suppression: HOLIDAY_FLAG = 'Y' → skip run, set STATUS = HOLIDAY_SKIP</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Hard gate: validation must return failCount = 0 before posting is triggered</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Broadcast update (COMPUTED_CUTOFF_TS + STATUS = BROADCAST) after successful post — must be atomic</li><li style="display:flex;gap:10px;"><span style="color:var(--warning);font-weight:700;">⚠</span>Retry logic (MAX_RETRY = 3, delay 500ms on DB2 failure) — map to Spring Retry with same semantics</li></ul>`},
+      {num:'4',title:'Data Layer — DB2 → JPA',content:`<table class="spec-table"><thead><tr><th>DB2 Column</th><th>JPA Field</th><th>Type</th><th>Disposition</th></tr></thead><tbody><tr><td>SETL_REGION</td><td>regionId</td><td>String(8)</td><td>PK (composite)</td></tr><tr><td>CUTOFF_TIME</td><td>cutoffTime</td><td>LocalTime</td><td>Standard cutoff</td></tr><tr><td>UTC_OFFSET</td><td>utcOffsetMinutes</td><td>Integer</td><td>Decimal → minutes</td></tr><tr><td>HOLIDAY_FLAG</td><td>holidayFlag</td><td>Boolean</td><td>Y/N → Boolean</td></tr><tr><td>OVERRIDE_TIME</td><td>overrideTime</td><td>LocalTime (nullable)</td><td>Optional</td></tr><tr><td>COMPUTED_CUTOFF_TS</td><td>computedCutoffAt</td><td>OffsetDateTime</td><td>Written on broadcast</td></tr><tr><td>STATUS_CODE</td><td>statusCode</td><td>Enum(CutoffStatus)</td><td>BROADCAST/HOLIDAY_SKIP/PENDING</td></tr></tbody></table>`},
+      {num:'5',title:'Open Questions — Engineer to Resolve',content:`<div><div class="open-question"><div class="oq-num">1</div><div><strong>Sync vs async for GTMPOST1:</strong> COBOL uses synchronous CALL. Java could use synchronous REST (simpler) or async event (more resilient). Confirm with settlement architecture before implementing PostingServiceClient.</div></div><div class="open-question"><div class="oq-num">2</div><div><strong>GTMASM01 bit-field logic:</strong> 71% coverage. Before retiring GTMASM01, manually review its bit-manipulation logic and confirm the Java equivalent in ValidationServiceClient.</div></div><div class="open-question"><div class="oq-num">3</div><div><strong>Transaction isolation for broadcast update:</strong> COBOL UPDATE is effectively auto-committed in batch. Java JPA needs explicit @Transactional. Verify isolation level with DBA.</div></div><div class="open-question"><div class="oq-num">4</div><div><strong>CICS replacement read path:</strong> GTMCICS4 reads COMPUTED_CUTOFF_TS directly from DB2. In the modernised estate this becomes an API call — caching strategy and timing TBD.</div></div></div>`},
+    ]
+  }
+},
+
+GTMPOST1:{
+  name:'GTMPOST1',language:'COBOL',loc:612,domain:'Settlement / GTM',
+  desc:'Transaction posting — processes pending transactions against the settlement cutoff and writes the GLEDGER feed file.',
+  chips:[{label:'Lang',val:'COBOL'},{label:'LOC',val:'612'},{label:'Domain',val:'Settlement / GTM'},{label:'Status',val:'Active'}],
+  overviewQuery:'What does GTMPOST1 do and what depends on it?',
+  overviewNarrative:'<strong>GTMPOST1</strong> is the terminal posting module for the GTM settlement run — it is <strong>always invoked by GTMSETL0</strong> and never runs standalone. It selects all validated transactions up to the cutoff timestamp from <strong class="font-mono">TRANS_PENDING</strong>, writes each to the <strong class="font-mono">GLEDGER</strong> sequential feed, and inserts an audit row into <strong class="font-mono">POST_AUDIT</strong>. The GLEDGER file format is consumed by the downstream General Ledger system; any field-layout change here breaks that consumer.',
+  overviewEdges:[
+    'CAST edge: GTMSETL0 → GTMPOST1 (CALL, static)',
+    'CAST edge: GTMPOST1 → TRANS_PENDING (SELECT cursor)',
+    'CAST edge: GTMPOST1 → GLEDGER (WRITE sequential)',
+  ],
+  cLayout:{
+    w:480,h:420,
+    nodes:[
+      {id:'GTMPOST1', label:'GTMPOST1', sub:'in focus',       type:'hero',cx:240,cy:190,r:44},
+      {id:'GTMSETL0', label:'GTMSETL0', sub:'caller',         type:'prog',cx:240,cy:60, r:30},
+      {id:'TRANSPEND',label:'TRANS_PENDING',sub:'DB2 cursor',  type:'data',cx:80, cy:320,r:26},
+      {id:'GLEDGER',  label:'GLEDGER',  sub:'SEQ feed',       type:'data',cx:240,cy:365,r:26},
+      {id:'POSTAUDIT',label:'POST_AUDIT',sub:'audit log',      type:'data',cx:400,cy:320,r:26},
+    ],
+    edges:[
+      {from:'GTMSETL0', to:'GTMPOST1', type:'call'},
+      {from:'GTMPOST1', to:'TRANSPEND',type:'data'},
+      {from:'GTMPOST1', to:'GLEDGER',  type:'data'},
+      {from:'GTMPOST1', to:'POSTAUDIT',type:'data'},
+    ]
+  },
+  graph:{
+    title:'GTMPOST1 — Call &amp; Data Graph',
+    nodes:[
+      {id:'GTMSETL0', label:'GTMSETL0', sub:'Settlement Cutoff · Caller',   type:'prog',x:300,y:28, w:160,h:56},
+      {id:'GTMPOST1', label:'GTMPOST1', sub:'Transaction Posting · HERO',   type:'hero',x:300,y:183,w:160,h:60},
+      {id:'TRANSPEND',label:'TRANS_PENDING',sub:'DB2 · Pending Transactions',type:'data',x:50, y:343,w:160,h:52},
+      {id:'GLEDGER',  label:'GLEDGER',  sub:'General Ledger Feed (SEQ)',    type:'data',x:470,y:343,w:160,h:52},
+      {id:'POSTAUDIT',label:'POST_AUDIT',sub:'DB2 · Posting Audit Log',     type:'data',x:260,y:453,w:160,h:52},
+    ],
+    edges:[
+      {from:'GTMSETL0', to:'GTMPOST1', type:'call',label:'CALL — cutoff timestamp',fd:'bottom',td:'top'},
+      {from:'GTMPOST1', to:'TRANSPEND',type:'data',label:'EXEC SQL SELECT (cursor)',fd:'bl',td:'top'},
+      {from:'GTMPOST1', to:'GLEDGER',  type:'data',label:'WRITE SEQUENTIAL',fd:'br',td:'top'},
+      {from:'GTMPOST1', to:'POSTAUDIT',type:'data',label:'EXEC SQL INSERT (audit)',fd:'bottom',td:'top'},
+    ]
+  },
+  businessRules:[
+    {section:'Purpose & Scope',rules:[
+      {text:'GTMPOST1 processes the daily transaction posting run for the GTM settlement domain. It is <strong>always called by GTMSETL0</strong> — it never runs standalone. It receives the confirmed settlement cutoff timestamp and determines which transactions are included in today\'s settlement batch.',citations:[{label:'CALL from GTMSETL0',edge:'GTMSETL0 → GTMPOST1 (CALL)'}]},
+    ]},
+    {section:'Transaction Selection Logic',rules:[
+      {text:'The program opens a DB2 cursor against <strong>TRANS_PENDING</strong>, selecting all rows where TRANS_STATUS = \'VALIDATED\' and TRANS_TS ≤ the received cutoff timestamp. Transactions arriving after the cutoff are left in TRANS_PENDING for the next settlement run.',citations:[{label:'TRANS_PENDING (DB2 SELECT)',edge:'GTMPOST1 → TRANS_PENDING'}]},
+      {text:'Each fetched transaction is written as a fixed-format record to the <strong>GLEDGER sequential file</strong>. The record layout includes: transaction ID, amount (packed decimal), currency code, value date, and a posting status code. The downstream General Ledger system consumes this file for end-of-day reconciliation.',citations:[{label:'GLEDGER (WRITE SEQ)',edge:'GTMPOST1 → GLEDGER'}]},
+    ]},
+    {section:'Audit & Return Codes',rules:[
+      {text:'After each successfully posted transaction, GTMPOST1 inserts an audit row into <strong>POST_AUDIT</strong> with the transaction ID, posting timestamp, and operator ID. This table is the primary source for post-run reconciliation and exception reporting.',citations:[{label:'POST_AUDIT (DB2 INSERT)',edge:'GTMPOST1 → POST_AUDIT'}]},
+      {text:'GTMPOST1 returns TXN-COUNT and RETURN-CODE to its caller, GTMSETL0. A RETURN-CODE &gt; 0 causes GTMSETL0 to halt the broadcast — the settlement cutoff is not published until posting completes without error.',citations:[{label:'Return to GTMSETL0',edge:'GTMSETL0 → GTMPOST1 (CALL)'}]},
+    ]},
+  ],
+  changeImpact:{
+    query:'What breaks if <strong class="font-mono">GTMPOST1</strong> changes?',
+    coverage:96,
+    coverageNote:'Coverage 96% — all dependencies fully resolved. No assembler or dynamic-call edges in this program.',
+    items:[
+      {prog:'GTMSETL0',rel:'Direct caller (CALL)',severity:'critical',reason:'GTMSETL0 inspects WS-POST1-RETURN-CODE to decide whether to broadcast the cutoff. If GTMPOST1\'s return-code semantics change, GTMSETL0\'s decision will be wrong — a false success or false failure affects the entire settlement run.',edge:'GTMSETL0 → GTMPOST1 (CALL)'},
+      {prog:'GLEDGER feed consumers',rel:'Downstream data consumer',severity:'high',reason:'Any change to the GLEDGER record layout (field order, field width, packed-decimal format, added/removed fields) breaks the General Ledger system\'s fixed-format parser. The GL system is a downstream consumer with its own independent change cycle.',edge:'GTMPOST1 → GLEDGER (WRITE SEQ)'},
+      {prog:'TRANS_PENDING table',rel:'DB2 data source (SELECT)',severity:'medium',reason:'A schema change to TRANS_PENDING (column rename, data type change, added NOT NULL column) will break GTMPOST1\'s cursor SELECT. TRANS_PENDING is a shared table — assess all other readers.',edge:'GTMPOST1 → TRANS_PENDING (SELECT)'},
+      {prog:'POST_AUDIT table',rel:'DB2 audit sink (INSERT)',severity:'low',reason:'A change to required POST_AUDIT columns or constraints will cause GTMPOST1 to fail at audit write time. Impact is lower since POST_AUDIT is written by GTMPOST1 only — but a failure aborts the posting loop.',edge:'GTMPOST1 → POST_AUDIT (INSERT)'},
+    ]
+  },
+  spec:{
+    title:'Modernization Specification — GTMPOST1',
+    subtitle:'Target: Java Spring Batch job · Settlement Transaction Posting',
+    sections:[
+      {num:'1',title:'Service Overview',content:`<p style="margin-bottom:12px;font-size:14px;">GTMPOST1 maps to a <strong>Spring Batch job</strong> (TransactionPostingJob). Its sequential, cursor-driven, record-by-record processing is a natural fit for Spring Batch's chunk-oriented model. Invoked by SettlementCutoffService (GTMSETL0 replacement) rather than running standalone.</p><div class="code-block"><span class="code-kw">@Configuration</span>\n<span class="code-kw">public class</span> <span class="code-type">TransactionPostingJobConfig</span> {\n  <span class="code-cmt">// read TRANS_PENDING → transform → write GLEDGER + POST_AUDIT</span>\n  <span class="code-kw">@Bean</span> <span class="code-type">Job</span> transactionPostingJob(<span class="code-type">Step</span> postingStep);\n  <span class="code-kw">@Bean</span> <span class="code-type">Step</span> postingStep(<span class="code-type">JdbcCursorItemReader</span> reader,\n                           <span class="code-type">PostingItemProcessor</span> processor,\n                           <span class="code-type">CompositeItemWriter</span> writer);\n}</div>`},
+      {num:'2',title:'Business Logic to Preserve',content:`<ul style="list-style:none;display:flex;flex-direction:column;gap:8px;font-size:13px;"><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Cursor selection: TRANS_STATUS = 'VALIDATED' AND TRANS_TS ≤ cutoffTimestamp</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>GLEDGER fixed-format record layout — <strong>must be byte-for-byte identical</strong> until GL system is also modernised</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>POST_AUDIT insert per transaction (transactionId, postedAt, operatorId)</li><li style="display:flex;gap:10px;"><span style="color:var(--success);font-weight:700;">✓</span>Return TXN_COUNT and error flag to caller (SettlementCutoffService)</li><li style="display:flex;gap:10px;"><span style="color:var(--warning);font-weight:700;">⚠</span>Packed-decimal AMOUNT handling — use BigDecimal with explicit precision; do not use float</li></ul>`},
+      {num:'3',title:'Open Questions — Engineer to Resolve',content:`<div><div class="open-question"><div class="oq-num">1</div><div><strong>GLEDGER format lock:</strong> Until the downstream GL system is modernised, the flat-file format must be preserved exactly. Confirm with GL team before changing any field in the GLEDGER writer.</div></div><div class="open-question"><div class="oq-num">2</div><div><strong>Spring Batch chunk size:</strong> COBOL processes one record at a time. A chunk size of 1 replicates semantics but is inefficient. Determine safe chunk size with DBA (DB2 lock granularity on TRANS_PENDING).</div></div><div class="open-question"><div class="oq-num">3</div><div><strong>Restart semantics:</strong> COBOL has no built-in restart — a failed run re-runs from scratch. Confirm with settlement ops whether a mid-run restart is safe (idempotency of GLEDGER writes and POST_AUDIT inserts).</div></div></div>`},
+    ]
+  }
+}
+};
+
+/* ════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════ */
+let currentProgram = null;
+let procTimers = [];
+let disclaimerDismissed = false;
+
+/* ════════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════════ */
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function filterCards(){
+  const q=document.getElementById('search-input').value.toLowerCase().trim();
+  document.querySelectorAll('#program-grid .program-card').forEach(c=>{
+    const nm=c.querySelector('.card-name').textContent.toLowerCase();
+    const ro=c.querySelector('.card-role').textContent.toLowerCase();
+    c.style.display=(!q||nm.includes(q)||ro.includes(q))?'':'none';
+  });
+}
+
+/* ════════════════════════════════════════════════
+   DISCLAIMER
+════════════════════════════════════════════════ */
+function dismissDisclaimer(){
+  disclaimerDismissed=true;
+  document.querySelectorAll('.sim-disclaimer').forEach(d=>{
+    d.classList.add('dismissed');
+  });
+}
+
+/* ════════════════════════════════════════════════
+   PROCESSING SIMULATION
+════════════════════════════════════════════════ */
+function startProcessing(name){
+  if(!PROGRAMS[name])return;
+  currentProgram=PROGRAMS[name];
+  procTimers.forEach(clearTimeout); procTimers=[];
+
+  document.getElementById('proc-prog-name').textContent=name;
+  const term=document.getElementById('proc-terminal');
+  term.innerHTML='';
+  document.getElementById('proc-progress-fill').style.width='0%';
+  document.getElementById('proc-status').innerHTML='Initialising analysis engine…';
+  document.getElementById('proc-open-btn').style.display='none';
+
+  goTo('screen-processing');
+
+  const steps=STEPS[name];
+  if(!steps){finishProcessing();return;}
+
+  const totalMs=steps.p1dur+400+steps.p2dur+600;
+
+  // Phase 1 header
+  term.appendChild(makePhaseHeader('Phase 1','Deterministic Analysis','CAST Engine'));
+
+  steps.p1.forEach(s=>{
+    procTimers.push(setTimeout(()=>{
+      addLogLine(term,s.lv,s.t);
+      setProgress((s.d/totalMs)*100);
+      if(s.lv==='INFO') setStatus(s.t.replace(/<[^>]+>/g,''));
+      term.scrollTop=term.scrollHeight;
+    },s.d));
+  });
+
+  // Phase 2 after p1 done
+  procTimers.push(setTimeout(()=>{
+    removeCursor(term);
+    const div=makePhaseHeader('Phase 2','LLM Documentation','BNY-Internal LLM');
+    div.style.borderTop='1px solid rgba(255,255,255,.06)';
+    div.style.marginTop='8px';
+    term.appendChild(div);
+
+    steps.p2.forEach(s=>{
+      procTimers.push(setTimeout(()=>{
+        addLogLine(term,s.lv,s.t);
+        setProgress(((steps.p1dur+400+s.d)/totalMs)*100);
+        if(s.lv==='LLM') setStatus(s.t.replace(/<[^>]+>/g,''));
+        term.scrollTop=term.scrollHeight;
+      },s.d));
+    });
+
+    // Done
+    procTimers.push(setTimeout(()=>{
+      removeCursor(term);
+      setProgress(100);
+      document.getElementById('proc-status').innerHTML=
+        '<span class="proc-ready-msg">✓ Analysis complete — documentation ready</span>';
+      document.getElementById('proc-open-btn').style.display='block';
+      setTimeout(finishProcessing,900);
+    },steps.p2dur));
+
+  },steps.p1dur+400));
+}
+
+function makePhaseHeader(lbl,nm,eng){
+  const d=document.createElement('div');
+  d.style.cssText='padding:8px 0 4px;display:flex;align-items:center;gap:10px;';
+  d.innerHTML=`<span class="phase-lbl">${lbl}</span><span class="phase-nm">${nm}</span><span class="phase-eng">${eng}</span>`;
+  return d;
+}
+
+function addLogLine(term,lv,txt){
+  removeCursor(term);
+  const l=document.createElement('div');
+  l.className='log-line';
+  l.innerHTML=`<span class="lvl lvl-${lv}">${lv}</span><span class="log-txt">${txt}</span><span class="cursor-blink"></span>`;
+  term.appendChild(l);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>l.classList.add('vis')));
+}
+
+function removeCursor(term){
+  term.querySelectorAll('.cursor-blink').forEach(c=>c.remove());
+}
+
+function setProgress(pct){
+  document.getElementById('proc-progress-fill').style.width=Math.min(pct,100)+'%';
+}
+
+function setStatus(txt){
+  document.getElementById('proc-status').textContent=txt;
+}
+
+function skipProcessing(){
+  procTimers.forEach(clearTimeout); procTimers=[];
+  renderHub(); goTo('screen-hub'); showTab('overview');
+  syncDisclaimer();
+}
+
+function finishProcessing(){
+  procTimers.forEach(clearTimeout); procTimers=[];
+  renderHub(); goTo('screen-hub'); showTab('overview');
+  syncDisclaimer();
+}
+
+function syncDisclaimer(){
+  if(disclaimerDismissed){
+    document.querySelectorAll('.sim-disclaimer').forEach(d=>d.classList.add('dismissed'));
+  }
+}
+
+/* ════════════════════════════════════════════════
+   HUB RENDER
+════════════════════════════════════════════════ */
+function renderHub(){
+  const p=currentProgram;
+  document.getElementById('bc-prog-name').textContent=p.name;
+  document.getElementById('hub-prog-name').textContent=p.name;
+  document.getElementById('hub-prog-desc').textContent=p.desc;
+  document.getElementById('hub-prog-chips').innerHTML=
+    p.chips.map(c=>`<span class="meta-chip"><span class="chip-label">${c.label}</span>${c.val}</span>`).join('');
+  renderOverviewPanel(p);
+  renderDependencyPanel(p);
+  renderBusinessPanel(p);
+  renderImpactPanel(p);
+  renderSpecPanel(p);
+}
+
+/* ════════════════════════════════════════════════
+   OVERVIEW DASHBOARD
+════════════════════════════════════════════════ */
+function renderOverviewPanel(p){
+  const d=p.changeImpact;
+  const items=d.items;
+  const SHOW=5;
+
+  // Language pill class helper
+  function pillClass(prog){
+    if(prog==='GTMASM01') return 'asm-pill';
+    if(prog==='GTMCICS4') return 'cics-pill';
+    return '';
+  }
+  function langLabel(prog){
+    if(prog==='GTMASM01') return 'ASM ?';
+    if(prog==='GTMCICS4') return 'CICS';
+    if(prog==='SETLBAT9') return 'JCL';
+    if(prog==='GTMDB2IO') return 'DB2';
+    return 'COBOL';
+  }
+
+  // Left panel
+  const leftHTML=`
+    <div class="ov-section-lbl">Program in Focus</div>
+    <div class="ov-focus-card">
+      <div class="ov-focus-name">${p.name}</div>
+      <div class="ov-focus-meta">${p.language} · ${p.domain.split('/')[1]?.trim()||p.domain} · ${p.loc.toLocaleString()} LOC</div>
+    </div>
+    <div class="ov-section-lbl">Affected Programs (${items.length})</div>
+    <div class="ov-affected-list">
+      ${items.slice(0,SHOW).map(it=>`
+        <div class="ov-aff-row" onclick="showTab('impact')">
+          <span class="ov-aff-name">${it.prog}</span>
+          <span class="ov-aff-pill ${pillClass(it.prog)}">${langLabel(it.prog)}</span>
+        </div>`).join('')}
+      ${items.length>SHOW?`<div class="ov-more-link" onclick="showTab('impact')">+ ${items.length-SHOW} more…</div>`:''}
+    </div>
+    <div style="margin-top:20px;">
+      <div class="ov-section-lbl">Documentation</div>
+      ${[
+        {tab:'dependency',icon:'🔗',label:'Dependency View',sub:'Deterministic'},
+        {tab:'business',  icon:'📋',label:'Business Rules', sub:'LLM · grounded'},
+        {tab:'impact',    icon:'💥',label:'Change Impact',  sub:'Traced'},
+        {tab:'spec',      icon:'🏗️',label:'Mod. Spec',     sub:'Draft'},
+      ].map(t=>`<div class="ov-aff-row" onclick="showTab('${t.tab}')">
+        <span style="font-size:12px;color:var(--text-2);">${t.icon} ${t.label}</span>
+        <span class="ov-aff-pill">${t.sub}</span>
+      </div>`).join('')}
+    </div>`;
+
+  // Center panel — circular graph
+  const hasCL=!!p.cLayout;
+  const graphSVG=hasCL?buildCircularGraphSVG(p.cLayout):'';
+  const centerHTML=`
+    <div class="ov-center-top">
+      <span class="ov-center-lbl">Dependency Graph — Call &amp; Data Edges</span>
+      <span class="badge badge-deterministic" style="font-size:10px;"><span class="badge-dot"></span>Structure: deterministic (CAST)</span>
+    </div>
+    <div class="ov-graph-area">${graphSVG}</div>
+    <div class="ov-center-legend">
+      <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#1F3864;border:2px solid #1C7293;"></div>In focus</div>
+      <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#EBF4FF;border:2px solid #065A82;"></div>Direct dependency</div>
+      <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#E8F5EE;border:2px solid #1C7293;"></div>Data store</div>
+      <div class="ov-leg-item"><div class="ov-leg-dot" style="background:#F0E8FF;border:2px dashed #9CA3AF;"></div>Partial coverage (Assembler)</div>
+    </div>`;
+
+  // Right panel
+  const covColor=d.coverage>=90?'#27AE60':d.coverage>=70?'#E07B39':'#C0392B';
+  const hasWarn=d.coverage<100;
+  const rightHTML=`
+    <div class="ov-ask-lbl">Ask in Business Terms</div>
+    <div class="ov-ask-box">${p.overviewQuery||d.query.replace(/<[^>]+>/g,'')}</div>
+    <div class="ov-expl-badge"><span class="ov-expl-dot"></span>Explanation: BNY LLM, grounded in graph</div>
+    ${hasWarn?`<div class="ov-cov-warn"><span>⚠</span><div>${items.filter(i=>i.severity==='unknown').length} Assembler dependency partially analysed — <strong>Coverage ${d.coverage}%</strong> — verify manually.</div></div>`:''}
+    <div class="ov-narrative">${p.overviewNarrative||''}</div>
+    <div class="ov-edge-list">
+      ${(p.overviewEdges||[]).map((e,i)=>`
+        <div class="ov-edge-row">
+          <div class="ov-edge-num">${i+1}</div>
+          <div class="ov-edge-txt">${e}</div>
+        </div>`).join('')}
+    </div>
+    <div class="ov-gate">
+      <div class="ov-gate-hdr">◇ Validation Gate — Required Before Any Action</div>
+      <div class="ov-gate-body">MAVEN drafts. An engineer verifies against the graph before a spec or code change proceeds. Nothing here is auto-applied.</div>
+      <div class="ov-gate-rev">Reviewed by: — awaiting engineer sign-off —</div>
+      <button class="ov-gate-btn1" onclick="showTab('impact');demoNote()">Generate draft spec for this change</button>
+      <button class="ov-gate-btn2" onclick="demoNote()">Export impact report</button>
+    </div>`;
+
+  document.getElementById('ov-dashboard').innerHTML=`
+    <div class="ov-left">${leftHTML}</div>
+    <div class="ov-center">${centerHTML}</div>
+    <div class="ov-right">${rightHTML}</div>`;
+}
+
+/* ════════════════════════════════════════════════
+   CIRCULAR DEPENDENCY GRAPH (overview)
+════════════════════════════════════════════════ */
+function buildCircularGraphSVG(cl){
+  const nm={};
+  cl.nodes.forEach(n=>nm[n.id]=n);
+
+  const EC={call:'#065A82',data:'#1C7293',cics:'#E07B39',dyn:'#9CA3AF'};
+  const NC={
+    hero:{fill:'#1F3864',stroke:'#1C7293',sw:3,  da:'none',   tc:'#FFFFFF',sc:'rgba(255,255,255,.6)'},
+    prog:{fill:'#EBF4FF',stroke:'#065A82',sw:1.8,da:'none',   tc:'#1F3864',sc:'#4A6080'},
+    data:{fill:'#E8F5EE',stroke:'#1C7293',sw:1.8,da:'none',   tc:'#1D5E30',sc:'#2E7D5E'},
+    asm: {fill:'#F0E8FF',stroke:'#9CA3AF',sw:1.8,da:'4,3',    tc:'#4B2D80',sc:'#7C6AAA'},
+  };
+
+  const defs=`<defs>
+    <marker id="oc-call" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.call}"/></marker>
+    <marker id="oc-data" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.data}"/></marker>
+    <marker id="oc-cics" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.cics}"/></marker>
+    <marker id="oc-dyn"  markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3z" fill="${EC.dyn}"/></marker>
+    <filter id="oc-sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.14"/></filter>
+  </defs>`;
+
+  let edges='';
+  cl.edges.forEach(e=>{
+    const fn=nm[e.from],tn=nm[e.to];
+    if(!fn||!tn)return;
+    const dx=tn.cx-fn.cx, dy=tn.cy-fn.cy;
+    const dist=Math.sqrt(dx*dx+dy*dy)||1;
+    // start at source circle edge, end 6px short of dest circle edge (for marker)
+    const x1=fn.cx+(fn.r+1)*dx/dist;
+    const y1=fn.cy+(fn.r+1)*dy/dist;
+    const x2=tn.cx-(tn.r+6)*dx/dist;
+    const y2=tn.cy-(tn.r+6)*dy/dist;
+    const col=EC[e.type]||'#999';
+    const da=e.type==='dyn'?'5,3':e.type==='cics'?'6,3':'none';
+    edges+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${col}" stroke-width="1.8" stroke-dasharray="${da}" marker-end="url(#oc-${e.type})" opacity=".85"/>`;
+  });
+
+  let nodes='';
+  cl.nodes.forEach(n=>{
+    const C=NC[n.type]||NC.prog;
+    nodes+=`<g>`;
+    nodes+=`<circle cx="${n.cx}" cy="${n.cy}" r="${n.r}" fill="${C.fill}" stroke="${C.stroke}" stroke-width="${C.sw}" stroke-dasharray="${C.da}" filter="url(#oc-sh)"/>`;
+    // hero: teal inner ring accent
+    if(n.type==='hero'){
+      nodes+=`<circle cx="${n.cx}" cy="${n.cy}" r="${n.r-6}" fill="none" stroke="rgba(28,114,147,.35)" stroke-width="1.5"/>`;
+    }
+    const fs=n.type==='hero'?11:9;
+    nodes+=`<text x="${n.cx}" y="${n.cy-4}" text-anchor="middle" dominant-baseline="middle" font-family="Consolas,monospace" font-size="${fs}" font-weight="800" fill="${C.tc}">${n.label}</text>`;
+    nodes+=`<text x="${n.cx}" y="${n.cy+8}" text-anchor="middle" dominant-baseline="middle" font-family="Segoe UI,Arial,sans-serif" font-size="7" fill="${C.sc}">${n.sub}</text>`;
+    nodes+=`</g>`;
+  });
+
+  return `<svg viewBox="0 0 ${cl.w} ${cl.h}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${cl.w}" height="${cl.h}" rx="8" fill="#F4F8FC"/>
+  ${defs}${edges}${nodes}
+  </svg>`;
+}
+
+function showTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+}
+
+/* ════════════════════════════════════════════════
+   DEPENDENCY GRAPH
+════════════════════════════════════════════════ */
+function renderDependencyPanel(p){
+  document.getElementById('dep-graph-title').innerHTML=p.graph.title;
+  const wrap=document.getElementById('graph-svg-wrap');
+  const tooltip=document.getElementById('node-tooltip');
+  wrap.innerHTML='';
+  wrap.appendChild(tooltip);
+  const svgEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svgEl.innerHTML=buildGraphSVG(p.graph);
+  const vb=svgEl.getAttribute('viewBox')||'0 0 900 530';
+  svgEl.setAttribute('viewBox',vb);
+  svgEl.style.cssText='width:100%;height:auto;display:block;';
+  wrap.appendChild(svgEl);
+  setupGraphHovers(wrap,tooltip);
+}
+
+function ep(n,dir){
+  const{x,y,w,h}=n;
+  switch(dir){
+    case 'top':    return[x+w/2,y];
+    case 'bottom': return[x+w/2,y+h];
+    case 'left':   return[x,y+h/2];
+    case 'right':  return[x+w,y+h/2];
+    case 'bl':     return[x+w*.3,y+h];
+    case 'br':     return[x+w*.7,y+h];
+    default:       return[x+w/2,y+h/2];
+  }
+}
+
+function buildGraphSVG(g){
+  const nm={};
+  g.nodes.forEach(n=>nm[n.id]=n);
+  let maxX=0,maxY=0;
+  g.nodes.forEach(n=>{maxX=Math.max(maxX,n.x+n.w+30);maxY=Math.max(maxY,n.y+n.h+30);});
+
+  const EC={call:'#065A82',data:'#1C7293',cics:'#E07B39',dyn:'#9CA3AF'};
+  const NC={
+    hero:{fill:'#1F3864',stroke:'#1C7293',tx:'#fff',sub:'rgba(255,255,255,.65)'},
+    prog:{fill:'#fff',stroke:'#065A82',tx:'#1F3864',sub:'#718096'},
+    data:{fill:'#EBF5EE',stroke:'#1C7293',tx:'#1D6B37',sub:'#2E7D5E'},
+    asm: {fill:'#F9F0FF',stroke:'#9CA3AF',tx:'#5C3A9E',sub:'#7C6AAA'},
+  };
+
+  const defs=`<defs>
+    <marker id="a-call" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="${EC.call}"/></marker>
+    <marker id="a-data" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="${EC.data}"/></marker>
+    <marker id="a-cics" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="${EC.cics}"/></marker>
+    <marker id="a-dyn"  markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3z" fill="${EC.dyn}"/></marker>
+    <filter id="ns"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-opacity="0.12"/></filter>
+  </defs>`;
+
+  let edges='';
+  g.edges.forEach(e=>{
+    const fn=nm[e.from],tn=nm[e.to];if(!fn||!tn)return;
+    const[x1,y1]=ep(fn,e.fd||'bottom');
+    const[x2,y2]=ep(tn,e.td||'top');
+    const col=EC[e.type]||'#999';
+    const mk=`url(#a-${e.type})`;
+    const da=e.type==='cics'?'6,4':e.type==='dyn'?'5,4':'none';
+    const dx=x2-x1,dy=y2-y1;
+    const pathD=`M${x1},${y1} C${x1+dx*.1},${y1+dy*.4} ${x2-dx*.1},${y2-dy*.4} ${x2},${y2}`;
+    edges+=`<path d="${pathD}" fill="none" stroke="${col}" stroke-width="1.8" stroke-dasharray="${da}" marker-end="${mk}" opacity=".8"/>`;
+    const mx=(x1+x2)/2,my=(y1+y2)/2;
+    const lbl=e.label.length>24?e.label.slice(0,22)+'…':e.label;
+    const lw=lbl.length*5.2+14;
+    edges+=`<rect x="${mx-lw/2}" y="${my-9}" width="${lw}" height="14" rx="3" fill="white" fill-opacity=".88" stroke="${col}" stroke-width=".5"/>
+    <text x="${mx}" y="${my+1}" text-anchor="middle" dominant-baseline="middle" font-family="Consolas,monospace" font-size="8" fill="${col}" font-weight="600">${lbl}</text>`;
+  });
+
+  let nodes='';
+  g.nodes.forEach(n=>{
+    const C=NC[n.type]||NC.prog;
+    const isHero=n.type==='hero',isData=n.type==='data',isAsm=n.type==='asm';
+    const da=isAsm?'5,3':'none';
+    nodes+=`<g class="graph-node" data-id="${n.id}" data-sub="${n.sub}" data-type="${n.type}">`;
+    if(isData){
+      const cx=n.x+n.w/2,ry=9;
+      nodes+=`<rect x="${n.x}" y="${n.y+ry}" width="${n.w}" height="${n.h-ry}" fill="${C.fill}" stroke="${C.stroke}" stroke-width="1.5" rx="2"/>
+      <ellipse cx="${cx}" cy="${n.y+ry}" rx="${n.w/2}" ry="${ry}" fill="${C.fill}" stroke="${C.stroke}" stroke-width="1.5"/>`;
+    }else{
+      nodes+=`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="${isHero?8:6}" fill="${C.fill}" stroke="${C.stroke}" stroke-width="${isHero?2.5:1.5}" stroke-dasharray="${da}" filter="url(#ns)"/>`;
+      if(isHero)nodes+=`<rect x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h*.42}" rx="8" fill="rgba(28,114,147,.22)"/>`;
+    }
+    const tx=n.x+n.w/2;
+    const ty=isData?n.y+n.h/2+6:n.y+n.h/2-5;
+    nodes+=`<text x="${tx}" y="${ty}" text-anchor="middle" font-family="Consolas,monospace" font-size="${isHero?13:11.5}" font-weight="700" fill="${C.tx}">${n.label}</text>
+    <text x="${tx}" y="${ty+13}" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif" font-size="8.5" fill="${C.sub}">${n.sub}</text>`;
+    nodes+=`</g>`;
+  });
+
+  return `<svg viewBox="0 0 ${maxX} ${maxY}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${maxX}" height="${maxY}" fill="#F8FAFD"/>
+  ${defs}${edges}${nodes}
+  </svg>`;
+}
+
+function setupGraphHovers(wrap,tooltip){
+  wrap.style.position='relative';
+  wrap.querySelectorAll('.graph-node').forEach(n=>{
+    const typeLabel={hero:'Hero program (this document)',prog:'COBOL program',data:'DB2 data store',asm:'Assembler module (partial coverage)'}[n.dataset.type]||n.dataset.type;
+    n.addEventListener('mouseenter',()=>{
+      tooltip.innerHTML=`<strong>${n.dataset.id}</strong><br/>${n.dataset.sub}<br/><em style="opacity:.65;font-size:10px;">${typeLabel}</em>`;
+      tooltip.style.display='block';
+    });
+    n.addEventListener('mousemove',e=>{
+      const r=wrap.getBoundingClientRect();
+      tooltip.style.left=(e.clientX-r.left+12)+'px';
+      tooltip.style.top=(e.clientY-r.top-8)+'px';
+    });
+    n.addEventListener('mouseleave',()=>{tooltip.style.display='none';});
+  });
+}
+
+/* ════════════════════════════════════════════════
+   BUSINESS RULES
+════════════════════════════════════════════════ */
+function renderBusinessPanel(p){
+  document.getElementById('biz-title').textContent='Business Rules — '+p.name;
+  let html='';
+  (p.businessRules||[]).forEach((sec,si)=>{
+    html+=`<div class="biz-section"><div class="biz-section-title">
+      <span style="width:22px;height:22px;background:var(--navy-dark);color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">${si+1}</span>
+      ${sec.section}</div>`;
+    sec.rules.forEach(r=>{
+      const cits=(r.citations||[]).map(c=>`<span class="source-citation" title="${c.edge}">${c.label}</span>`).join('');
+      html+=`<div class="biz-rule">${r.text}${cits}</div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('biz-content').innerHTML=html;
+}
+
+/* ════════════════════════════════════════════════
+   CHANGE IMPACT
+════════════════════════════════════════════════ */
+function renderImpactPanel(p){
+  const d=p.changeImpact;
+  document.getElementById('imp-title').textContent='Change Impact — '+p.name;
+  document.getElementById('imp-subtitle').innerHTML=`If <strong>${p.name}</strong> changes, these programs and data stores are affected — traced to the graph edge that proves each relationship.`;
+  const sm={critical:'sev-critical',high:'sev-high',medium:'sev-medium',low:'sev-medium',unknown:'sev-unknown'};
+  const sl={critical:'CRITICAL',high:'HIGH',medium:'MEDIUM',low:'LOW',unknown:'UNKNOWN'};
+  const rows=d.items.map(it=>`<tr>
+    <td><span class="prog-ref">${it.prog}</span></td>
+    <td><span class="rel-tag">${it.rel}</span></td>
+    <td><span class="severity ${sm[it.severity]||'sev-medium'}">${sl[it.severity]||it.severity.toUpperCase()}</span></td>
+    <td><div class="impact-reason">${it.reason}<br/><span class="edge-ref">Source: ${it.edge}</span></div></td>
+  </tr>`).join('');
+  const cc=d.coverage>=90?'#27AE60':d.coverage>=70?'#E07B39':'#C0392B';
+  document.getElementById('impact-content').innerHTML=`
+    <div class="impact-summary">
+      <div class="impact-summary-text"><h2>${d.query}</h2><p>${d.items.length} dependent programs and data stores identified.</p></div>
+      <div class="coverage-block">
+        <div class="coverage-label"><span>Analysis Coverage</span><span style="color:${cc}">${d.coverage}%</span></div>
+        <div class="coverage-bar-wrap"><div class="coverage-bar" style="width:${d.coverage}%;background:${cc}"></div></div>
+        <div class="coverage-note">⚠ ${d.coverageNote}</div>
+      </div>
+    </div>
+    <div class="impact-table-wrap"><table class="impact-table">
+      <thead><tr><th>Program / Store</th><th>Relationship</th><th>Impact</th><th>Reason &amp; Source</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="validation-gate">
+      <div class="gate-icon">🔒</div>
+      <div class="gate-text">
+        <h3>Engineer Validation Gate</h3>
+        <p>This impact analysis must be reviewed by an engineer before any change is actioned. No automated process uses this output directly.</p>
+        <div class="gate-reviewer">Reviewed by: — awaiting engineer sign-off —</div>
+      </div>
+      <div class="gate-actions">
+        <button class="btn btn-ghost btn-sm" onclick="demoNote()">Generate Draft Spec</button>
+        <button class="btn btn-disabled btn-sm" disabled>Export</button>
+      </div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════
+   MODERNIZATION SPEC
+════════════════════════════════════════════════ */
+function renderSpecPanel(p){
+  const s=p.spec;
+  document.getElementById('spec-title').textContent='Modernization Spec — '+p.name;
+  let html=`<div class="draft-banner"><div class="draft-banner-icon">⚠</div><div class="draft-banner-text"><h3>Draft — requires engineer validation before use</h3><p>MAVEN-generated from the deterministic dependency graph and existing business rules. An engineer must review, correct, and sign off before this document informs any code change or modernisation task.</p></div></div>
+  <div class="spec-section" style="padding:14px 20px;margin-bottom:16px;"><div style="font-weight:700;color:var(--navy-dark);font-size:15px;">${s.title}</div><div style="font-size:12px;color:var(--text-3);">${s.subtitle}</div></div>`;
+  s.sections.forEach(sec=>{
+    html+=`<div class="spec-section"><h3><span class="spec-num">${sec.num}</span>${sec.title}</h3>${sec.content}</div>`;
+  });
+  html+=`<div class="spec-export-row">
+    <button class="btn btn-ghost btn-sm" onclick="demoNote()">Request Engineer Review</button>
+    <button class="btn btn-ghost btn-sm" onclick="demoNote()">Export as DOCX</button>
+    <button class="btn btn-navy btn-sm" onclick="demoNote()">Mark as Validated ✓</button>
+  </div>`;
+  document.getElementById('spec-content').innerHTML=html;
+}
+
+function demoNote(){
+  alert('Prototype note: This action is illustrative — in the real MAVEN build, this triggers the engineer review and sign-off workflow.');
+}
+</script>
+</body>
+</html>

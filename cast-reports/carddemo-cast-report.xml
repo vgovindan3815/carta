@@ -1,0 +1,854 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MAVEN/CARTA Static Analyzer — CAST-Compatible Dependency Report -->
+<!-- Generated: 2026-07-30T21:33:54.439Z -->
+<CastReport version="1.0" tool="MAVEN/CARTA Static Analyzer" generated="2026-07-30T21:33:54.439Z">
+  <Summary totalPrograms="44" totalLOC="23636" totalEdges="184" avgComplexity="85"/>
+  <Programs>
+    <Program id="CBACT01C" language="COBOL" loc="358" domain="Account Batch" coverage="100" complexity="61" file="app/cbl/CBACT01C.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="0" fileIO="5"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CODATECN"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBACT01C" to="ACCTFILE-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBACT01C" to="COBDATFT" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CBACT01C" to="STATUS" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBACT01C" to="OUT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT01C" to="ARRY-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT01C" to="VBRC-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT01C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBACT02C" language="COBOL" loc="129" domain="Account Batch" coverage="100" complexity="33" file="app/cbl/CBACT02C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVACT02Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBACT02C" to="CARDFILE-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBACT02C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBACT03C" language="COBOL" loc="130" domain="Account Batch" coverage="100" complexity="33" file="app/cbl/CBACT03C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVACT03Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBACT03C" to="XREFFILE-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBACT03C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBACT04C" language="COBOL" loc="552" domain="Account Batch" coverage="100" complexity="130" file="app/cbl/CBACT04C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="6"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVTRA01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVTRA02Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVTRA05Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBACT04C" to="TCATBAL-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT04C" to="XREF-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT04C" to="DISCGRP-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT04C" to="ACCOUNT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT04C" to="TRANSACT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBACT04C" to="FD-TRANFILE-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBACT04C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBCUS01C" language="COBOL" loc="130" domain="Customer Batch" coverage="100" complexity="33" file="app/cbl/CBCUS01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCUS01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBCUS01C" to="CUSTFILE-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBCUS01C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBEXPORT" language="COBOL" loc="396" domain="Data Export" coverage="100" complexity="38" file="app/cbl/CBEXPORT.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="7"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCUS01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVEXPORT"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBEXPORT" to="CUSTOMER-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="ACCOUNT-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="XREF-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="TRANSACTION-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="CARD-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="EXPORT-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBEXPORT" to="EXPORT-OUTPUT-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBEXPORT" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBIMPORT" language="COBOL" loc="337" domain="Data Import" coverage="100" complexity="36" file="app/cbl/CBIMPORT.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="14"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCUS01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVEXPORT"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBIMPORT" to="PIC" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBIMPORT" to="EXPORT-INPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CUSTOMER-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="ACCOUNT-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="XREF-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="TRANSACTION-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CARD-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="ERROR-OUTPUT" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CUSTOMER-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="ACCOUNT-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CARD-XREF-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="TRAN-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CARD-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="ERROR-OUTPUT-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBIMPORT" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBPAUP0C" language="COBOL" loc="266" domain="Authorization" coverage="100" complexity="52" file="app/app-authorization-ims-db2-mq/cbl/CBPAUP0C.cbl">
+      <EdgeSummary calls="0" dynamicCalls="0" sql="0" cics="0" fileIO="2"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBPAUP0C" to="PIC" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBPAUP0C" to="FAILED" type="data" label="READ" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBSTM03A" language="COBOL" loc="784" domain="Statement Batch" coverage="100" complexity="63" file="app/cbl/CBSTM03A.CBL">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="0" fileIO="4"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COSTM01"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CUSTREC"/>
+        <Copy name="CVACT01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBSTM03A" to="VALUE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBSTM03A" to="STMT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBSTM03A" to="CBSTM03B" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CBSTM03A" to="FD-STMTFILE-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBSTM03A" to="FD-HTMLFILE-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBSTM03A" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBSTM03B" language="COBOL" loc="162" domain="Statement Batch" coverage="100" complexity="30" file="app/cbl/CBSTM03B.CBL">
+      <EdgeSummary calls="0" dynamicCalls="0" sql="0" cics="0" fileIO="5"/>
+      <Copybooks>
+        <Copy name="OF"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBSTM03B" to="VALUE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBSTM03B" to="TRNX-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBSTM03B" to="XREF-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBSTM03B" to="CUST-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBSTM03B" to="ACCT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBTRN01C" language="COBOL" loc="415" domain="Transaction Batch" coverage="100" complexity="102" file="app/cbl/CBTRN01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="7"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVTRA06Y"/>
+        <Copy name="CVCUS01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVTRA05Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBTRN01C" to="DALYTRAN-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN01C" to="XREF-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN01C" to="OF" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN01C" to="ACCOUNT-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN01C" to="CUSTOMER-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN01C" to="CARD-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN01C" to="TRANSACT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN01C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBTRN02C" language="COBOL" loc="619" domain="Transaction Batch" coverage="100" complexity="149" file="app/cbl/CBTRN02C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="9"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVTRA06Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVTRA01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBTRN02C" to="DALYTRAN-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="TRANSACT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="XREF-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="DALYREJS-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="ACCOUNT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="TCATBAL-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN02C" to="FD-REJS-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBTRN02C" to="FD-TRAN-CAT-BAL-RECORD" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBTRN02C" to="FD-TRANFILE-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBTRN02C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CBTRN03C" language="COBOL" loc="545" domain="Transaction Batch" coverage="100" complexity="119" file="app/cbl/CBTRN03C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="7"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVTRA03Y"/>
+        <Copy name="CVTRA04Y"/>
+        <Copy name="CVTRA07Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CBTRN03C" to="DATE-PARMS-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN03C" to="TRANSACT-FILE" type="data" label="READ" confidence="100"/>
+        <Dependency from="CBTRN03C" to="FD-REPTFILE-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="CBTRN03C" to="REPORT-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN03C" to="XREF-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN03C" to="TRANTYPE-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN03C" to="TRANCATG-FILE" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="CBTRN03C" to="CEE3ABD" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COACCT01" language="COBOL" loc="601" domain="Account / VSAM" coverage="100" complexity="45" file="app/app-vsam-mq/cbl/COACCT01.cbl">
+      <EdgeSummary calls="4" dynamicCalls="0" sql="0" cics="0" fileIO="0"/>
+      <Copybooks>
+        <Copy name="CMQGMOV"/>
+        <Copy name="CMQPMOV"/>
+        <Copy name="CMQMDV"/>
+        <Copy name="CMQODV"/>
+        <Copy name="CMQV"/>
+        <Copy name="CMQTML"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="REPLACING"/>
+        <Copy name="03500000"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COACCT01" to="MQOPEN" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COACCT01" to="MQGET" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COACCT01" to="MQPUT" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COACCT01" to="MQCLOSE" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COACTUPC" language="COBOL" loc="3368" domain="Account Online" coverage="100" complexity="555" file="app/cbl/COACTUPC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="4" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="CSLKPCDY"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COACTUP"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVCUS01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="REPLACING"/>
+        <Copy name="CSSETATY"/>
+        <Copy name="CSUTLDPY"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COACTUPC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COACTUPC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COACTUPC" to="CCARD-NEXT-MAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COACTUPC" to="LIT-ACCTFILENAME" type="cics" label="CICS FILE" confidence="100"/>
+        <Dependency from="COACTUPC" to="LIT-CUSTFILENAME" type="cics" label="CICS FILE" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COACTVWC" language="COBOL" loc="703" domain="Account Online" coverage="100" complexity="82" file="app/cbl/COACTVWC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="2" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COACTVW"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVCUS01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COACTVWC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COACTVWC" to="CCARD-NEXT-MAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COACTVWC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COADM01C" language="COBOL" loc="189" domain="Administration" coverage="100" complexity="31" file="app/cbl/COADM01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COADM02Y"/>
+        <Copy name="COADM01"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COADM01C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COADM01C" to="COADM1A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COBIL00C" language="COBOL" loc="420" domain="Billing Online" coverage="100" complexity="57" file="app/cbl/COBIL00C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COBIL00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COBIL00C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COBIL00C" to="COBIL0A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COBSWAIT" language="COBOL" loc="13" domain="CICS Wait" coverage="100" complexity="1" file="app/cbl/COBSWAIT.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COBSWAIT" to="MVSWAIT" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COBTUPDT" language="COBOL" loc="205" domain="Transaction Type" coverage="100" complexity="21" file="app/app-transaction-type-db2/cbl/COBTUPDT.cbl">
+      <EdgeSummary calls="0" dynamicCalls="0" sql="1" cics="0" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COBTUPDT" to="CARDDEMO" type="data" label="EXEC SQL" confidence="100"/>
+        <Dependency from="COBTUPDT" to="TR-RECORD" type="data" label="FILE OPEN" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COCRDLIC" language="COBOL" loc="1093" domain="Credit Card Online" coverage="100" complexity="195" file="app/cbl/COCRDLIC.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="2" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COCRDSL"/>
+        <Copy name="COCRDLI"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT02Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COCRDLIC" to="LIT-MENUPGM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COCRDLIC" to="CCARD-NEXT-PROG" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COCRDLIC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COCRDLIC" to="LIT-CARD-FILE" type="cics" label="CICS FILE" confidence="100"/>
+        <Dependency from="COCRDLIC" to="VALUE" type="data" label="READ" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COCRDSLC" language="COBOL" loc="642" domain="Credit Card Online" coverage="100" complexity="99" file="app/cbl/COCRDSLC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="4" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COCRDSL"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVCUS01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COCRDSLC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COCRDSLC" to="CCARD-NEXT-MAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COCRDSLC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COCRDSLC" to="LIT-CARDFILENAME" type="cics" label="CICS FILE" confidence="100"/>
+        <Dependency from="COCRDSLC" to="LIT-CARDFILENAME-ACCT-PATH" type="cics" label="CICS FILE" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COCRDUPC" language="COBOL" loc="1195" domain="Credit Card Online" coverage="100" complexity="233" file="app/cbl/COCRDUPC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="3" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COCRDUP"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVCUS01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COCRDUPC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COCRDUPC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COCRDUPC" to="CCARD-NEXT-MAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COCRDUPC" to="LIT-CARDFILENAME" type="cics" label="CICS FILE" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CODATE01" language="COBOL" loc="508" domain="Account / VSAM" coverage="100" complexity="39" file="app/app-vsam-mq/cbl/CODATE01.cbl">
+      <EdgeSummary calls="4" dynamicCalls="0" sql="0" cics="0" fileIO="0"/>
+      <Copybooks>
+        <Copy name="CMQGMOV"/>
+        <Copy name="CMQPMOV"/>
+        <Copy name="CMQMDV"/>
+        <Copy name="CMQODV"/>
+        <Copy name="CMQV"/>
+        <Copy name="CMQTML"/>
+        <Copy name="REPLACING"/>
+        <Copy name="03220012"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CODATE01" to="MQOPEN" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CODATE01" to="MQGET" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CODATE01" to="MQPUT" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CODATE01" to="MQCLOSE" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COMEN01C" language="COBOL" loc="213" domain="Menu Online" coverage="100" complexity="39" file="app/cbl/COMEN01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COMEN02Y"/>
+        <Copy name="COMEN01"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COMEN01C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COMEN01C" to="COMEN1A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COPAUA0C" language="COBOL" loc="771" domain="Authorization" coverage="100" complexity="90" file="app/app-authorization-ims-db2-mq/cbl/COPAUA0C.cbl">
+      <EdgeSummary calls="4" dynamicCalls="0" sql="0" cics="0" fileIO="5"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CMQODV"/>
+        <Copy name="CMQMDV"/>
+        <Copy name="CMQV"/>
+        <Copy name="CMQTML"/>
+        <Copy name="CMQPMOV"/>
+        <Copy name="CMQGMOV"/>
+        <Copy name="CCPAURQY"/>
+        <Copy name="CCPAURLY"/>
+        <Copy name="CCPAUERY"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVCUS01Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COPAUA0C" to="CSSL" type="data" label="CICS QUEUE" confidence="100"/>
+        <Dependency from="COPAUA0C" to="MQOPEN" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COPAUA0C" to="MQGET" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COPAUA0C" to="REQUEST" type="data" label="READ" confidence="100"/>
+        <Dependency from="COPAUA0C" to="XREF" type="data" label="READ" confidence="100"/>
+        <Dependency from="COPAUA0C" to="ACCT" type="data" label="READ" confidence="100"/>
+        <Dependency from="COPAUA0C" to="CUST" type="data" label="READ" confidence="100"/>
+        <Dependency from="COPAUA0C" to="MQPUT1" type="call" label="CALL" confidence="100"/>
+        <Dependency from="COPAUA0C" to="MQCLOSE" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COPAUS0C" language="COBOL" loc="792" domain="Authorization" coverage="100" complexity="114" file="app/app-authorization-ims-db2-mq/cbl/COPAUS0C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COPAU00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT02Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="CVCUS01Y"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COPAUS0C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COPAUS0C" to="COPAU0A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COPAUS1C" language="COBOL" loc="461" domain="Authorization" coverage="100" complexity="68" file="app/app-authorization-ims-db2-mq/cbl/COPAUS1C.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COPAU01"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COPAUS1C" to="WS-PGM-AUTH-FRAUD" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COPAUS1C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COPAUS1C" to="COPAU1A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COPAUS2C" language="COBOL" loc="201" domain="Authorization" coverage="100" complexity="10" file="app/app-authorization-ims-db2-mq/cbl/COPAUS2C.cbl">
+      <EdgeSummary calls="0" dynamicCalls="0" sql="1" cics="0" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="CIPAUDTY"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COPAUS2C" to="CARDDEMO" type="data" label="EXEC SQL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CORPT00C" language="COBOL" loc="498" domain="Reporting Online" coverage="100" complexity="66" file="app/cbl/CORPT00C.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="1" fileIO="2"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="CORPT00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CORPT00C" to="JOBS" type="data" label="CICS QUEUE" confidence="100"/>
+        <Dependency from="CORPT00C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="CORPT00C" to="CORPT0A" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="CORPT00C" to="CSUTLDTC" type="call" label="CALL" confidence="100"/>
+        <Dependency from="CORPT00C" to="TDQ" type="data" label="WRITE" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COSGN00C" language="COBOL" loc="172" domain="Sign-on Online" coverage="100" complexity="21" file="app/cbl/COSGN00C.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COSGN00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHATTR"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COSGN00C" to="COSGN0A" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COSGN00C" to="COADM01C" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COSGN00C" to="COMEN01C" type="call" label="CICS LINK" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COTRN00C" language="COBOL" loc="529" domain="Transaction Type" coverage="100" complexity="119" file="app/cbl/COTRN00C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COTRN00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COTRN00C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRN00C" to="COTRN0A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COTRN01C" language="COBOL" loc="231" domain="Transaction Type" coverage="100" complexity="28" file="app/cbl/COTRN01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COTRN01"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COTRN01C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRN01C" to="COTRN1A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COTRN02C" language="COBOL" loc="614" domain="Transaction Type" coverage="100" complexity="97" file="app/cbl/COTRN02C.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COTRN02"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CVTRA05Y"/>
+        <Copy name="CVACT01Y"/>
+        <Copy name="CVACT03Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COTRN02C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRN02C" to="COTRN2A" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COTRN02C" to="CSUTLDTC" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COTRTLIC" language="COBOL" loc="1861" domain="Transaction Type" coverage="100" complexity="272" file="app/app-transaction-type-db2/cbl/COTRTLIC.cbl">
+      <EdgeSummary calls="2" dynamicCalls="0" sql="1" cics="1" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COTRTLI"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="CVACT02Y"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COTRTLIC" to="CARDDEMO" type="data" label="EXEC SQL" confidence="100"/>
+        <Dependency from="COTRTLIC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRTLIC" to="LIT-ADDTPGM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRTLIC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COTRTLIC" to="VALUE" type="data" label="READ" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COTRTUPC" language="COBOL" loc="1429" domain="Transaction Type" coverage="100" complexity="230" file="app/app-transaction-type-db2/cbl/COTRTUPC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="1" cics="2" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="CVCRD01Y"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHAID"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="COTRTUP"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSMSG02Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="REPLACING"/>
+        <Copy name="CSSETATY"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COTRTUPC" to="CARDDEMO" type="data" label="EXEC SQL" confidence="100"/>
+        <Dependency from="COTRTUPC" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COTRTUPC" to="LIT-THISMAP" type="cics" label="CICS MAP" confidence="100"/>
+        <Dependency from="COTRTUPC" to="CCARD-NEXT-MAP" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COUSR00C" language="COBOL" loc="531" domain="User Management" coverage="100" complexity="118" file="app/cbl/COUSR00C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COUSR00"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COUSR00C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COUSR00C" to="COUSR0A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COUSR01C" language="COBOL" loc="198" domain="User Management" coverage="100" complexity="25" file="app/cbl/COUSR01C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COUSR01"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+        <Copy name="DFHATTR"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COUSR01C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COUSR01C" to="COUSR1A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COUSR02C" language="COBOL" loc="303" domain="User Management" coverage="100" complexity="51" file="app/cbl/COUSR02C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COUSR02"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COUSR02C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COUSR02C" to="COUSR2A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="COUSR03C" language="COBOL" loc="251" domain="User Management" coverage="100" complexity="36" file="app/cbl/COUSR03C.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="1" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="COCOM01Y"/>
+        <Copy name="COUSR03"/>
+        <Copy name="COTTL01Y"/>
+        <Copy name="CSDAT01Y"/>
+        <Copy name="CSMSG01Y"/>
+        <Copy name="CSUSR01Y"/>
+        <Copy name="DFHAID"/>
+        <Copy name="DFHBMSCA"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="COUSR03C" to="CDEMO-TO-PROGRAM" type="call" label="CICS LINK" confidence="100"/>
+        <Dependency from="COUSR03C" to="COUSR3A" type="cics" label="CICS MAP" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="CSUTLDTC" language="COBOL" loc="114" domain="Utility / Date" coverage="100" complexity="11" file="app/cbl/CSUTLDTC.cbl">
+      <EdgeSummary calls="1" dynamicCalls="0" sql="0" cics="0" fileIO="0"/>
+      <Copybooks>
+        <Copy name="OF"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="CSUTLDTC" to="CEEDAYS" type="call" label="CALL" confidence="100"/>
+      </Dependencies>
+    </Program>
+    <Program id="DBUNLDGS" language="COBOL" loc="211" domain="Authorization" coverage="86" complexity="20" file="app/app-authorization-ims-db2-mq/cbl/DBUNLDGS.CBL">
+      <EdgeSummary calls="1" dynamicCalls="1" sql="0" cics="0" fileIO="1"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="IMSFUNCS"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="PAUTBPCB"/>
+        <Copy name="PASFLPCB"/>
+        <Copy name="PADFLPCB"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="DBUNLDGS" to="PIC" type="data" label="READ" confidence="100"/>
+        <Dependency from="DBUNLDGS" to="CBLTDLI" type="call" label="CALL" confidence="100"/>
+        <Dependency from="DBUNLDGS" to="FAILED" type="dyn" label="CALL (dynamic)" confidence="71"/>
+      </Dependencies>
+    </Program>
+    <Program id="PAUDBLOD" language="COBOL" loc="274" domain="Authorization" coverage="86" complexity="44" file="app/app-authorization-ims-db2-mq/cbl/PAUDBLOD.CBL">
+      <EdgeSummary calls="1" dynamicCalls="1" sql="0" cics="0" fileIO="3"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="IMSFUNCS"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="PAUTBPCB"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="PAUDBLOD" to="PIC" type="data" label="READ" confidence="100"/>
+        <Dependency from="PAUDBLOD" to="INFILE1" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="PAUDBLOD" to="INFILE2" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="PAUDBLOD" to="CBLTDLI" type="call" label="CALL" confidence="100"/>
+        <Dependency from="PAUDBLOD" to="FAIL" type="dyn" label="CALL (dynamic)" confidence="71"/>
+      </Dependencies>
+    </Program>
+    <Program id="PAUDBUNL" language="COBOL" loc="222" domain="Authorization" coverage="86" complexity="28" file="app/app-authorization-ims-db2-mq/cbl/PAUDBUNL.CBL">
+      <EdgeSummary calls="1" dynamicCalls="1" sql="0" cics="0" fileIO="5"/>
+      <Copybooks>
+        <Copy name="OF"/>
+        <Copy name="IMSFUNCS"/>
+        <Copy name="CIPAUSMY"/>
+        <Copy name="CIPAUDTY"/>
+        <Copy name="PAUTBPCB"/>
+      </Copybooks>
+      <Dependencies>
+        <Dependency from="PAUDBUNL" to="PIC" type="data" label="READ" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="OPFILE1" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="OPFILE2" type="data" label="FILE OPEN" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="CBLTDLI" type="call" label="CALL" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="OPFIL1-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="OPFIL2-REC" type="data" label="WRITE" confidence="100"/>
+        <Dependency from="PAUDBUNL" to="FAILED" type="dyn" label="CALL (dynamic)" confidence="71"/>
+      </Dependencies>
+    </Program>
+  </Programs>
+</CastReport>

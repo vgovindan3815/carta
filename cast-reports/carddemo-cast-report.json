@@ -1,0 +1,4013 @@
+{
+  "meta": {
+    "tool": "MAVEN/CARTA Static Analyzer (CAST-compatible)",
+    "version": "1.0",
+    "generated": "2026-07-30T21:33:54.439Z",
+    "codebase": "C:\\tobedeleted\\aws-mainframe-modernization-carddemo-main",
+    "analyzer": "Deterministic regex-based COBOL parser — CALL, EXEC SQL, EXEC CICS, FILE I/O, COPY"
+  },
+  "summary": {
+    "totalPrograms": 44,
+    "totalLOC": 23636,
+    "totalEdges": 184,
+    "avgComplexity": 85,
+    "highComplexityPrograms": [
+      "CBACT01C",
+      "CBACT02C",
+      "CBACT03C",
+      "CBACT04C",
+      "CBCUS01C",
+      "CBEXPORT",
+      "CBIMPORT",
+      "CBPAUP0C",
+      "CBSTM03A",
+      "CBSTM03B",
+      "CBTRN01C",
+      "CBTRN02C",
+      "CBTRN03C",
+      "COACCT01",
+      "COACTUPC",
+      "COACTVWC",
+      "COADM01C",
+      "COBIL00C",
+      "COBTUPDT",
+      "COCRDLIC",
+      "COCRDSLC",
+      "COCRDUPC",
+      "CODATE01",
+      "COMEN01C",
+      "COPAUA0C",
+      "COPAUS0C",
+      "COPAUS1C",
+      "CORPT00C",
+      "COSGN00C",
+      "COTRN00C",
+      "COTRN01C",
+      "COTRN02C",
+      "COTRTLIC",
+      "COTRTUPC",
+      "COUSR00C",
+      "COUSR01C",
+      "COUSR02C",
+      "COUSR03C",
+      "PAUDBLOD",
+      "PAUDBUNL"
+    ],
+    "standalonePrograms": [],
+    "topCallers": [
+      {
+        "name": "CBIMPORT",
+        "deps": 15
+      },
+      {
+        "name": "CBTRN02C",
+        "deps": 10
+      },
+      {
+        "name": "COPAUA0C",
+        "deps": 9
+      },
+      {
+        "name": "CBEXPORT",
+        "deps": 8
+      },
+      {
+        "name": "CBTRN01C",
+        "deps": 8
+      }
+    ],
+    "domains": [
+      "Account / VSAM",
+      "Account Batch",
+      "Account Online",
+      "Administration",
+      "Authorization",
+      "Billing Online",
+      "CICS Wait",
+      "Credit Card Online",
+      "Customer Batch",
+      "Data Export",
+      "Data Import",
+      "Menu Online",
+      "Reporting Online",
+      "Sign-on Online",
+      "Statement Batch",
+      "Transaction Batch",
+      "Transaction Type",
+      "User Management",
+      "Utility / Date"
+    ],
+    "copybookRegistry": [
+      "03220012",
+      "03500000",
+      "CCPAUERY",
+      "CCPAURLY",
+      "CCPAURQY",
+      "CIPAUDTY",
+      "CIPAUSMY",
+      "CMQGMOV",
+      "CMQMDV",
+      "CMQODV",
+      "CMQPMOV",
+      "CMQTML",
+      "CMQV",
+      "COACTUP",
+      "COACTVW",
+      "COADM01",
+      "COADM02Y",
+      "COBIL00",
+      "COCOM01Y",
+      "COCRDLI",
+      "COCRDSL",
+      "COCRDUP",
+      "CODATECN",
+      "COMEN01",
+      "COMEN02Y",
+      "COPAU00",
+      "COPAU01",
+      "CORPT00",
+      "COSGN00",
+      "COSTM01",
+      "COTRN00",
+      "COTRN01",
+      "COTRN02",
+      "COTRTLI",
+      "COTRTUP",
+      "COTTL01Y",
+      "COUSR00",
+      "COUSR01",
+      "COUSR02",
+      "COUSR03",
+      "CSDAT01Y",
+      "CSLKPCDY",
+      "CSMSG01Y",
+      "CSMSG02Y",
+      "CSSETATY",
+      "CSUSR01Y",
+      "CSUTLDPY",
+      "CUSTREC",
+      "CVACT01Y",
+      "CVACT02Y",
+      "CVACT03Y",
+      "CVCRD01Y",
+      "CVCUS01Y",
+      "CVEXPORT",
+      "CVTRA01Y",
+      "CVTRA02Y",
+      "CVTRA03Y",
+      "CVTRA04Y",
+      "CVTRA05Y",
+      "CVTRA06Y",
+      "CVTRA07Y",
+      "DFHAID",
+      "DFHATTR",
+      "DFHBMSCA",
+      "IMSFUNCS",
+      "OF",
+      "PADFLPCB",
+      "PASFLPCB",
+      "PAUTBPCB",
+      "REPLACING"
+    ]
+  },
+  "programs": [
+    {
+      "name": "CBACT01C",
+      "language": "COBOL",
+      "loc": 358,
+      "filePath": "app/cbl/CBACT01C.cbl",
+      "domain": "Account Batch",
+      "coveragePct": 100,
+      "complexity": 61,
+      "nodes": [
+        {
+          "id": "CBACT01C",
+          "label": "CBACT01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "ACCTFILE-FILE",
+          "label": "ACCTFILE-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "COBDATFT",
+          "label": "COBDATFT",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "STATUS",
+          "label": "STATUS",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "OUT-FILE",
+          "label": "OUT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ARRY-FILE",
+          "label": "ARRY-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "VBRC-FILE",
+          "label": "VBRC-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "ACCTFILE-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "COBDATFT",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "STATUS",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "OUT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ARRY-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "VBRC-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVACT01Y",
+        "CODATECN"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 5
+      }
+    },
+    {
+      "name": "CBACT02C",
+      "language": "COBOL",
+      "loc": 129,
+      "filePath": "app/cbl/CBACT02C.cbl",
+      "domain": "Account Batch",
+      "coveragePct": 100,
+      "complexity": 33,
+      "nodes": [
+        {
+          "id": "CBACT02C",
+          "label": "CBACT02C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CARDFILE-FILE",
+          "label": "CARDFILE-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CARDFILE-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVACT02Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "CBACT03C",
+      "language": "COBOL",
+      "loc": 130,
+      "filePath": "app/cbl/CBACT03C.cbl",
+      "domain": "Account Batch",
+      "coveragePct": 100,
+      "complexity": 33,
+      "nodes": [
+        {
+          "id": "CBACT03C",
+          "label": "CBACT03C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "XREFFILE-FILE",
+          "label": "XREFFILE-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "XREFFILE-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVACT03Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "CBACT04C",
+      "language": "COBOL",
+      "loc": 552,
+      "filePath": "app/cbl/CBACT04C.cbl",
+      "domain": "Account Batch",
+      "coveragePct": 100,
+      "complexity": 130,
+      "nodes": [
+        {
+          "id": "CBACT04C",
+          "label": "CBACT04C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "TCATBAL-FILE",
+          "label": "TCATBAL-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-FILE",
+          "label": "XREF-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "DISCGRP-FILE",
+          "label": "DISCGRP-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-FILE",
+          "label": "ACCOUNT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACT-FILE",
+          "label": "TRANSACT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-TRANFILE-REC",
+          "label": "FD-TRANFILE-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "TCATBAL-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "DISCGRP-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "FD-TRANFILE-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVTRA01Y",
+        "CVACT03Y",
+        "CVTRA02Y",
+        "CVACT01Y",
+        "CVTRA05Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 6
+      }
+    },
+    {
+      "name": "CBCUS01C",
+      "language": "COBOL",
+      "loc": 130,
+      "filePath": "app/cbl/CBCUS01C.cbl",
+      "domain": "Customer Batch",
+      "coveragePct": 100,
+      "complexity": 33,
+      "nodes": [
+        {
+          "id": "CBCUS01C",
+          "label": "CBCUS01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CUSTFILE-FILE",
+          "label": "CUSTFILE-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CUSTFILE-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCUS01Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "CBEXPORT",
+      "language": "COBOL",
+      "loc": 396,
+      "filePath": "app/cbl/CBEXPORT.cbl",
+      "domain": "Data Export",
+      "coveragePct": 100,
+      "complexity": 38,
+      "nodes": [
+        {
+          "id": "CBEXPORT",
+          "label": "CBEXPORT",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CUSTOMER-INPUT",
+          "label": "CUSTOMER-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-INPUT",
+          "label": "ACCOUNT-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-INPUT",
+          "label": "XREF-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACTION-INPUT",
+          "label": "TRANSACTION-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CARD-INPUT",
+          "label": "CARD-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "EXPORT-OUTPUT",
+          "label": "EXPORT-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "EXPORT-OUTPUT-RECORD",
+          "label": "EXPORT-OUTPUT-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CUSTOMER-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACTION-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CARD-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "EXPORT-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "EXPORT-OUTPUT-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCUS01Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "CVTRA05Y",
+        "CVACT02Y",
+        "CVEXPORT"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 7
+      }
+    },
+    {
+      "name": "CBIMPORT",
+      "language": "COBOL",
+      "loc": 337,
+      "filePath": "app/cbl/CBIMPORT.cbl",
+      "domain": "Data Import",
+      "coveragePct": 100,
+      "complexity": 36,
+      "nodes": [
+        {
+          "id": "CBIMPORT",
+          "label": "CBIMPORT",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "PIC",
+          "label": "PIC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "EXPORT-INPUT",
+          "label": "EXPORT-INPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CUSTOMER-OUTPUT",
+          "label": "CUSTOMER-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-OUTPUT",
+          "label": "ACCOUNT-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-OUTPUT",
+          "label": "XREF-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACTION-OUTPUT",
+          "label": "TRANSACTION-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CARD-OUTPUT",
+          "label": "CARD-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ERROR-OUTPUT",
+          "label": "ERROR-OUTPUT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CUSTOMER-RECORD",
+          "label": "CUSTOMER-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-RECORD",
+          "label": "ACCOUNT-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CARD-XREF-RECORD",
+          "label": "CARD-XREF-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRAN-RECORD",
+          "label": "TRAN-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CARD-RECORD",
+          "label": "CARD-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ERROR-OUTPUT-RECORD",
+          "label": "ERROR-OUTPUT-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "PIC",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "EXPORT-INPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CUSTOMER-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACTION-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CARD-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ERROR-OUTPUT",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CUSTOMER-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CARD-XREF-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "TRAN-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CARD-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "ERROR-OUTPUT-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCUS01Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "CVTRA05Y",
+        "CVACT02Y",
+        "CVEXPORT"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 14
+      }
+    },
+    {
+      "name": "CBPAUP0C",
+      "language": "COBOL",
+      "loc": 266,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/CBPAUP0C.cbl",
+      "domain": "Authorization",
+      "coveragePct": 100,
+      "complexity": 52,
+      "nodes": [
+        {
+          "id": "CBPAUP0C",
+          "label": "CBPAUP0C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "PIC",
+          "label": "PIC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FAILED",
+          "label": "FAILED",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "PIC",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "FAILED",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CIPAUSMY",
+        "CIPAUDTY"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 0,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 2
+      }
+    },
+    {
+      "name": "CBSTM03A",
+      "language": "COBOL",
+      "loc": 784,
+      "filePath": "app/cbl/CBSTM03A.CBL",
+      "domain": "Statement Batch",
+      "coveragePct": 100,
+      "complexity": 63,
+      "nodes": [
+        {
+          "id": "CBSTM03A",
+          "label": "CBSTM03A",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "VALUE",
+          "label": "VALUE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "STMT-FILE",
+          "label": "STMT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CBSTM03B",
+          "label": "CBSTM03B",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "FD-STMTFILE-REC",
+          "label": "FD-STMTFILE-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-HTMLFILE-REC",
+          "label": "FD-HTMLFILE-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "VALUE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "STMT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CBSTM03B",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "FD-STMTFILE-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "FD-HTMLFILE-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COSTM01",
+        "CVACT03Y",
+        "CUSTREC",
+        "CVACT01Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 4
+      }
+    },
+    {
+      "name": "CBSTM03B",
+      "language": "COBOL",
+      "loc": 162,
+      "filePath": "app/cbl/CBSTM03B.CBL",
+      "domain": "Statement Batch",
+      "coveragePct": 100,
+      "complexity": 30,
+      "nodes": [
+        {
+          "id": "CBSTM03B",
+          "label": "CBSTM03B",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "VALUE",
+          "label": "VALUE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRNX-FILE",
+          "label": "TRNX-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-FILE",
+          "label": "XREF-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CUST-FILE",
+          "label": "CUST-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCT-FILE",
+          "label": "ACCT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "VALUE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "TRNX-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CUST-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ACCT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 0,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 5
+      }
+    },
+    {
+      "name": "CBTRN01C",
+      "language": "COBOL",
+      "loc": 415,
+      "filePath": "app/cbl/CBTRN01C.cbl",
+      "domain": "Transaction Batch",
+      "coveragePct": 100,
+      "complexity": 102,
+      "nodes": [
+        {
+          "id": "CBTRN01C",
+          "label": "CBTRN01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "DALYTRAN-FILE",
+          "label": "DALYTRAN-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-FILE",
+          "label": "XREF-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "OF",
+          "label": "OF",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-FILE",
+          "label": "ACCOUNT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CUSTOMER-FILE",
+          "label": "CUSTOMER-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CARD-FILE",
+          "label": "CARD-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACT-FILE",
+          "label": "TRANSACT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "DALYTRAN-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "OF",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CUSTOMER-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CARD-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVTRA06Y",
+        "CVCUS01Y",
+        "CVACT03Y",
+        "CVACT02Y",
+        "CVACT01Y",
+        "CVTRA05Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 7
+      }
+    },
+    {
+      "name": "CBTRN02C",
+      "language": "COBOL",
+      "loc": 619,
+      "filePath": "app/cbl/CBTRN02C.cbl",
+      "domain": "Transaction Batch",
+      "coveragePct": 100,
+      "complexity": 149,
+      "nodes": [
+        {
+          "id": "CBTRN02C",
+          "label": "CBTRN02C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "DALYTRAN-FILE",
+          "label": "DALYTRAN-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACT-FILE",
+          "label": "TRANSACT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-FILE",
+          "label": "XREF-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "DALYREJS-FILE",
+          "label": "DALYREJS-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCOUNT-FILE",
+          "label": "ACCOUNT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TCATBAL-FILE",
+          "label": "TCATBAL-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-REJS-RECORD",
+          "label": "FD-REJS-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-TRAN-CAT-BAL-RECORD",
+          "label": "FD-TRAN-CAT-BAL-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-TRANFILE-REC",
+          "label": "FD-TRANFILE-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "DALYTRAN-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "DALYREJS-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "ACCOUNT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TCATBAL-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "FD-REJS-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "FD-TRAN-CAT-BAL-RECORD",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "FD-TRANFILE-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVTRA06Y",
+        "CVTRA05Y",
+        "CVACT03Y",
+        "CVACT01Y",
+        "CVTRA01Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 9
+      }
+    },
+    {
+      "name": "CBTRN03C",
+      "language": "COBOL",
+      "loc": 545,
+      "filePath": "app/cbl/CBTRN03C.cbl",
+      "domain": "Transaction Batch",
+      "coveragePct": 100,
+      "complexity": 119,
+      "nodes": [
+        {
+          "id": "CBTRN03C",
+          "label": "CBTRN03C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "DATE-PARMS-FILE",
+          "label": "DATE-PARMS-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANSACT-FILE",
+          "label": "TRANSACT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FD-REPTFILE-REC",
+          "label": "FD-REPTFILE-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "REPORT-FILE",
+          "label": "REPORT-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF-FILE",
+          "label": "XREF-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANTYPE-FILE",
+          "label": "TRANTYPE-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TRANCATG-FILE",
+          "label": "TRANCATG-FILE",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CEE3ABD",
+          "label": "CEE3ABD",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "DATE-PARMS-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "TRANSACT-FILE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "FD-REPTFILE-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "REPORT-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "XREF-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANTYPE-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "TRANCATG-FILE",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CEE3ABD",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVTRA05Y",
+        "CVACT03Y",
+        "CVTRA03Y",
+        "CVTRA04Y",
+        "CVTRA07Y"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 7
+      }
+    },
+    {
+      "name": "COACCT01",
+      "language": "COBOL",
+      "loc": 601,
+      "filePath": "app/app-vsam-mq/cbl/COACCT01.cbl",
+      "domain": "Account / VSAM",
+      "coveragePct": 100,
+      "complexity": 45,
+      "nodes": [
+        {
+          "id": "COACCT01",
+          "label": "COACCT01",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "MQOPEN",
+          "label": "MQOPEN",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQGET",
+          "label": "MQGET",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQPUT",
+          "label": "MQPUT",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQCLOSE",
+          "label": "MQCLOSE",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "MQOPEN",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQGET",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQPUT",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQCLOSE",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "CMQGMOV",
+        "CMQPMOV",
+        "CMQMDV",
+        "CMQODV",
+        "CMQV",
+        "CMQTML",
+        "CVACT01Y",
+        "REPLACING",
+        "03500000"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 4,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COACTUPC",
+      "language": "COBOL",
+      "loc": 3368,
+      "filePath": "app/cbl/COACTUPC.cbl",
+      "domain": "Account Online",
+      "coveragePct": 100,
+      "complexity": 555,
+      "nodes": [
+        {
+          "id": "COACTUPC",
+          "label": "COACTUPC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "CCARD-NEXT-MAP",
+          "label": "CCARD-NEXT-MAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-ACCTFILENAME",
+          "label": "LIT-ACCTFILENAME",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-CUSTFILENAME",
+          "label": "LIT-CUSTFILENAME",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-MAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-ACCTFILENAME",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-CUSTFILENAME",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "CSLKPCDY",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COACTUP",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "CVCUS01Y",
+        "COCOM01Y",
+        "REPLACING",
+        "CSSETATY",
+        "CSUTLDPY"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 4,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COACTVWC",
+      "language": "COBOL",
+      "loc": 703,
+      "filePath": "app/cbl/COACTVWC.cbl",
+      "domain": "Account Online",
+      "coveragePct": 100,
+      "complexity": 82,
+      "nodes": [
+        {
+          "id": "COACTVWC",
+          "label": "COACTVWC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "CCARD-NEXT-MAP",
+          "label": "CCARD-NEXT-MAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-MAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "COCOM01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COACTVW",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "CVACT01Y",
+        "CVACT02Y",
+        "CVACT03Y",
+        "CVCUS01Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 2,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COADM01C",
+      "language": "COBOL",
+      "loc": 189,
+      "filePath": "app/cbl/COADM01C.cbl",
+      "domain": "Administration",
+      "coveragePct": 100,
+      "complexity": 31,
+      "nodes": [
+        {
+          "id": "COADM01C",
+          "label": "COADM01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COADM1A",
+          "label": "COADM1A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COADM1A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COADM02Y",
+        "COADM01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COBIL00C",
+      "language": "COBOL",
+      "loc": 420,
+      "filePath": "app/cbl/COBIL00C.cbl",
+      "domain": "Billing Online",
+      "coveragePct": 100,
+      "complexity": 57,
+      "nodes": [
+        {
+          "id": "COBIL00C",
+          "label": "COBIL00C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COBIL0A",
+          "label": "COBIL0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COBIL0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COBIL00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "CVTRA05Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COBSWAIT",
+      "language": "COBOL",
+      "loc": 13,
+      "filePath": "app/cbl/COBSWAIT.cbl",
+      "domain": "CICS Wait",
+      "coveragePct": 100,
+      "complexity": 1,
+      "nodes": [
+        {
+          "id": "COBSWAIT",
+          "label": "COBSWAIT",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "MVSWAIT",
+          "label": "MVSWAIT",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "MVSWAIT",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COBTUPDT",
+      "language": "COBOL",
+      "loc": 205,
+      "filePath": "app/app-transaction-type-db2/cbl/COBTUPDT.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 21,
+      "nodes": [
+        {
+          "id": "COBTUPDT",
+          "label": "COBTUPDT",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CARDDEMO",
+          "label": "CARDDEMO",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "TR-RECORD",
+          "label": "TR-RECORD",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CARDDEMO",
+          "type": "data",
+          "label": "EXEC SQL",
+          "confidence": 100
+        },
+        {
+          "to": "TR-RECORD",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF"
+      ],
+      "hasLinkageSection": false,
+      "edgeSummary": {
+        "calls": 0,
+        "dynamicCalls": 0,
+        "sql": 1,
+        "cics": 0,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "COCRDLIC",
+      "language": "COBOL",
+      "loc": 1093,
+      "filePath": "app/cbl/COCRDLIC.cbl",
+      "domain": "Credit Card Online",
+      "coveragePct": 100,
+      "complexity": 195,
+      "nodes": [
+        {
+          "id": "COCRDLIC",
+          "label": "COCRDLIC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "LIT-MENUPGM",
+          "label": "LIT-MENUPGM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "CCARD-NEXT-PROG",
+          "label": "CCARD-NEXT-PROG",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-CARD-FILE",
+          "label": "LIT-CARD-FILE",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "VALUE",
+          "label": "VALUE",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "LIT-MENUPGM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-PROG",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-CARD-FILE",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        },
+        {
+          "to": "VALUE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "COCOM01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COCRDSL",
+        "COCRDLI",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "CVACT02Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 2,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "COCRDSLC",
+      "language": "COBOL",
+      "loc": 642,
+      "filePath": "app/cbl/COCRDSLC.cbl",
+      "domain": "Credit Card Online",
+      "coveragePct": 100,
+      "complexity": 99,
+      "nodes": [
+        {
+          "id": "COCRDSLC",
+          "label": "COCRDSLC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "CCARD-NEXT-MAP",
+          "label": "CCARD-NEXT-MAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-CARDFILENAME",
+          "label": "LIT-CARDFILENAME",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-CARDFILENAME-ACCT-PATH",
+          "label": "LIT-CARDFILENAME-ACCT-PATH",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-MAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-CARDFILENAME",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-CARDFILENAME-ACCT-PATH",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "COCOM01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COCRDSL",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "CVACT01Y",
+        "CVACT02Y",
+        "CVACT03Y",
+        "CVCUS01Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 4,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COCRDUPC",
+      "language": "COBOL",
+      "loc": 1195,
+      "filePath": "app/cbl/COCRDUPC.cbl",
+      "domain": "Credit Card Online",
+      "coveragePct": 100,
+      "complexity": 233,
+      "nodes": [
+        {
+          "id": "COCRDUPC",
+          "label": "COCRDUPC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "CCARD-NEXT-MAP",
+          "label": "CCARD-NEXT-MAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "LIT-CARDFILENAME",
+          "label": "LIT-CARDFILENAME",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-MAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-CARDFILENAME",
+          "type": "cics",
+          "label": "CICS FILE",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "COCOM01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COCRDUP",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "CVACT01Y",
+        "CVACT02Y",
+        "CVACT03Y",
+        "CVCUS01Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 3,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "CODATE01",
+      "language": "COBOL",
+      "loc": 508,
+      "filePath": "app/app-vsam-mq/cbl/CODATE01.cbl",
+      "domain": "Account / VSAM",
+      "coveragePct": 100,
+      "complexity": 39,
+      "nodes": [
+        {
+          "id": "CODATE01",
+          "label": "CODATE01",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "MQOPEN",
+          "label": "MQOPEN",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQGET",
+          "label": "MQGET",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQPUT",
+          "label": "MQPUT",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQCLOSE",
+          "label": "MQCLOSE",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "MQOPEN",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQGET",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQPUT",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQCLOSE",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "CMQGMOV",
+        "CMQPMOV",
+        "CMQMDV",
+        "CMQODV",
+        "CMQV",
+        "CMQTML",
+        "REPLACING",
+        "03220012"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 4,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COMEN01C",
+      "language": "COBOL",
+      "loc": 213,
+      "filePath": "app/cbl/COMEN01C.cbl",
+      "domain": "Menu Online",
+      "coveragePct": 100,
+      "complexity": 39,
+      "nodes": [
+        {
+          "id": "COMEN01C",
+          "label": "COMEN01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COMEN1A",
+          "label": "COMEN1A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COMEN1A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COMEN02Y",
+        "COMEN01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COPAUA0C",
+      "language": "COBOL",
+      "loc": 771,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/COPAUA0C.cbl",
+      "domain": "Authorization",
+      "coveragePct": 100,
+      "complexity": 90,
+      "nodes": [
+        {
+          "id": "COPAUA0C",
+          "label": "COPAUA0C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CSSL",
+          "label": "CSSL",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "MQOPEN",
+          "label": "MQOPEN",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQGET",
+          "label": "MQGET",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "REQUEST",
+          "label": "REQUEST",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "XREF",
+          "label": "XREF",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "ACCT",
+          "label": "ACCT",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CUST",
+          "label": "CUST",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "MQPUT1",
+          "label": "MQPUT1",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "MQCLOSE",
+          "label": "MQCLOSE",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CSSL",
+          "type": "data",
+          "label": "CICS QUEUE",
+          "confidence": 100
+        },
+        {
+          "to": "MQOPEN",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQGET",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "REQUEST",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "XREF",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "ACCT",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CUST",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "MQPUT1",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "MQCLOSE",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CMQODV",
+        "CMQMDV",
+        "CMQV",
+        "CMQTML",
+        "CMQPMOV",
+        "CMQGMOV",
+        "CCPAURQY",
+        "CCPAURLY",
+        "CCPAUERY",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "CVACT03Y",
+        "CVACT01Y",
+        "CVCUS01Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 4,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 5
+      }
+    },
+    {
+      "name": "COPAUS0C",
+      "language": "COBOL",
+      "loc": 792,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/COPAUS0C.cbl",
+      "domain": "Authorization",
+      "coveragePct": 100,
+      "complexity": 114,
+      "nodes": [
+        {
+          "id": "COPAUS0C",
+          "label": "COPAUS0C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COPAU0A",
+          "label": "COPAU0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COPAU0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COPAU00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CVACT01Y",
+        "CVACT02Y",
+        "CVACT03Y",
+        "CVCUS01Y",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COPAUS1C",
+      "language": "COBOL",
+      "loc": 461,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/COPAUS1C.cbl",
+      "domain": "Authorization",
+      "coveragePct": 100,
+      "complexity": 68,
+      "nodes": [
+        {
+          "id": "COPAUS1C",
+          "label": "COPAUS1C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "WS-PGM-AUTH-FRAUD",
+          "label": "WS-PGM-AUTH-FRAUD",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COPAU1A",
+          "label": "COPAU1A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "WS-PGM-AUTH-FRAUD",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COPAU1A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COPAU01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COPAUS2C",
+      "language": "COBOL",
+      "loc": 201,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/COPAUS2C.cbl",
+      "domain": "Authorization",
+      "coveragePct": 100,
+      "complexity": 10,
+      "nodes": [
+        {
+          "id": "COPAUS2C",
+          "label": "COPAUS2C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CARDDEMO",
+          "label": "CARDDEMO",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CARDDEMO",
+          "type": "data",
+          "label": "EXEC SQL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "DFHBMSCA",
+        "CIPAUDTY"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 0,
+        "dynamicCalls": 0,
+        "sql": 1,
+        "cics": 0,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "CORPT00C",
+      "language": "COBOL",
+      "loc": 498,
+      "filePath": "app/cbl/CORPT00C.cbl",
+      "domain": "Reporting Online",
+      "coveragePct": 100,
+      "complexity": 66,
+      "nodes": [
+        {
+          "id": "CORPT00C",
+          "label": "CORPT00C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "JOBS",
+          "label": "JOBS",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "CORPT0A",
+          "label": "CORPT0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "CSUTLDTC",
+          "label": "CSUTLDTC",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "TDQ",
+          "label": "TDQ",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "JOBS",
+          "type": "data",
+          "label": "CICS QUEUE",
+          "confidence": 100
+        },
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "CORPT0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "CSUTLDTC",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "TDQ",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "CORPT00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVTRA05Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 2
+      }
+    },
+    {
+      "name": "COSGN00C",
+      "language": "COBOL",
+      "loc": 172,
+      "filePath": "app/cbl/COSGN00C.cbl",
+      "domain": "Sign-on Online",
+      "coveragePct": 100,
+      "complexity": 21,
+      "nodes": [
+        {
+          "id": "COSGN00C",
+          "label": "COSGN00C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "COSGN0A",
+          "label": "COSGN0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "COADM01C",
+          "label": "COADM01C",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COMEN01C",
+          "label": "COMEN01C",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "COSGN0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "COADM01C",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COMEN01C",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COSGN00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA",
+        "DFHATTR"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COTRN00C",
+      "language": "COBOL",
+      "loc": 529,
+      "filePath": "app/cbl/COTRN00C.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 119,
+      "nodes": [
+        {
+          "id": "COTRN00C",
+          "label": "COTRN00C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COTRN0A",
+          "label": "COTRN0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COTRN0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COTRN00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVTRA05Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COTRN01C",
+      "language": "COBOL",
+      "loc": 231,
+      "filePath": "app/cbl/COTRN01C.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 28,
+      "nodes": [
+        {
+          "id": "COTRN01C",
+          "label": "COTRN01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COTRN1A",
+          "label": "COTRN1A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COTRN1A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COTRN01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVTRA05Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COTRN02C",
+      "language": "COBOL",
+      "loc": 614,
+      "filePath": "app/cbl/COTRN02C.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 97,
+      "nodes": [
+        {
+          "id": "COTRN02C",
+          "label": "COTRN02C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COTRN2A",
+          "label": "COTRN2A",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "CSUTLDTC",
+          "label": "CSUTLDTC",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COTRN2A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "CSUTLDTC",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COTRN02",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CVTRA05Y",
+        "CVACT01Y",
+        "CVACT03Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COTRTLIC",
+      "language": "COBOL",
+      "loc": 1861,
+      "filePath": "app/app-transaction-type-db2/cbl/COTRTLIC.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 272,
+      "nodes": [
+        {
+          "id": "COTRTLIC",
+          "label": "COTRTLIC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CARDDEMO",
+          "label": "CARDDEMO",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-ADDTPGM",
+          "label": "LIT-ADDTPGM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "VALUE",
+          "label": "VALUE",
+          "sub": "Data Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CARDDEMO",
+          "type": "data",
+          "label": "EXEC SQL",
+          "confidence": 100
+        },
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-ADDTPGM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "VALUE",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "COCOM01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COTRTLI",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "CVACT02Y"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 2,
+        "dynamicCalls": 0,
+        "sql": 1,
+        "cics": 1,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "COTRTUPC",
+      "language": "COBOL",
+      "loc": 1429,
+      "filePath": "app/app-transaction-type-db2/cbl/COTRTUPC.cbl",
+      "domain": "Transaction Type",
+      "coveragePct": 100,
+      "complexity": 230,
+      "nodes": [
+        {
+          "id": "COTRTUPC",
+          "label": "COTRTUPC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CARDDEMO",
+          "label": "CARDDEMO",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "LIT-THISMAP",
+          "label": "LIT-THISMAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        },
+        {
+          "id": "CCARD-NEXT-MAP",
+          "label": "CCARD-NEXT-MAP",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CARDDEMO",
+          "type": "data",
+          "label": "EXEC SQL",
+          "confidence": 100
+        },
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "LIT-THISMAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        },
+        {
+          "to": "CCARD-NEXT-MAP",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "CVCRD01Y",
+        "DFHBMSCA",
+        "DFHAID",
+        "COTTL01Y",
+        "COTRTUP",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSMSG02Y",
+        "CSUSR01Y",
+        "COCOM01Y",
+        "REPLACING",
+        "CSSETATY"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 1,
+        "cics": 2,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COUSR00C",
+      "language": "COBOL",
+      "loc": 531,
+      "filePath": "app/cbl/COUSR00C.cbl",
+      "domain": "User Management",
+      "coveragePct": 100,
+      "complexity": 118,
+      "nodes": [
+        {
+          "id": "COUSR00C",
+          "label": "COUSR00C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COUSR0A",
+          "label": "COUSR0A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COUSR0A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COUSR00",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COUSR01C",
+      "language": "COBOL",
+      "loc": 198,
+      "filePath": "app/cbl/COUSR01C.cbl",
+      "domain": "User Management",
+      "coveragePct": 100,
+      "complexity": 25,
+      "nodes": [
+        {
+          "id": "COUSR01C",
+          "label": "COUSR01C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COUSR1A",
+          "label": "COUSR1A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COUSR1A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COUSR01",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA",
+        "DFHATTR"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COUSR02C",
+      "language": "COBOL",
+      "loc": 303,
+      "filePath": "app/cbl/COUSR02C.cbl",
+      "domain": "User Management",
+      "coveragePct": 100,
+      "complexity": 51,
+      "nodes": [
+        {
+          "id": "COUSR02C",
+          "label": "COUSR02C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COUSR2A",
+          "label": "COUSR2A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COUSR2A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COUSR02",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "COUSR03C",
+      "language": "COBOL",
+      "loc": 251,
+      "filePath": "app/cbl/COUSR03C.cbl",
+      "domain": "User Management",
+      "coveragePct": 100,
+      "complexity": 36,
+      "nodes": [
+        {
+          "id": "COUSR03C",
+          "label": "COUSR03C",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CDEMO-TO-PROGRAM",
+          "label": "CDEMO-TO-PROGRAM",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "COUSR3A",
+          "label": "COUSR3A",
+          "sub": "CICS Resource",
+          "type": "data"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CDEMO-TO-PROGRAM",
+          "type": "call",
+          "label": "CICS LINK",
+          "confidence": 100
+        },
+        {
+          "to": "COUSR3A",
+          "type": "cics",
+          "label": "CICS MAP",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "COCOM01Y",
+        "COUSR03",
+        "COTTL01Y",
+        "CSDAT01Y",
+        "CSMSG01Y",
+        "CSUSR01Y",
+        "DFHAID",
+        "DFHBMSCA"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 1,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "CSUTLDTC",
+      "language": "COBOL",
+      "loc": 114,
+      "filePath": "app/cbl/CSUTLDTC.cbl",
+      "domain": "Utility / Date",
+      "coveragePct": 100,
+      "complexity": 11,
+      "nodes": [
+        {
+          "id": "CSUTLDTC",
+          "label": "CSUTLDTC",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "CEEDAYS",
+          "label": "CEEDAYS",
+          "sub": "Called Program",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "CEEDAYS",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        }
+      ],
+      "copybooks": [
+        "OF"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 0,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 0
+      }
+    },
+    {
+      "name": "DBUNLDGS",
+      "language": "COBOL",
+      "loc": 211,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/DBUNLDGS.CBL",
+      "domain": "Authorization",
+      "coveragePct": 86,
+      "complexity": 20,
+      "nodes": [
+        {
+          "id": "DBUNLDGS",
+          "label": "DBUNLDGS",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "PIC",
+          "label": "PIC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CBLTDLI",
+          "label": "CBLTDLI",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "FAILED",
+          "label": "FAILED",
+          "sub": "Dynamic Target",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "PIC",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "CBLTDLI",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "FAILED",
+          "type": "dyn",
+          "label": "CALL (dynamic)",
+          "confidence": 71
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "IMSFUNCS",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "PAUTBPCB",
+        "PASFLPCB",
+        "PADFLPCB"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 1,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 1
+      }
+    },
+    {
+      "name": "PAUDBLOD",
+      "language": "COBOL",
+      "loc": 274,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/PAUDBLOD.CBL",
+      "domain": "Authorization",
+      "coveragePct": 86,
+      "complexity": 44,
+      "nodes": [
+        {
+          "id": "PAUDBLOD",
+          "label": "PAUDBLOD",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "PIC",
+          "label": "PIC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "INFILE1",
+          "label": "INFILE1",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "INFILE2",
+          "label": "INFILE2",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CBLTDLI",
+          "label": "CBLTDLI",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "FAIL",
+          "label": "FAIL",
+          "sub": "Dynamic Target",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "PIC",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "INFILE1",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "INFILE2",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CBLTDLI",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "FAIL",
+          "type": "dyn",
+          "label": "CALL (dynamic)",
+          "confidence": 71
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "IMSFUNCS",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "PAUTBPCB"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 1,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 3
+      }
+    },
+    {
+      "name": "PAUDBUNL",
+      "language": "COBOL",
+      "loc": 222,
+      "filePath": "app/app-authorization-ims-db2-mq/cbl/PAUDBUNL.CBL",
+      "domain": "Authorization",
+      "coveragePct": 86,
+      "complexity": 28,
+      "nodes": [
+        {
+          "id": "PAUDBUNL",
+          "label": "PAUDBUNL",
+          "sub": "Main Program",
+          "type": "hero"
+        },
+        {
+          "id": "PIC",
+          "label": "PIC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "OPFILE1",
+          "label": "OPFILE1",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "OPFILE2",
+          "label": "OPFILE2",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "CBLTDLI",
+          "label": "CBLTDLI",
+          "sub": "Called Program",
+          "type": "prog"
+        },
+        {
+          "id": "OPFIL1-REC",
+          "label": "OPFIL1-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "OPFIL2-REC",
+          "label": "OPFIL2-REC",
+          "sub": "Data Resource",
+          "type": "data"
+        },
+        {
+          "id": "FAILED",
+          "label": "FAILED",
+          "sub": "Dynamic Target",
+          "type": "prog"
+        }
+      ],
+      "edges": [
+        {
+          "to": "PIC",
+          "type": "data",
+          "label": "READ",
+          "confidence": 100
+        },
+        {
+          "to": "OPFILE1",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "OPFILE2",
+          "type": "data",
+          "label": "FILE OPEN",
+          "confidence": 100
+        },
+        {
+          "to": "CBLTDLI",
+          "type": "call",
+          "label": "CALL",
+          "confidence": 100
+        },
+        {
+          "to": "OPFIL1-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "OPFIL2-REC",
+          "type": "data",
+          "label": "WRITE",
+          "confidence": 100
+        },
+        {
+          "to": "FAILED",
+          "type": "dyn",
+          "label": "CALL (dynamic)",
+          "confidence": 71
+        }
+      ],
+      "copybooks": [
+        "OF",
+        "IMSFUNCS",
+        "CIPAUSMY",
+        "CIPAUDTY",
+        "PAUTBPCB"
+      ],
+      "hasLinkageSection": true,
+      "edgeSummary": {
+        "calls": 1,
+        "dynamicCalls": 1,
+        "sql": 0,
+        "cics": 0,
+        "fileIO": 5
+      }
+    }
+  ]
+}
