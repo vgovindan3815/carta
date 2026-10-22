@@ -43,6 +43,13 @@
       "when": 1792675700115,
       "tag": "0005_outstanding_penance",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792677007699,
+      "tag": "0006_blushing_redwing",
+      "breakpoints": true
     }
   ]
 }

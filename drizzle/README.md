@@ -10,6 +10,7 @@
 | 3 | `0003_internal_flow.sql` | ✅ | Adds `internal_flow` JSONB column to `dep_graphs` |
 | 4 | `0004_audit_events.sql` | ✅ | Creates `audit_events` table (confirmed applied 2026-10-21) |
 | 5 | `0005_outstanding_penance.sql` | ⚠️ **Apply manually — see below** | Phase 1 project model: projects, source_connections, source_snapshots, source_files, p1_modules, module_memberships, p1_scans, scan_stages, scan_issues |
+| 6 | `0006_blushing_redwing.sql` | ⚠️ **Apply manually** | Phase 2+3 tables: kg_nodes, kg_edges, kg_node_presence, kg_edge_presence, evidence_records, program_aliases, analysis_runs, corrections, documentation_runs, documents, document_sections, context_manifests |
 
 ## Archived (do not apply)
 
@@ -153,4 +154,4 @@ ALTER TABLE "source_snapshots" ADD CONSTRAINT "source_snapshots_source_connectio
 - Never run `drizzle-kit push` against the shared Neon database.
 - Always generate migrations with `drizzle-kit generate`, review the SQL, then apply manually.
 - Migration file names must not be renamed after being applied.
-- New migrations always use the next sequential idx (current highest: 5).
+- New migrations always use the next sequential idx (current highest: 6).

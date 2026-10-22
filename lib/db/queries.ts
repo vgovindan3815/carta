@@ -7,3 +7,5 @@ export * from './agents';
 export * from './scopes';
 export * from './settings';
 export * from './phase1';
+export * from './knowledge_graph';
+export * from './docs_v2';

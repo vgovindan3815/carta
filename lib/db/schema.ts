@@ -8,6 +8,7 @@ import {
   real,
   boolean,
   pgEnum,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type {
   GraphNode,
@@ -473,5 +474,147 @@ export const scanIssues = pgTable('scan_issues', {
   severity: text('severity').notNull().default('warning'),
   message: text('message').notNull(),
   details: jsonb('details').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Knowledge Graph (behind FF_KNOWLEDGE)
+// ---------------------------------------------------------------------------
+
+export const kgNodes = pgTable('kg_nodes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  nodeType: text('node_type').notNull(),
+  canonicalKey: text('canonical_key').notNull(),
+  attributes: jsonb('attributes').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqueIdentity: uniqueIndex('kg_nodes_identity_idx').on(t.projectId, t.nodeType, t.canonicalKey),
+}));
+
+export const kgNodePresence = pgTable('kg_node_presence', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  nodeId: uuid('node_id').notNull().references(() => kgNodes.id),
+  analysisRunId: uuid('analysis_run_id').notNull(),
+  validFromSeq: integer('valid_from_seq').notNull(),
+  validToSeq: integer('valid_to_seq'),
+});
+
+export const kgEdges = pgTable('kg_edges', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  srcNodeId: uuid('src_node_id').notNull().references(() => kgNodes.id),
+  dstNodeId: uuid('dst_node_id').notNull().references(() => kgNodes.id),
+  relType: text('rel_type').notNull(),
+  discriminator: text('discriminator').notNull().default('default'),
+  attributes: jsonb('attributes').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  uniqueEdge: uniqueIndex('kg_edges_unique_idx').on(t.projectId, t.srcNodeId, t.dstNodeId, t.relType, t.discriminator),
+}));
+
+export const kgEdgePresence = pgTable('kg_edge_presence', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  edgeId: uuid('edge_id').notNull().references(() => kgEdges.id),
+  analysisRunId: uuid('analysis_run_id').notNull(),
+  validFromSeq: integer('valid_from_seq').notNull(),
+  validToSeq: integer('valid_to_seq'),
+});
+
+export const evidenceRecords = pgTable('evidence_records', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  nodeOrEdgeId: uuid('node_or_edge_id').notNull(),
+  nodeOrEdgeKind: text('node_or_edge_kind').notNull(),
+  analyzerId: text('analyzer_id').notNull(),
+  analyzerVersion: text('analyzer_version').notNull(),
+  sourceFileId: uuid('source_file_id').references(() => sourceFiles.id),
+  lineStart: integer('line_start'),
+  lineEnd: integer('line_end'),
+  construct: text('construct'),
+  confidence: integer('confidence').notNull().default(100),
+  attributes: jsonb('attributes').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const programAliases = pgTable('program_aliases', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  entityNodeId: uuid('entity_node_id').notNull().references(() => kgNodes.id),
+  alias: text('alias').notNull(),
+  aliasKind: text('alias_kind').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const analysisRuns = pgTable('analysis_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  scanId: uuid('scan_id').references(() => p1Scans.id),
+  seq: integer('seq').notNull(),
+  analyzerVersions: jsonb('analyzer_versions').$type<Record<string, string>>(),
+  graphSchemaVersion: text('graph_schema_version').notNull().default('1.0'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const corrections = pgTable('corrections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  nodeKey: text('node_key'),
+  edgeSrcKey: text('edge_src_key'),
+  edgeDstKey: text('edge_dst_key'),
+  edgeRelType: text('edge_rel_type'),
+  originalValue: jsonb('original_value').$type<Record<string, unknown>>(),
+  correctedValue: jsonb('corrected_value').$type<Record<string, unknown>>(),
+  reviewer: text('reviewer').notNull(),
+  reason: text('reason'),
+  snapshotScope: boolean('snapshot_scope').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// ── Phase 3: Documentation Workspace ─────────────────────────────────────
+
+export const documentationRuns = pgTable('documentation_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  scanId: uuid('scan_id').references(() => p1Scans.id),
+  status: text('status').notNull().default('queued'),
+  chainIds: jsonb('chain_ids').$type<string[]>(),
+  tokensUsed: integer('tokens_used').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  completedAt: timestamp('completed_at'),
+});
+
+export const documents = pgTable('documents', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  projectId: uuid('project_id').notNull().references(() => projects.id),
+  runId: uuid('run_id').references(() => documentationRuns.id),
+  kind: text('kind').notNull(),
+  targetId: text('target_id').notNull(),
+  title: text('title').notNull(),
+  status: text('status').notNull().default('draft'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const documentSections = pgTable('document_sections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  documentId: uuid('document_id').notNull().references(() => documents.id),
+  sectionKey: text('section_key').notNull(),
+  sectionTitle: text('section_title').notNull(),
+  content: text('content').notNull(),
+  factHash: text('fact_hash'),
+  dependsOn: jsonb('depends_on').$type<string[]>(),
+  staleness: text('staleness').notNull().default('current'),
+  generatedBy: text('generated_by'),
+  tokensUsed: integer('tokens_used').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const contextManifests = pgTable('context_manifests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  runId: uuid('run_id').notNull().references(() => documentationRuns.id),
+  targetId: text('target_id').notNull(),
+  manifestData: jsonb('manifest_data').$type<Record<string, unknown>>().notNull(),
+  factKeys: jsonb('fact_keys').$type<string[]>(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
