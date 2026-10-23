@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProgramData, GraphNode, GraphEdge } from '@/lib/parser/types';
 
@@ -381,6 +381,39 @@ function CodeInspector({
   );
 }
 
+// ─── Mermaid helpers ──────────────────────────────────────────────────────────
+function sanitizeMermaidId(id: string): string {
+  return id.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, '_$1');
+}
+function buildMermaidDef(nodes: GraphNode[], edges: GraphEdge[]): string {
+  const lines: string[] = ['flowchart TD'];
+  const included = new Set<string>();
+  for (const n of nodes) {
+    if (n.type === 'para') continue;
+    const lbl = (n.label ?? n.id).replace(/[[\]()]/g, '');
+    const sid = sanitizeMermaidId(n.id);
+    included.add(n.id);
+    if (n.type === 'hero')                          lines.push(`  ${sid}([${lbl}]):::hero`);
+    else if (n.type === 'data' || n.type === 'cpy') lines.push(`  ${sid}[(${lbl})]:::data`);
+    else if (n.type === 'asm')                      lines.push(`  ${sid}[[${lbl}]]:::asm`);
+    else if (n.type === 'jcl' || n.type === 'proc') lines.push(`  ${sid}[/${lbl}/]:::jcl`);
+    else                                             lines.push(`  ${sid}[${lbl}]:::prog`);
+  }
+  for (const e of edges) {
+    if (!included.has(e.from) || !included.has(e.to)) continue;
+    const rawLabel = e.sourcePara ? `¶${e.sourcePara}` : (e.label ?? EDGE_LABELS[e.type] ?? e.type);
+    const lbl = (rawLabel.length > 24 ? rawLabel.slice(0, 22) + '…' : rawLabel).replace(/"/g, "'");
+    const arr = e.type === 'dyn' ? '-.->': e.type === 'data' ? '---' : '-->';
+    lines.push(`  ${sanitizeMermaidId(e.from)} ${arr}|"${lbl}"| ${sanitizeMermaidId(e.to)}`);
+  }
+  lines.push('  classDef hero fill:#EFF6FF,color:#1E40AF,stroke:#1F3864,stroke-width:2px');
+  lines.push('  classDef prog fill:#F9FAFB,color:#1F2937,stroke:#1F3864');
+  lines.push('  classDef asm fill:#EDE9FE,color:#4C1D95,stroke:#7C3AED');
+  lines.push('  classDef jcl fill:#FFF7ED,color:#92400E,stroke:#E07B39');
+  lines.push('  classDef data fill:#EBF5EE,color:#065F46,stroke:#059669');
+  return lines.join('\n');
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function DependencyView({ program: p }: Props) {
   const router = useRouter();
@@ -393,12 +426,15 @@ export default function DependencyView({ program: p }: Props) {
   const [inspected, setInspected] = useState<{ id: string; type: string; lineStart?: number; lineEnd?: number } | null>(null);
   const [loadedSource, setLoadedSource] = useState<Record<string, string | null>>({});
   const [loadingSource, setLoadingSource] = useState<string | null>(null);
+  const [renderMode, setRenderMode] = useState<'graph' | 'mermaid'>('graph');
 
   // Drag tracking (refs — no re-renders during drag)
   const dragRef = useRef<{ id: string; origX: number; origY: number; startPx: number; startPy: number } | null>(null);
   const wasDragged = useRef(false);
   // Always-current copy of node positions for drag closure
   const cNodesRef = useRef<GraphNode[]>([]);
+  const mermaidRef = useRef<HTMLDivElement>(null);
+  const mermaidIdRef = useRef(0);
 
   // ── Layout computation ───────────────────────────────────────────────────
   const baseLayout = p.cLayout ?? {
@@ -459,8 +495,24 @@ export default function DependencyView({ program: p }: Props) {
   const cEdges = [...activeLayout.edges, ...paraEdges];
   cNodesRef.current = cNodes;
 
-  const w = Math.max(activeLayout.w, 560);
-  const h = Math.max(activeLayout.h, 460);
+  // Expand viewBox to include para nodes (they can extend beyond the base layout)
+  let vx = 0, vy = 0;
+  let w = Math.max(activeLayout.w, 560);
+  let h = Math.max(activeLayout.h, 460);
+  if (paraNodes.length > 0) {
+    let minX = 0, minY = 0, maxX = w, maxY = h;
+    for (const n of paraNodes) {
+      const r = n.r ?? 22;
+      minX = Math.min(minX, (n.cx ?? 0) - r - 10);
+      minY = Math.min(minY, (n.cy ?? 0) - r - 10);
+      maxX = Math.max(maxX, (n.cx ?? 0) + r + 10);
+      maxY = Math.max(maxY, (n.cy ?? 0) + r + 10);
+    }
+    vx = Math.min(0, minX);
+    vy = Math.min(0, minY);
+    w = Math.max(w, maxX - vx);
+    h = Math.max(h, maxY - vy);
+  }
 
   // Node map for edge rendering
   const nodeMap = useMemo(() => {
@@ -487,15 +539,15 @@ export default function DependencyView({ program: p }: Props) {
       id,
       origX: node.cx ?? 0,
       origY: node.cy ?? 0,
-      startPx: (e.clientX - rect.left) * scaleX,
-      startPy: (e.clientY - rect.top)  * scaleY,
+      startPx: vx + (e.clientX - rect.left) * scaleX,
+      startPy: vy + (e.clientY - rect.top)  * scaleY,
     };
 
     const onMove = (ev: PointerEvent) => {
       const d = dragRef.current; if (!d) return;
       const r2 = svgRef.current!.getBoundingClientRect();
       const sx = w / (r2.width || 1); const sy = h / (r2.height || 1);
-      const px = (ev.clientX - r2.left) * sx; const py = (ev.clientY - r2.top) * sy;
+      const px = vx + (ev.clientX - r2.left) * sx; const py = vy + (ev.clientY - r2.top) * sy;
       const ddx = px - d.startPx; const ddy = py - d.startPy;
       if (Math.abs(ddx) > 3 || Math.abs(ddy) > 3) wasDragged.current = true;
       if (!wasDragged.current) return;
@@ -508,7 +560,7 @@ export default function DependencyView({ program: p }: Props) {
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
-  }, [w, h]);
+  }, [w, h, vx, vy]);
 
   const handleNodeClick = useCallback((id: string, type: string) => {
     if (wasDragged.current) return;
@@ -538,6 +590,45 @@ export default function DependencyView({ program: p }: Props) {
   const resetLayout = useCallback(() => setUserPos({}), []);
 
   const edgesByType = cEdges.reduce<Record<string, number>>((a, e) => { a[e.type] = (a[e.type] ?? 0) + 1; return a; }, {});
+
+  // ── Mermaid ───────────────────────────────────────────────────────────────
+  const mermaidDef = useMemo(() => {
+    if (renderMode !== 'mermaid') return '';
+    return buildMermaidDef(cNodes, cEdges);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [renderMode, viewMode, showParas]);
+
+  useEffect(() => {
+    if (!mermaidDef) return;
+    let cancelled = false;
+    const render = async () => {
+      const { default: mermaid } = await import('mermaid');
+      if (cancelled) return;
+      const dark = document.documentElement.dataset.mode === 'dark';
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        themeVariables: {
+          darkMode: dark,
+          fontSize: '12px',
+          primaryColor: dark ? '#1e3a5f' : '#EFF6FF',
+          primaryBorderColor: '#1F3864',
+          lineColor: dark ? '#9ca3af' : '#6B7280',
+          secondaryColor: dark ? '#1f2937' : '#F9FAFB',
+          tertiaryColor: dark ? '#0a2e1c' : '#EBF5EE',
+        },
+      });
+      try {
+        const uid = `mm-${++mermaidIdRef.current}`;
+        const { svg } = await mermaid.render(uid, mermaidDef);
+        if (!cancelled && mermaidRef.current) mermaidRef.current.innerHTML = svg;
+      } catch (err) {
+        console.error('[Mermaid] render error', err);
+      }
+    };
+    render();
+    return () => { cancelled = true; };
+  }, [mermaidDef]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -571,6 +662,15 @@ export default function DependencyView({ program: p }: Props) {
                 ↺ Reset layout
               </button>
             )}
+            {/* Graph / Mermaid render toggle */}
+            <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1.5px solid #E5E7EB', fontSize: 11, fontWeight: 700 }}>
+              <button onClick={() => setRenderMode('graph')} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'graph' ? '#1F3864' : '#F9FAFB', color: renderMode === 'graph' ? '#fff' : '#6B7280' }}>
+                Graph
+              </button>
+              <button onClick={() => setRenderMode('mermaid')} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'mermaid' ? '#1F3864' : '#F9FAFB', color: renderMode === 'mermaid' ? '#fff' : '#6B7280', borderLeft: '1.5px solid #E5E7EB' }}>
+                Mermaid
+              </button>
+            </div>
           </div>
         </div>
 
@@ -578,62 +678,71 @@ export default function DependencyView({ program: p }: Props) {
         <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', minHeight: 'calc(100vh - 320px)' }}>
           {/* Graph panel */}
           <div style={{ flex: '0 0 58%', background: '#F8FAFD', borderRadius: 10, border: '1.5px solid #E5E7EB', overflow: 'auto', minHeight: 480 }}>
-            <svg
-              ref={svgRef}
-              viewBox={`0 0 ${w} ${h}`}
-              style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none', userSelect: 'none', minHeight: 340 }}
-              onPointerDown={handlePointerDown}
-            >
-              {/* Defs */}
-              <defs>
-                {Object.entries(EC).map(([t, col]) => (
-                  <marker key={t} id={`arr-${t}`} markerWidth={8} markerHeight={8} refX={6} refY={3} orient="auto">
-                    <path d="M0,0 L0,6 L8,3z" fill={col} opacity={0.85} />
-                  </marker>
-                ))}
-                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx={0} dy={2} stdDeviation={3} floodOpacity={0.13} />
-                </filter>
-                <filter id="shadowHero" x="-30%" y="-30%" width="160%" height="160%">
-                  <feDropShadow dx={0} dy={3} stdDeviation={5} floodOpacity={0.22} />
-                </filter>
-              </defs>
-              <rect width={w} height={h} fill="#F8FAFD" rx={8} />
+            {renderMode === 'graph' ? (
+              <svg
+                ref={svgRef}
+                viewBox={`${vx} ${vy} ${w} ${h}`}
+                style={{ width: '100%', height: 'auto', display: 'block', touchAction: 'none', userSelect: 'none', minHeight: 340 }}
+                onPointerDown={handlePointerDown}
+              >
+                {/* Defs */}
+                <defs>
+                  {Object.entries(EC).map(([t, col]) => (
+                    <marker key={t} id={`arr-${t}`} markerWidth={8} markerHeight={8} refX={6} refY={3} orient="auto">
+                      <path d="M0,0 L0,6 L8,3z" fill={col} opacity={0.85} />
+                    </marker>
+                  ))}
+                  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx={0} dy={2} stdDeviation={3} floodOpacity={0.13} />
+                  </filter>
+                  <filter id="shadowHero" x="-30%" y="-30%" width="160%" height="160%">
+                    <feDropShadow dx={0} dy={3} stdDeviation={5} floodOpacity={0.22} />
+                  </filter>
+                </defs>
+                <rect x={vx} y={vy} width={w} height={h} fill="#F8FAFD" rx={8} />
 
-              {/* Edges */}
-              {cEdges.map((e, i) => {
-                const fn = nodeMap[e.from]; const tn = nodeMap[e.to];
-                if (!fn || !tn) return null;
-                const d = edgePath(fn, tn);
-                const [lx, ly] = midPoint(d);
-                const col = EC[e.type] ?? '#9CA3AF';
-                const da = e.type === 'dyn' || e.type === 'cics' ? '6,4' : e.type === 'perform' ? '3,3' : undefined;
-                const rawLabel = e.sourcePara ? `¶${e.sourcePara}` : (e.label ?? EDGE_LABELS[e.type] ?? e.type);
-                const lbl = rawLabel.length > 32 ? rawLabel.slice(0, 30) + '…' : rawLabel;
-                const lw = lbl.length * 5 + 12;
-                return (
-                  <g key={i}>
-                    <path d={d} fill="none" stroke={col} strokeWidth={1.8} strokeDasharray={da} markerEnd={`url(#arr-${e.type})`} opacity={e.type === 'dyn' ? 0.55 : 0.75} />
-                    {lbl && <>
-                      <rect x={lx - lw / 2} y={ly - 8} width={lw} height={13} rx={3} fill="white" fillOpacity={0.9} stroke={col} strokeWidth={0.5} />
-                      <text x={lx} y={ly + 1} textAnchor="middle" dominantBaseline="middle" fontFamily="Consolas,monospace" fontSize={7.5} fill={col} fontWeight={700}>{lbl}</text>
-                    </>}
+                {/* Edges */}
+                {cEdges.map((e, i) => {
+                  const fn = nodeMap[e.from]; const tn = nodeMap[e.to];
+                  if (!fn || !tn) return null;
+                  const d = edgePath(fn, tn);
+                  const [lx, ly] = midPoint(d);
+                  const col = EC[e.type] ?? '#9CA3AF';
+                  const da = e.type === 'dyn' || e.type === 'cics' ? '6,4' : e.type === 'perform' ? '3,3' : undefined;
+                  const rawLabel = e.sourcePara ? `¶${e.sourcePara}` : (e.label ?? EDGE_LABELS[e.type] ?? e.type);
+                  const lbl = rawLabel.length > 32 ? rawLabel.slice(0, 30) + '…' : rawLabel;
+                  const lw = lbl.length * 5 + 12;
+                  return (
+                    <g key={i}>
+                      <path d={d} fill="none" stroke={col} strokeWidth={1.8} strokeDasharray={da} markerEnd={`url(#arr-${e.type})`} opacity={e.type === 'dyn' ? 0.55 : 0.75} />
+                      {lbl && <>
+                        <rect x={lx - lw / 2} y={ly - 8} width={lw} height={13} rx={3} fill="white" fillOpacity={0.9} stroke={col} strokeWidth={0.5} />
+                        <text x={lx} y={ly + 1} textAnchor="middle" dominantBaseline="middle" fontFamily="Consolas,monospace" fontSize={7.5} fill={col} fontWeight={700}>{lbl}</text>
+                      </>}
+                    </g>
+                  );
+                })}
+
+                {/* Nodes */}
+                {cNodes.map(n => (
+                  <g
+                    key={n.id}
+                    data-nid={n.id}
+                    style={{ cursor: 'grab' }}
+                    onClick={() => handleNodeClick(n.id, n.type)}
+                  >
+                    <NodeShape n={n} selected={inspected?.id === n.id} />
                   </g>
-                );
-              })}
-
-              {/* Nodes */}
-              {cNodes.map(n => (
-                <g
-                  key={n.id}
-                  data-nid={n.id}
-                  style={{ cursor: 'grab' }}
-                  onClick={() => handleNodeClick(n.id, n.type)}
-                >
-                  <NodeShape n={n} selected={inspected?.id === n.id} />
-                </g>
-              ))}
-            </svg>
+                ))}
+              </svg>
+            ) : (
+              <div
+                ref={mermaidRef}
+                style={{ padding: 24, overflow: 'auto', minHeight: 480, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
+              >
+                <div style={{ color: '#9CA3AF', fontSize: 12, marginTop: 40 }}>Rendering flowchart…</div>
+              </div>
+            )}
           </div>
 
           {/* Code inspector panel */}

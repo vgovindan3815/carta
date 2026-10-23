@@ -38,6 +38,7 @@
     "groq-sdk": "^1.4.1",
     "inngest": "^4.25.0",
     "isomorphic-dompurify": "^4.6.0",
+    "mermaid": "^12.2.0",
     "next": "16.2.12",
     "next-auth": "^4.24.15",
     "openai": "^7.2.0",
