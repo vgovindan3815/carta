@@ -167,6 +167,8 @@ export interface InternalFlow {
   sections: string[];
   performEdges: PerformEdge[];
   entryParagraph: string;
+  /** LLM-generated detailed Mermaid CFG (populated by full analyze pipeline) */
+  mermaidCfg?: string;
 }
 
 export interface ParsedCobolProgram {

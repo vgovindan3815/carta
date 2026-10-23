@@ -729,3 +729,53 @@ OUTPUT RULES:
 ]
 </output>`;
 }
+
+/**
+ * Prompt for generating a detailed Mermaid control-flow graph (CFG) from COBOL/JCL source.
+ * Based on the MAVEN Mermaid graph instructions specification.
+ */
+export function mermaidCfgPrompt(source: string, programName: string, language: string): string {
+  const truncated = source.length > 8000 ? source.slice(0, 8000) + '\n... (truncated)' : source;
+  return `Generate a detailed Mermaid flowchart TD control-flow graph for the ${language} program "${programName}".
+
+CRITICAL REQUIREMENTS — follow these exactly:
+
+GRAPH FORMAT: Use \`flowchart TD\`
+
+NODE SHAPES — use consistently:
+  Start/End:             ([label]) rounded
+  Processing block:      [label] rectangle (group consecutive MOVE/INITIALIZE/COMPUTE with no branches)
+  Decision (IF/EVALUATE): {condition?} diamond — include the actual condition, e.g. {WS-STATUS = 'A'?}
+  PERFORM / CALL:        [[label]] subroutine double-border
+  I/O / SQL:             [label] rectangle, e.g. [READ CUSTOMER-FILE] or [EXEC SQL SELECT]
+  Error termination:     ([ABEND / STOP RUN])
+
+WHAT TO REPRESENT:
+  - PROCEDURE DIVISION entry and STOP RUN / GOBACK as start/end nodes
+  - Every SECTION as a labeled subgraph
+  - Every paragraph as a named node or node group
+  - All IF / ELSE / nested IF: diamond {condition?} with Yes/No edge labels
+  - All EVALUATE: one diamond per EVALUATE, one edge per WHEN value + WHEN OTHER
+  - PERFORM paragraph: subroutine [[paragraph-name]]
+  - PERFORM UNTIL / VARYING: show init → condition diamond → body → increment → loop-back → exit
+  - GO TO: arrow to the target paragraph node
+  - CALL 'program': subroutine [[CALL 'program']]
+  - OPEN/CLOSE/READ/WRITE/REWRITE: rectangle e.g. [READ TRANS-FILE]
+  - READ AT END: diamond {AT END?} with AT END / NOT AT END branches
+  - EXEC SQL: rectangle [SQL SELECT FROM TABLE] with SQLCODE check diamond {SQLCODE = 0?}
+  - EXEC CICS LINK/XCTL: subroutine [[CICS LINK program]]
+  - FILE STATUS check: diamond {FILE-STATUS = '00'?}
+
+EDGE LABELS: Yes/No for IF; WHEN 'X'/WHEN OTHER for EVALUATE; AT END/NOT AT END for READ; SUCCESS/ERROR for SQL/file status; LOOP/EXIT LOOP for PERFORM loops.
+
+COLLAPSE (sequential blocks with no branches): Consecutive MOVE/INITIALIZE/COMPUTE/SET/STRING → single [Init: field1, field2] block.
+NEVER COLLAPSE: IF, ELSE, EVALUATE/WHEN, PERFORM loops, CALL, GO TO, READ AT END, SQLCODE checks.
+
+Use subgraphs for SECTION boundaries. Use short stable node IDs (p1, p2, d1, d2, etc.).
+Labels MUST use actual COBOL identifiers — not generic "Process" or "Step 1".
+
+Return ONLY the raw Mermaid flowchart code. No explanation, no markdown fences — just the flowchart starting with "flowchart TD".
+
+${language} source for "${programName}":
+${truncated}`;
+}

@@ -185,14 +185,14 @@ function extractInternalFlow(logicalLines: string[], programName: string): Inter
     if (col8 !== ' ' && col7 === ' ') {
       const areaContent = line.slice(7).trimEnd().toUpperCase();
 
-      const secMatch = /^([A-Z][A-Z0-9-]*)\s+SECTION\s*\./.exec(areaContent);
+      const secMatch = /^([A-Z0-9][A-Z0-9-]*)\s+SECTION\s*\./.exec(areaContent);
       if (secMatch && !DIVISION_WORDS.has(secMatch[1])) {
         currentSection = secMatch[1];
         sections.push(currentSection);
         continue;
       }
 
-      const paraMatch = /^([A-Z][A-Z0-9#@$-]*)\s*\./.exec(areaContent);
+      const paraMatch = /^([A-Z0-9][A-Z0-9#@$-]*)\s*\./.exec(areaContent);
       if (paraMatch) {
         const name = paraMatch[1];
         if (!DIVISION_WORDS.has(name) && !COBOL_RESERVED.has(name) && !PERFORM_KEYWORDS.has(name)) {
@@ -206,7 +206,7 @@ function extractInternalFlow(logicalLines: string[], programName: string): Inter
     }
 
     const upTrimmed = up.trim();
-    const PERFORM_RE = /\bPERFORM\s+([A-Z][A-Z0-9-]{1,29})(?:\s+THRU(?:ROUGH)?\s+([A-Z][A-Z0-9-]{1,29}))?(?:\s+(UNTIL|VARYING|TIMES)\b)?/g;
+    const PERFORM_RE = /\bPERFORM\s+([A-Z0-9][A-Z0-9-]{1,29})(?:\s+THRU(?:ROUGH)?\s+([A-Z0-9][A-Z0-9-]{1,29}))?(?:\s+(UNTIL|VARYING|TIMES)\b)?/g;
     let m: RegExpExecArray | null;
     PERFORM_RE.lastIndex = 0;
     while ((m = PERFORM_RE.exec(upTrimmed)) !== null) {

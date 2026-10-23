@@ -13,9 +13,9 @@ export async function saveDepGraph(
     cLayoutNodes?: (typeof schema.depGraphs.$inferInsert)['cLayoutNodes'];
     internalFlow?: (typeof schema.depGraphs.$inferInsert)['internalFlow'];
   }
-): Promise<void> {
+): Promise<string> {
   const db = getDb();
-  await db.insert(schema.depGraphs).values({
+  const [row] = await db.insert(schema.depGraphs).values({
     programId,
     jobId,
     nodes: data.nodes,
@@ -23,12 +23,31 @@ export async function saveDepGraph(
     coveragePct: data.coveragePct,
     cLayoutNodes: data.cLayoutNodes ?? null,
     internalFlow: data.internalFlow ?? null,
-  });
+  }).returning({ id: schema.depGraphs.id });
 
   await db
     .update(schema.programs)
     .set({ lastAnalyzedAt: new Date() })
     .where(eq(schema.programs.id, programId));
+
+  return row.id;
+}
+
+/** Attach LLM-generated Mermaid CFG to an existing dep_graph row's internalFlow JSONB. */
+export async function updateDepGraphMermaid(depGraphId: string, mermaidCfg: string): Promise<void> {
+  const db = getDb();
+  const [row] = await db
+    .select({ internalFlow: schema.depGraphs.internalFlow })
+    .from(schema.depGraphs)
+    .where(eq(schema.depGraphs.id, depGraphId))
+    .limit(1);
+  if (!row) return;
+  const current = (row.internalFlow ?? {}) as Record<string, unknown>;
+  const updated = { ...current, mermaidCfg };
+  await db
+    .update(schema.depGraphs)
+    .set({ internalFlow: updated as (typeof schema.depGraphs.$inferInsert)['internalFlow'] })
+    .where(eq(schema.depGraphs.id, depGraphId));
 }
 
 export async function getMostRecentDepGraph(

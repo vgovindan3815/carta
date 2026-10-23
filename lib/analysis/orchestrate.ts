@@ -6,6 +6,7 @@ import { createLLMProvider } from '../llm/index';
 import type { LLMConfig } from '../llm/types';
 import {
   saveDepGraph,
+  updateDepGraphMermaid,
   saveBizRules,
   saveChangeImpact,
   updateJob,
@@ -80,7 +81,7 @@ export async function runAnalysisPipeline(
   onEvent: (line: SseLogLine) => void,
   llmConfig: LLMConfig = { provider: 'groq', apiKey: process.env.GROQ_API_KEY ?? '' }
 ): Promise<void> {
-  const { generateBusinessRules, generateChangeImpact, generateModuleFacts, providerName, modelName } =
+  const { generateBusinessRules, generateChangeImpact, generateModuleFacts, generateMermaidCFG, providerName, modelName } =
     createLLMProvider(llmConfig);
   // Mark job as running
   await updateJob(jobId, {
@@ -173,7 +174,7 @@ export async function runAnalysisPipeline(
       (n) => n.cx !== undefined && n.cy !== undefined
     );
 
-    await saveDepGraph(programId, jobId, {
+    const depGraphId = await saveDepGraph(programId, jobId, {
       nodes: parsed.graph.nodes,
       edges: parsed.graph.edges,
       coveragePct: parsed.graph.coveragePct,
@@ -353,6 +354,21 @@ export async function runAnalysisPipeline(
     );
 
     await updateJob(jobId, { progressPct: 90 });
+
+    // -----------------------------------------------------------------------
+    // Phase 2d — LLM Mermaid CFG (non-blocking — failure does not abort pipeline)
+    // -----------------------------------------------------------------------
+    try {
+      await emit(jobId, info('Generating <span class="hl">Mermaid control-flow graph</span>…'), onEvent);
+      const { mermaid, tokensUsed: mermaidTokens } = await generateMermaidCFG(source, programName, parsed.language);
+      if (mermaid && mermaid.startsWith('flowchart')) {
+        await updateDepGraphMermaid(depGraphId, mermaid);
+        totalTokensUsed += mermaidTokens;
+        await emit(jobId, done(`Mermaid CFG saved — <span class="hl">${mermaid.split('\n').length} nodes/edges</span>`), onEvent);
+      }
+    } catch {
+      await emit(jobId, warn('Mermaid CFG generation skipped (non-fatal)'), onEvent);
+    }
 
     // Modernization Brief is generated on-demand via POST /api/programs/[name]/refresh
 

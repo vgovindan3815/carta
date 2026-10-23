@@ -592,11 +592,14 @@ export default function DependencyView({ program: p }: Props) {
   const edgesByType = cEdges.reduce<Record<string, number>>((a, e) => { a[e.type] = (a[e.type] ?? 0) + 1; return a; }, {});
 
   // ── Mermaid ───────────────────────────────────────────────────────────────
+  const hasMermaidCfg = !!(p.internalFlow?.mermaidCfg);
   const mermaidDef = useMemo(() => {
     if (renderMode !== 'mermaid') return '';
+    // Prefer LLM-generated detailed CFG when available
+    if (p.internalFlow?.mermaidCfg) return p.internalFlow.mermaidCfg;
     return buildMermaidDef(cNodes, cEdges);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [renderMode, viewMode, showParas]);
+  }, [renderMode, viewMode, showParas, p.internalFlow?.mermaidCfg]);
 
   useEffect(() => {
     if (!mermaidDef) return;
@@ -672,7 +675,7 @@ export default function DependencyView({ program: p }: Props) {
                 Graph
               </button>
               <button onClick={() => setRenderMode('mermaid')} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'mermaid' ? '#1F3864' : '#F9FAFB', color: renderMode === 'mermaid' ? '#fff' : '#6B7280', borderLeft: '1.5px solid #E5E7EB' }}>
-                Mermaid
+                {hasMermaidCfg ? 'Detailed CFG' : 'Mermaid'}
               </button>
             </div>
           </div>
