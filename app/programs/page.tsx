@@ -27,98 +27,123 @@ interface ProgramRow {
   lastAnalyzedAt: string | null;
 }
 
-// ── Dot status ──────────────────────────────────────────────────────────────
-type DotState = 'ok' | 'warn' | 'none';
-const DOT_COLORS: Record<DotState, string> = {
+// ── Status helpers ───────────────────────────────────────────────────────────
+type DotState = 'ok' | 'cast' | 'warn' | 'none';
+
+const DOT_COLOR: Record<DotState, string> = {
   ok:   '#16A34A',
-  warn: '#D97706',
+  cast: '#D97706',
+  warn: '#9CA3AF',
   none: '#D1D5DB',
 };
-const DOT_LABELS: Record<DotState, Record<string, string>> = {
-  ok:   { graph: 'Deterministic', biz: 'Generated', docs: 'Complete', cast: 'CAST import' },
-  warn: { graph: 'LLM-inferred',  biz: 'Partial',   docs: 'Partial',  cast: '' },
-  none: { graph: 'None',          biz: 'None',       docs: 'None',     cast: '' },
-};
 
-function Dot({ state, col }: { state: DotState; col: string }) {
-  const label = state === 'ok' && col === 'graph' ? 'Deterministic'
-    : state === 'warn' && col === 'graph' ? 'LLM-inferred'
-    : DOT_LABELS[state][col];
+function StatusDot({ state, label }: { state: DotState; label: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: DOT_COLORS[state], flexShrink: 0, display: 'inline-block' }} />
-      <span style={{ color: state === 'none' ? '#9CA3AF' : '#374151' }}>{label}</span>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: DOT_COLOR[state], flexShrink: 0, display: 'inline-block' }} />
+      <span style={{ fontSize: 13, color: state === 'none' ? '#9CA3AF' : '#374151' }}>{label}</span>
     </span>
   );
 }
 
-function castDot(docStatus: string | undefined, col: 'graph' | 'biz' | 'docs'): DotState {
-  if (col === 'graph') {
-    if (docStatus === 'documented' || docStatus === 'cast_only') return 'ok';
-    return 'none';
-  }
-  if (col === 'biz' || col === 'docs') {
-    if (docStatus === 'documented') return 'ok';
-    return 'none';
-  }
-  return 'none';
+function getGraphState(ds: string | undefined): { state: DotState; label: string } {
+  if (ds === 'documented') return { state: 'ok',   label: 'Deterministic' };
+  if (ds === 'cast_only')  return { state: 'cast', label: 'CAST import' };
+  return                          { state: 'none', label: 'None' };
 }
 
-function graphLabel(docStatus: string | undefined): string {
-  if (docStatus === 'cast_only') return 'CAST import';
-  if (docStatus === 'documented') return 'Deterministic';
-  return 'None';
+function getBizState(ds: string | undefined): { state: DotState; label: string } {
+  if (ds === 'documented') return { state: 'ok',   label: 'Generated' };
+  if (ds === 'cast_only')  return { state: 'warn', label: 'Pending' };
+  return                          { state: 'none', label: 'None' };
 }
 
-// ── Program row ──────────────────────────────────────────────────────────────
-function ProgramTableRow({ prog, onNavigate }: { prog: ProgramRow; onNavigate: (name: string) => void }) {
+function getDocsState(ds: string | undefined): { state: DotState; label: string } {
+  if (ds === 'documented') return { state: 'ok',   label: 'Complete' };
+  return                          { state: 'none', label: 'None' };
+}
+
+// ── Action button ────────────────────────────────────────────────────────────
+function ActionBtn({
+  label, kind, onClick,
+}: {
+  label: string;
+  kind: 'green' | 'amber' | 'blue' | 'gray';
+  onClick: () => void;
+}) {
+  const map = {
+    green: { bg: '#F0FDF4', border: '#86EFAC', color: '#15803D' },
+    amber: { bg: '#FFFBEB', border: '#FCD34D', color: '#92400E' },
+    blue:  { bg: '#EFF6FF', border: '#93C5FD', color: '#1D4ED8' },
+    gray:  { bg: '#F9FAFB', border: '#E5E7EB', color: '#6B7280' },
+  }[kind];
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      style={{
+        fontSize: 12, padding: '4px 12px',
+        border: `1px solid ${map.border}`, borderRadius: 6,
+        background: map.bg, color: map.color,
+        cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+// ── Program table row ────────────────────────────────────────────────────────
+function ProgramTableRow({ prog, onOpen }: { prog: ProgramRow; onOpen: () => void }) {
   const ds = prog.docStatus ?? (prog.status === 'analyzed' ? 'documented' : 'not_analyzed');
-  const graphState: DotState = ds === 'documented' || ds === 'cast_only' ? 'ok' : 'none';
-  const bizState: DotState   = ds === 'documented' ? 'ok' : 'none';
-  const docsState: DotState  = ds === 'documented' ? 'ok' : 'none';
+  const graph = getGraphState(ds);
+  const biz   = getBizState(ds);
+  const docs  = getDocsState(ds);
   const isComplete = ds === 'documented';
   const hasCast    = ds === 'cast_only';
 
   return (
     <tr
-      onClick={() => onNavigate(prog.name)}
-      style={{ cursor: 'pointer', borderBottom: '1px solid #F3F4F6' }}
-      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#F8FAFD'; }}
-      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
+      onClick={onOpen}
+      style={{ cursor: 'pointer', borderBottom: '1px solid #F3F4F6', transition: 'background .1s' }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFD'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
     >
-      <td style={{ padding: '9px 14px', fontFamily: 'Consolas,monospace', fontWeight: 700, fontSize: 12, color: '#1F3864' }}>
-        {prog.name}
+      {/* Name */}
+      <td style={{ padding: '11px 16px' }}>
+        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 700, fontSize: 14, color: '#1F3864' }}>{prog.name}</div>
+        {prog.domain && prog.domain !== 'Unknown' && (
+          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{prog.domain}</div>
+        )}
       </td>
-      <td style={{ padding: '9px 10px', fontSize: 11, color: '#6B7280' }}>{prog.language}</td>
-      <td style={{ padding: '9px 10px', fontSize: 11, color: '#6B7280', textAlign: 'right' }}>
+      {/* Lang */}
+      <td style={{ padding: '11px 12px', fontSize: 13, color: '#6B7280', whiteSpace: 'nowrap' }}>{prog.language}</td>
+      {/* LOC */}
+      <td style={{ padding: '11px 12px', fontSize: 13, color: '#6B7280', textAlign: 'right', whiteSpace: 'nowrap' }}>
         {prog.loc ? prog.loc.toLocaleString() : '—'}
       </td>
-      <td style={{ padding: '9px 10px' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: DOT_COLORS[graphState], flexShrink: 0, display: 'inline-block' }} />
-          <span style={{ color: graphState === 'none' ? '#9CA3AF' : '#374151' }}>
-            {graphState === 'ok' ? graphLabel(ds) : 'None'}
-          </span>
-        </span>
-      </td>
-      <td style={{ padding: '9px 10px' }}><Dot state={bizState} col="biz" /></td>
-      <td style={{ padding: '9px 10px' }}><Dot state={docsState} col="docs" /></td>
-      <td style={{ padding: '9px 10px 9px 6px' }}>
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+      {/* Dep graph */}
+      <td style={{ padding: '11px 12px' }}><StatusDot {...graph} /></td>
+      {/* Biz rules */}
+      <td style={{ padding: '11px 12px' }}><StatusDot {...biz} /></td>
+      {/* Docs */}
+      <td style={{ padding: '11px 12px' }}><StatusDot {...docs} /></td>
+      {/* Actions */}
+      <td style={{ padding: '11px 12px 11px 8px' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {isComplete ? (
             <>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('ok')}>Open docs</button>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('gray')}>Refresh graph</button>
+              <ActionBtn label="Open docs" kind="green" onClick={onOpen} />
+              <ActionBtn label="Refresh graph" kind="gray" onClick={onOpen} />
             </>
           ) : hasCast ? (
             <>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('warn')}>Generate docs</button>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('gray')}>Re-run rules</button>
+              <ActionBtn label="Generate docs" kind="amber" onClick={onOpen} />
+              <ActionBtn label="Re-run rules" kind="gray" onClick={onOpen} />
             </>
           ) : (
             <>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('blue')}>Build graph</button>
-              <button onClick={() => onNavigate(prog.name)} style={btnStyle('gray')}>Analyse</button>
+              <ActionBtn label="Build graph" kind="blue" onClick={onOpen} />
+              <ActionBtn label="Analyse" kind="gray" onClick={onOpen} />
             </>
           )}
         </div>
@@ -127,166 +152,110 @@ function ProgramTableRow({ prog, onNavigate }: { prog: ProgramRow; onNavigate: (
   );
 }
 
-function btnStyle(kind: 'ok' | 'warn' | 'blue' | 'gray') {
-  const map = {
-    ok:   { bg: '#F0FDF4', border: '#BBF7D0', color: '#15803D' },
-    warn: { bg: '#FFFBEB', border: '#FCD34D', color: '#92400E' },
-    blue: { bg: '#EBF4FF', border: '#BFDBFE', color: '#1D4ED8' },
-    gray: { bg: '#F9FAFB', border: '#E5E7EB', color: '#6B7280' },
-  }[kind];
-  return {
-    fontSize: 10, padding: '3px 9px',
-    border: `1px solid ${map.border}`, borderRadius: 5,
-    background: map.bg, color: map.color,
-    cursor: 'pointer', whiteSpace: 'nowrap' as const,
-    fontWeight: 600,
-  };
-}
-
-// ── Project accordion ────────────────────────────────────────────────────────
-function ProjectAccordion({
-  project,
+// ── Program table ────────────────────────────────────────────────────────────
+function ProgramTable({
   programs,
   loading,
-  open,
-  onToggle,
-  onDelete,
-  deletingId,
+  query,
   onNavigate,
 }: {
-  project: Project;
   programs: ProgramRow[];
   loading: boolean;
-  open: boolean;
-  onToggle: () => void;
-  onDelete: (p: Project) => void;
-  deletingId: string | null;
+  query: string;
   onNavigate: (name: string) => void;
 }) {
-  const total     = programs.length;
-  const withGraph = programs.filter(p => p.docStatus === 'documented' || p.docStatus === 'cast_only').length;
-  const withDocs  = programs.filter(p => p.docStatus === 'documented').length;
-  const isCastRepo = project.githubUrl.startsWith('cast://');
-  const isUpload   = project.githubUrl.startsWith('upload://');
-  const sourceTag  = isCastRepo ? 'CAST' : isUpload ? 'Upload' : `${project.owner}/${project.repo}`;
+  const filtered = query.trim()
+    ? programs.filter(p =>
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        (p.desc ?? '').toLowerCase().includes(query.toLowerCase()) ||
+        (p.domain ?? '').toLowerCase().includes(query.toLowerCase())
+      )
+    : programs;
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', fontSize: 14 }}>
+        Loading programs…
+      </div>
+    );
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <div style={{ textAlign: 'center', padding: '60px 0' }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+        <div style={{ fontWeight: 700, color: '#1F3864', fontSize: 16, marginBottom: 6 }}>
+          {programs.length === 0 ? 'No programs found' : 'No results match your search'}
+        </div>
+        <div style={{ color: '#6B7280', fontSize: 14 }}>
+          {programs.length === 0
+            ? 'Re-scan the repository to discover COBOL files.'
+            : 'Try a different search term.'}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ marginBottom: 8 }}>
-      {/* Header row */}
-      <div
-        onClick={onToggle}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '10px 14px',
-          background: open ? '#EBF4FF' : '#fff',
-          border: `1.5px solid ${open ? '#93C5FD' : '#E5E7EB'}`,
-          borderRadius: open ? '8px 8px 0 0' : 8,
-          borderBottom: open ? '1px solid #DBEAFE' : undefined,
-          cursor: 'pointer',
-          transition: 'background .12s, border-color .12s',
-        }}
-        onMouseEnter={(e) => { if (!open) (e.currentTarget as HTMLDivElement).style.background = '#F8FAFD'; }}
-        onMouseLeave={(e) => { if (!open) (e.currentTarget as HTMLDivElement).style.background = '#fff'; }}
-      >
-        {/* Chevron */}
-        <span style={{ fontSize: 12, color: '#9CA3AF', transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform .15s', display: 'inline-block' }}>▼</span>
-
-        {/* Name + source */}
-        <span style={{ fontWeight: 700, fontSize: 13, color: '#1F3864', minWidth: 0 }}>{project.projectName}</span>
-        <span style={{ fontSize: 11, color: '#9CA3AF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-          {sourceTag}{!isCastRepo && !isUpload ? ` · ${project.branch}` : ''}
-        </span>
-
-        {/* Summary chips */}
-        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          {loading
-            ? <span style={{ fontSize: 10, color: '#9CA3AF' }}>Loading…</span>
-            : <>
-                <Chip label={`${withGraph} graphs`}  color={withGraph > 0 ? 'green' : 'gray'} />
-                <Chip label={`${withDocs} docs`}     color={withDocs > 0  ? 'blue'  : 'gray'} />
-                <Chip label={`${total} programs`}    color="gray" />
-              </>
-          }
-        </div>
-
-        {/* Delete */}
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(project); }}
-          disabled={deletingId === project.id}
-          title="Delete project"
-          style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: 4, padding: '2px 7px', fontSize: 11, color: '#DC2626', cursor: 'pointer', flexShrink: 0, marginLeft: 4 }}
-        >
-          {deletingId === project.id ? '…' : '🗑'}
-        </button>
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <colgroup>
+          <col style={{ width: '22%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '14%' }} />
+          <col style={{ width: '13%' }} />
+          <col style={{ width: '11%' }} />
+          <col style={{ width: '24%' }} />
+        </colgroup>
+        <thead>
+          <tr style={{ background: '#F8FAFD', borderBottom: '1.5px solid #E5E7EB' }}>
+            {[
+              { label: 'Program', align: 'left' },
+              { label: 'Lang',    align: 'left' },
+              { label: 'LOC',     align: 'right' },
+              { label: 'Dep graph',  align: 'left' },
+              { label: 'Biz rules',  align: 'left' },
+              { label: 'Docs',       align: 'left' },
+              { label: 'Actions',    align: 'left' },
+            ].map(col => (
+              <th
+                key={col.label}
+                style={{
+                  padding: '9px 12px', fontSize: 11, fontWeight: 700,
+                  color: '#9CA3AF', textTransform: 'uppercase' as const,
+                  letterSpacing: '0.6px', textAlign: col.align as 'left' | 'right',
+                }}
+              >
+                {col.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(prog => (
+            <ProgramTableRow key={prog.name} prog={prog} onOpen={() => onNavigate(prog.name)} />
+          ))}
+        </tbody>
+      </table>
+      <div style={{ padding: '10px 16px', fontSize: 12, color: '#9CA3AF', borderTop: '1px solid #F3F4F6' }}>
+        {filtered.length} program{filtered.length !== 1 ? 's' : ''}
+        {query.trim() ? ` matching "${query}"` : ''}
       </div>
-
-      {/* Body */}
-      {open && (
-        <div style={{ border: '1.5px solid #93C5FD', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-          {loading ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#9CA3AF', fontSize: 12 }}>Loading programs…</div>
-          ) : programs.length === 0 ? (
-            <div style={{ padding: '24px', textAlign: 'center', color: '#9CA3AF', fontSize: 12 }}>
-              No programs found. Re-scan the repository or upload source files.
-            </div>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '18%' }} /><col style={{ width: '7%' }} /><col style={{ width: '7%' }} />
-                <col style={{ width: '13%' }} /><col style={{ width: '12%' }} /><col style={{ width: '11%' }} />
-                <col style={{ width: '32%' }} />
-              </colgroup>
-              <thead>
-                <tr style={{ background: '#F8FAFD', borderBottom: '1px solid #E5E7EB' }}>
-                  {['Program','Lang','LOC','Dep graph','Biz rules','Docs','Actions'].map(h => (
-                    <th key={h} style={{ padding: '6px 10px', fontSize: 10, fontWeight: 600, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: h === 'LOC' ? 'right' : 'left' }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {programs.map(prog => (
-                  <ProgramTableRow key={prog.name} prog={prog} onNavigate={onNavigate} />
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      )}
     </div>
   );
 }
 
-function Chip({ label, color }: { label: string; color: 'green' | 'blue' | 'gray' }) {
-  const map = {
-    green: { bg: '#F0FDF4', border: '#BBF7D0', color: '#15803D' },
-    blue:  { bg: '#EBF4FF', border: '#BFDBFE', color: '#1D4ED8' },
-    gray:  { bg: '#F9FAFB', border: '#E5E7EB', color: '#9CA3AF' },
-  }[color];
-  return (
-    <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, border: `1px solid ${map.border}`, background: map.bg, color: map.color, whiteSpace: 'nowrap' }}>
-      {label}
-    </span>
-  );
-}
-
 // ── New project form ─────────────────────────────────────────────────────────
-function NewProjectForm({
-  onDone,
-  onError,
-}: {
-  onDone: (msg: string) => void;
-  onError: (msg: string) => void;
-}) {
+function NewProjectForm({ onDone, onError }: { onDone: (msg: string) => void; onError: (msg: string) => void }) {
   const { startScan } = useScan();
-  const [tab, setTab] = useState<'github' | 'cast' | 'upload'>('github');
+  const [tab, setTab]               = useState<'github' | 'cast' | 'upload'>('github');
   const [connecting, setConnecting] = useState(false);
   const [projectName, setProjectName] = useState('');
-  const [url, setUrl] = useState('');
-  const [pat, setPat] = useState('');
-  const [castFile, setCastFile] = useState<File | null>(null);
-  const [castName, setCastName] = useState('');
+  const [url, setUrl]               = useState('');
+  const [pat, setPat]               = useState('');
+  const [castFile, setCastFile]     = useState<File | null>(null);
+  const [castName, setCastName]     = useState('');
   const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
   const [uploadName, setUploadName] = useState('');
 
@@ -295,7 +264,7 @@ function NewProjectForm({
     if (!url.trim() || !projectName.trim()) return;
     setConnecting(true);
     try {
-      const res = await fetch('/api/repos', {
+      const res  = await fetch('/api/repos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectName, githubUrl: url, pat: pat || undefined }),
@@ -306,9 +275,7 @@ function NewProjectForm({
       onDone('Repository connected — scanning in background');
     } catch (err: unknown) {
       onError(err instanceof Error ? err.message : 'Failed to connect');
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
   }
 
   async function handleCast() {
@@ -318,15 +285,13 @@ function NewProjectForm({
       const fd = new FormData();
       fd.append('file', castFile);
       fd.append('name', castName || castFile.name.replace(/\.[^.]+$/, ''));
-      const res = await fetch('/api/cast', { method: 'POST', body: fd });
+      const res  = await fetch('/api/cast', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       onDone(`Imported ${data.imported} of ${data.total} programs`);
     } catch (err: unknown) {
       onError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
   }
 
   async function handleUpload() {
@@ -336,30 +301,39 @@ function NewProjectForm({
       const fd = new FormData();
       fd.append('projectName', uploadName || 'Uploaded Project');
       for (let i = 0; i < uploadFiles.length; i++) fd.append('files', uploadFiles[i]);
-      const res = await fetch('/api/programs/upload', { method: 'POST', body: fd });
+      const res  = await fetch('/api/programs/upload', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
       onDone(`Imported ${data.imported} of ${data.total} file(s)`);
     } catch (err: unknown) {
       onError(err instanceof Error ? err.message : 'Upload failed');
-    } finally {
-      setConnecting(false);
-    }
+    } finally { setConnecting(false); }
   }
 
-  const tabStyle = (t: typeof tab) => ({
-    flex: 1, padding: '7px 4px', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700,
+  const tabSt = (t: typeof tab): React.CSSProperties => ({
+    flex: 1, padding: '7px 4px', border: 'none', cursor: 'pointer',
+    fontSize: 12, fontWeight: 700,
     background: tab === t ? '#1F3864' : '#F9FAFB',
     color: tab === t ? '#fff' : '#6B7280',
-  } as React.CSSProperties);
+  });
+
+  const inp: React.CSSProperties = {
+    border: '1.5px solid #D1D5DB', borderRadius: 6, padding: '8px 10px',
+    fontSize: 13, fontFamily: 'inherit', width: '100%',
+  };
+
+  const sub = (dis: boolean): React.CSSProperties => ({
+    background: dis ? '#F3F4F6' : 'linear-gradient(135deg,#1F3864,#1C7293)',
+    color: dis ? '#9CA3AF' : '#fff', border: '1px solid #E5E7EB',
+    borderRadius: 6, padding: '9px', fontSize: 13, fontWeight: 700,
+    cursor: dis ? 'not-allowed' : 'pointer', width: '100%',
+  });
 
   return (
-    <div style={{ background: '#fff', border: '1.5px solid #E5E7EB', borderRadius: 10, padding: '16px 18px', marginBottom: 16, maxWidth: 520 }}>
-      <div style={{ fontWeight: 700, fontSize: 13, color: '#1F3864', marginBottom: 12 }}>Add a project</div>
-
+    <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
       <div style={{ display: 'flex', border: '1.5px solid #E5E7EB', borderRadius: 7, overflow: 'hidden', marginBottom: 12 }}>
         {(['github', 'cast', 'upload'] as const).map(t => (
-          <button key={t} type="button" onClick={() => setTab(t)} style={tabStyle(t)}>
+          <button key={t} type="button" onClick={() => setTab(t)} style={tabSt(t)}>
             {t === 'github' ? '🐙 GitHub' : t === 'cast' ? '📤 CAST' : '📁 Upload'}
           </button>
         ))}
@@ -367,10 +341,10 @@ function NewProjectForm({
 
       {tab === 'github' && (
         <form onSubmit={handleGithub} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input placeholder="Project name *" value={projectName} onChange={e => setProjectName(e.target.value)} required style={inputStyle} />
-          <input type="url" placeholder="GitHub URL *" value={url} onChange={e => setUrl(e.target.value)} required style={inputStyle} />
-          <input type="password" placeholder="GitHub PAT (optional — private repos)" value={pat} onChange={e => setPat(e.target.value)} style={inputStyle} />
-          <button type="submit" disabled={connecting} style={submitStyle(connecting)}>
+          <input placeholder="Project name *" value={projectName} onChange={e => setProjectName(e.target.value)} required style={inp} />
+          <input type="url" placeholder="GitHub URL *" value={url} onChange={e => setUrl(e.target.value)} required style={inp} />
+          <input type="password" placeholder="GitHub PAT (optional)" value={pat} onChange={e => setPat(e.target.value)} style={inp} />
+          <button type="submit" disabled={connecting} style={sub(connecting)}>
             {connecting ? 'Scanning repo…' : 'Connect & Scan →'}
           </button>
         </form>
@@ -378,10 +352,10 @@ function NewProjectForm({
 
       {tab === 'cast' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input placeholder="Project name" value={castName} onChange={e => setCastName(e.target.value)} style={inputStyle} />
-          <input type="file" accept=".xml,.json" onChange={e => setCastFile(e.target.files?.[0] ?? null)} style={inputStyle} />
-          {castFile && <div style={{ fontSize: 11, color: '#059669' }}>✓ {castFile.name}</div>}
-          <button disabled={!castFile || connecting} onClick={handleCast} style={submitStyle(!castFile || connecting)}>
+          <input placeholder="Project name" value={castName} onChange={e => setCastName(e.target.value)} style={inp} />
+          <input type="file" accept=".xml,.json" onChange={e => setCastFile(e.target.files?.[0] ?? null)} style={inp} />
+          {castFile && <div style={{ fontSize: 12, color: '#059669' }}>✓ {castFile.name}</div>}
+          <button disabled={!castFile || connecting} onClick={handleCast} style={sub(!castFile || connecting)}>
             {connecting ? 'Uploading…' : 'Upload CAST Report →'}
           </button>
         </div>
@@ -389,10 +363,12 @@ function NewProjectForm({
 
       {tab === 'upload' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input placeholder="Project name" value={uploadName} onChange={e => setUploadName(e.target.value)} style={inputStyle} />
-          <input type="file" multiple accept=".zip,.cbl,.cob,.cobol,.jcl,.cpy,.pli" onChange={e => setUploadFiles(e.target.files)} style={inputStyle} />
-          {uploadFiles && uploadFiles.length > 0 && <div style={{ fontSize: 11, color: '#059669' }}>✓ {uploadFiles.length} file(s) selected</div>}
-          <button disabled={!uploadFiles || uploadFiles.length === 0 || connecting} onClick={handleUpload} style={submitStyle(!uploadFiles || uploadFiles.length === 0 || connecting)}>
+          <input placeholder="Project name" value={uploadName} onChange={e => setUploadName(e.target.value)} style={inp} />
+          <input type="file" multiple accept=".zip,.cbl,.cob,.cobol,.jcl,.cpy,.pli" onChange={e => setUploadFiles(e.target.files)} style={inp} />
+          {uploadFiles && uploadFiles.length > 0 && (
+            <div style={{ fontSize: 12, color: '#059669' }}>✓ {uploadFiles.length} file(s)</div>
+          )}
+          <button disabled={!uploadFiles || uploadFiles.length === 0 || connecting} onClick={handleUpload} style={sub(!uploadFiles || uploadFiles.length === 0 || connecting)}>
             {connecting ? 'Uploading…' : 'Upload & Import →'}
           </button>
         </div>
@@ -401,43 +377,133 @@ function NewProjectForm({
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  border: '1.5px solid #D1D5DB', borderRadius: 6, padding: '7px 10px', fontSize: 12, fontFamily: 'inherit', width: '100%',
-};
-function submitStyle(disabled: boolean): React.CSSProperties {
-  return {
-    background: disabled ? '#F3F4F6' : 'linear-gradient(135deg, #1F3864, #1C7293)',
-    color: disabled ? '#9CA3AF' : '#fff',
-    border: '1px solid #E5E7EB', borderRadius: 6, padding: '8px', fontSize: 12, fontWeight: 700,
-    cursor: disabled ? 'not-allowed' : 'pointer', width: '100%',
-  };
+// ── Sidebar project item ─────────────────────────────────────────────────────
+function SidebarProject({
+  project,
+  selected,
+  programCount,
+  graphCount,
+  docCount,
+  onSelect,
+  onDelete,
+  deleting,
+}: {
+  project: Project;
+  selected: boolean;
+  programCount: number | null;
+  graphCount: number;
+  docCount: number;
+  onSelect: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
+  const isCast   = project.githubUrl.startsWith('cast://');
+  const isUpload = project.githubUrl.startsWith('upload://');
+  const subtitle = isCast ? 'CAST import' : isUpload ? 'File upload' : `${project.owner}/${project.repo}`;
+  const date     = project.lastSyncedAt
+    ? `Synced ${new Date(project.lastSyncedAt).toLocaleDateString()}`
+    : `Added ${new Date(project.createdAt).toLocaleDateString()}`;
+
+  return (
+    <div
+      onClick={onSelect}
+      style={{
+        padding: '12px 14px',
+        background: selected ? '#EBF4FF' : '#fff',
+        borderLeft: `3px solid ${selected ? '#1C7293' : 'transparent'}`,
+        borderBottom: '1px solid #F3F4F6',
+        cursor: 'pointer',
+        transition: 'background .12s',
+      }}
+      onMouseEnter={e => { if (!selected) (e.currentTarget as HTMLElement).style.background = '#F8FAFD'; }}
+      onMouseLeave={e => { if (!selected) (e.currentTarget as HTMLElement).style.background = '#fff'; }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: selected ? '#1C7293' : '#1F3864', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {selected ? '◆ ' : ''}{project.projectName}
+          </div>
+          <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>
+          <div style={{ fontSize: 11, color: '#B0B7C3', marginTop: 4 }}>{date}</div>
+
+          {/* Mini status bar */}
+          {programCount !== null && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+              <MiniChip label={`${graphCount} graphs`} color={graphCount > 0 ? 'green' : 'gray'} />
+              <MiniChip label={`${docCount} docs`}     color={docCount > 0  ? 'blue'  : 'gray'} />
+              <MiniChip label={`${programCount} total`} color="gray" />
+            </div>
+          )}
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onDelete(); }}
+          disabled={deleting}
+          title="Delete project"
+          style={{ background: 'none', border: '1px solid #FCA5A5', borderRadius: 4, padding: '3px 7px', fontSize: 12, color: '#DC2626', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}
+        >
+          {deleting ? '…' : '🗑'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MiniChip({ label, color }: { label: string; color: 'green' | 'blue' | 'gray' }) {
+  const map = {
+    green: { bg: '#F0FDF4', border: '#BBF7D0', color: '#15803D' },
+    blue:  { bg: '#EBF4FF', border: '#BFDBFE', color: '#1D4ED8' },
+    gray:  { bg: '#F9FAFB', border: '#E5E7EB', color: '#9CA3AF' },
+  }[color];
+  return (
+    <span style={{ fontSize: 10, padding: '2px 7px', borderRadius: 20, border: `1px solid ${map.border}`, background: map.bg, color: map.color, whiteSpace: 'nowrap' }}>
+      {label}
+    </span>
+  );
 }
 
 // ── Main page ────────────────────────────────────────────────────────────────
+const DEMO_PROGRAMS: ProgramRow[] = [
+  { name: 'GTMSETL0', language: 'COBOL', loc: 847,  domain: 'Settlement / GTM', desc: 'Settlement cutoff calculation', status: 'analyzed', docStatus: 'documented',   lastAnalyzedAt: null },
+  { name: 'GTMPOST1', language: 'COBOL', loc: 612,  domain: 'Settlement / GTM', desc: 'Transaction posting',           status: 'analyzed', docStatus: 'documented',   lastAnalyzedAt: null },
+  { name: 'GTMVALD2', language: 'COBOL', loc: 534,  domain: 'Settlement / GTM', desc: 'Pre-cutoff validation',         status: 'pending',  docStatus: 'cast_only',    lastAnalyzedAt: null },
+  { name: 'GTMDB2IO', language: 'COBOL', loc: 489,  domain: 'Settlement / GTM', desc: 'DB2 access module',             status: 'pending',  docStatus: 'not_analyzed', lastAnalyzedAt: null },
+  { name: 'GTMASM01', language: 'HLASM', loc: 143,  domain: 'Utilities',        desc: 'Assembler bit-field utility',   status: 'pending',  docStatus: 'not_analyzed', lastAnalyzedAt: null },
+];
+
 export default function ProgramsPage() {
   const router = useRouter();
 
-  const [projects, setProjects]       = useState<Project[]>([]);
-  const [openIds, setOpenIds]         = useState<Set<string>>(new Set());
-  const [programsMap, setProgramsMap] = useState<Map<string, ProgramRow[]>>(new Map());
-  const [loadingIds, setLoadingIds]   = useState<Set<string>>(new Set());
-  const [deletingId, setDeletingId]   = useState<string | null>(null);
-  const [showNewForm, setShowNewForm] = useState(false);
-  const [toast, setToast]             = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
-  const [query, setQuery]             = useState('');
+  const [projects, setProjects]         = useState<Project[]>([]);
+  const [selectedProject, setSelected]  = useState<Project | null>(null);
+  const [programsMap, setProgramsMap]   = useState<Map<string, ProgramRow[]>>(new Map());
+  const [loadingIds, setLoadingIds]     = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId]     = useState<string | null>(null);
+  const [showNewForm, setShowNewForm]   = useState(false);
+  const [query, setQuery]               = useState('');
+  const [toast, setToast]               = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
+  const [isRealData, setIsRealData]     = useState(false);
 
   useEffect(() => { fetchProjects(); }, []);
+
+  useEffect(() => {
+    if (selectedProject) {
+      loadPrograms(selectedProject.id);
+    }
+  }, [selectedProject]);
 
   async function fetchProjects() {
     try {
       const res  = await fetch('/api/repos');
       const data = await res.json();
-      if (Array.isArray(data)) setProjects(data);
+      if (Array.isArray(data)) {
+        setProjects(data);
+        setIsRealData(data.length > 0);
+      }
     } catch { setProjects([]); }
   }
 
   const loadPrograms = useCallback(async (repoId: string) => {
-    if (programsMap.has(repoId)) return; // already loaded
+    if (programsMap.has(repoId)) return;
     setLoadingIds(s => new Set(s).add(repoId));
     try {
       const res  = await fetch(`/api/programs?repoId=${repoId}`);
@@ -453,29 +519,19 @@ export default function ProgramsPage() {
     }
   }, [programsMap]);
 
-  function toggleProject(id: string) {
-    setOpenIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); loadPrograms(id); }
-      return next;
-    });
-  }
-
   async function handleDelete(project: Project) {
     if (!confirm(`Delete "${project.projectName}"?\n\nAll programs, graphs, and documentation will be permanently removed.`)) return;
     setDeletingId(project.id);
     try {
       const res = await fetch(`/api/repos/${project.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Delete failed');
-      setOpenIds(s => { const n = new Set(s); n.delete(project.id); return n; });
+      if (selectedProject?.id === project.id) setSelected(null);
       setProgramsMap(m => { const n = new Map(m); n.delete(project.id); return n; });
       showToast('Project deleted', 'ok');
       await fetchProjects();
     } catch {
       showToast('Failed to delete project', 'err');
-    } finally {
-      setDeletingId(null);
-    }
+    } finally { setDeletingId(null); }
   }
 
   function showToast(msg: string, kind: 'ok' | 'err') {
@@ -483,27 +539,27 @@ export default function ProgramsPage() {
     setTimeout(() => setToast(null), 4000);
   }
 
-  function navigateToProgram(name: string) {
-    router.push(`/programs/${name}`);
-  }
+  const currentPrograms = selectedProject
+    ? (programsMap.get(selectedProject.id) ?? [])
+    : (isRealData ? [] : DEMO_PROGRAMS);
 
-  // Filter programs by search query across all loaded projects
-  function getFilteredPrograms(repoId: string): ProgramRow[] {
-    const rows = programsMap.get(repoId) ?? [];
-    if (!query.trim()) return rows;
-    const q = query.toLowerCase();
-    return rows.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      (p.desc ?? '').toLowerCase().includes(q) ||
-      (p.domain ?? '').toLowerCase().includes(q)
-    );
+  const isLoading = selectedProject ? loadingIds.has(selectedProject.id) : false;
+
+  function statsFor(repoId: string) {
+    const rows = programsMap.get(repoId);
+    if (!rows) return { programCount: null, graphCount: 0, docCount: 0 };
+    return {
+      programCount: rows.length,
+      graphCount:   rows.filter(p => p.docStatus === 'documented' || p.docStatus === 'cast_only').length,
+      docCount:     rows.filter(p => p.docStatus === 'documented').length,
+    };
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F7FA', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F7FA' }}>
 
       {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #1F3864 0%, #2E4D7B 60%, #1C7293 100%)', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
+      <header style={{ background: 'linear-gradient(135deg, #1F3864 0%, #2E4D7B 60%, #1C7293 100%)', padding: '0 24px', height: 58, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 18, color: '#4DAAC7', letterSpacing: 2 }}>MAVEN</span>
           <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
@@ -513,103 +569,177 @@ export default function ProgramsPage() {
           </div>
         </Link>
         <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/</span>
-        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600 }}>Program Knowledge Base</span>
+        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: 600 }}>Program Knowledge Base</span>
         <div style={{ flex: 1 }} />
-        <Link href="/context" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🧠 Context</Link>
-        <Link href="/agents" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🤖 Agents</Link>
-        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>⚙ LLM</Link>
-        <Link href="/admin" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>Admin</Link>
+        <Link href="/context" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🧠 Context</Link>
+        <Link href="/agents"  style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🤖 Agents</Link>
+        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>⚙ LLM</Link>
+        <Link href="/admin"   style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>Admin</Link>
       </header>
 
       {/* Toast */}
       {toast && (
         <div style={{
-          position: 'fixed', top: 72, right: 24, zIndex: 9999,
+          position: 'fixed', top: 74, right: 24, zIndex: 9999,
           background: toast.kind === 'ok' ? '#F0FDF4' : '#FEF2F2',
           border: `1px solid ${toast.kind === 'ok' ? '#BBF7D0' : '#FECACA'}`,
           color: toast.kind === 'ok' ? '#15803D' : '#DC2626',
-          borderRadius: 8, padding: '10px 16px', fontSize: 13, fontWeight: 600,
+          borderRadius: 8, padding: '11px 18px', fontSize: 14, fontWeight: 600,
           boxShadow: '0 4px 12px rgba(0,0,0,0.12)',
         }}>
           {toast.kind === 'ok' ? '✓' : '✕'} {toast.msg}
         </div>
       )}
 
-      <main style={{ flex: 1, padding: '28px 32px', maxWidth: 1100, width: '100%', margin: '0 auto' }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* Page title row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: '#1F3864', margin: 0 }}>Program Knowledge Base</h1>
-            <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 3 }}>
-              {projects.length} project{projects.length !== 1 ? 's' : ''} — click a project to expand its programs
+        {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
+        <aside style={{
+          width: 290, flexShrink: 0,
+          background: '#fff', borderRight: '1px solid #E5E7EB',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}>
+
+          {/* Sidebar header */}
+          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontWeight: 800, fontSize: 13, color: '#1F3864', letterSpacing: 0.5, textTransform: 'uppercase' }}>Projects</div>
+              <button
+                onClick={() => { setShowNewForm(v => !v); }}
+                style={{
+                  background: showNewForm ? '#FEE2E2' : '#EBF4FF',
+                  border: 'none', borderRadius: 6, padding: '5px 11px',
+                  fontSize: 12, fontWeight: 700,
+                  color: showNewForm ? '#DC2626' : '#1F3864', cursor: 'pointer',
+                }}
+              >
+                {showNewForm ? '✕ Cancel' : '+ New'}
+              </button>
             </div>
           </div>
-          <div style={{ flex: 1 }} />
-          {/* Search */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fff', border: '1.5px solid #E5E7EB', borderRadius: 7, padding: '6px 12px', width: 280 }}>
-            <span style={{ color: '#9CA3AF', fontSize: 15 }}>⌕</span>
-            <input
-              type="text"
-              placeholder="Search programs…"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: 12, fontFamily: 'inherit', color: '#1F2937', background: 'transparent' }}
+
+          {/* New project form */}
+          {showNewForm && (
+            <NewProjectForm
+              onDone={(msg) => { showToast(msg, 'ok'); setShowNewForm(false); fetchProjects(); }}
+              onError={(msg) => showToast(msg, 'err')}
             />
+          )}
+
+          {/* Project list */}
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {projects.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#9CA3AF' }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>📁</div>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6, color: '#6B7280' }}>No projects yet</div>
+                <div style={{ fontSize: 13, lineHeight: 1.6 }}>Connect a GitHub repo, upload CAST reports, or drop COBOL files.</div>
+              </div>
+            ) : (
+              projects.map(p => {
+                const s = statsFor(p.id);
+                return (
+                  <SidebarProject
+                    key={p.id}
+                    project={p}
+                    selected={selectedProject?.id === p.id}
+                    programCount={s.programCount}
+                    graphCount={s.graphCount}
+                    docCount={s.docCount}
+                    onSelect={() => setSelected(prev => prev?.id === p.id ? null : p)}
+                    onDelete={() => handleDelete(p)}
+                    deleting={deletingId === p.id}
+                  />
+                );
+              })
+            )}
           </div>
-          <button
-            onClick={() => setShowNewForm(v => !v)}
-            style={{
-              background: showNewForm ? '#FEE2E2' : '#1F3864',
-              color: showNewForm ? '#DC2626' : '#fff',
-              border: 'none', borderRadius: 7, padding: '8px 14px',
-              fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            }}
-          >
-            {showNewForm ? '✕ Cancel' : '+ New Project'}
-          </button>
-        </div>
+        </aside>
 
-        {/* New project form */}
-        {showNewForm && (
-          <NewProjectForm
-            onDone={(msg) => { showToast(msg, 'ok'); setShowNewForm(false); fetchProjects(); }}
-            onError={(msg) => showToast(msg, 'err')}
-          />
-        )}
+        {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-        {/* Empty state */}
-        {projects.length === 0 && !showNewForm && (
-          <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>📁</div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#1F3864', marginBottom: 6 }}>No projects yet</div>
-            <div style={{ fontSize: 13, marginBottom: 20 }}>Connect a GitHub repository, upload CAST reports, or upload COBOL files directly.</div>
-            <button
-              onClick={() => setShowNewForm(true)}
-              style={{ background: 'linear-gradient(135deg,#1F3864,#1C7293)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-            >
-              + Add your first project
-            </button>
+          {/* Main toolbar */}
+          <div style={{ padding: '16px 24px', background: '#fff', borderBottom: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
+            <div style={{ flex: 1 }}>
+              <h1 style={{ fontSize: 20, fontWeight: 800, color: '#1F3864', margin: 0 }}>
+                {selectedProject ? selectedProject.projectName : 'Program Knowledge Base'}
+              </h1>
+              <div style={{ fontSize: 13, color: '#9CA3AF', marginTop: 3 }}>
+                {selectedProject
+                  ? (() => {
+                      const isCast   = selectedProject.githubUrl.startsWith('cast://');
+                      const isUpload = selectedProject.githubUrl.startsWith('upload://');
+                      const src = isCast ? 'CAST import' : isUpload ? 'File upload' : `${selectedProject.owner}/${selectedProject.repo} · ${selectedProject.branch}`;
+                      return src;
+                    })()
+                  : isRealData
+                  ? 'Select a project from the sidebar'
+                  : 'Demo data — select a project or connect a real repo'
+                }
+              </div>
+            </div>
+
+            {/* Pipeline status chips (shown when project selected and programs loaded) */}
+            {selectedProject && !isLoading && currentPrograms.length > 0 && (() => {
+              const total  = currentPrograms.length;
+              const graphs = currentPrograms.filter(p => p.docStatus === 'documented' || p.docStatus === 'cast_only').length;
+              const docs   = currentPrograms.filter(p => p.docStatus === 'documented').length;
+              return (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <MiniChip label={`${graphs} / ${total} graphs`} color={graphs === total ? 'green' : graphs > 0 ? 'blue' : 'gray'} />
+                  <MiniChip label={`${docs} / ${total} docs`}     color={docs === total   ? 'green' : docs > 0   ? 'blue' : 'gray'} />
+                </div>
+              );
+            })()}
+
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '7px 14px', width: 260 }}>
+              <span style={{ color: '#9CA3AF', fontSize: 16 }}>⌕</span>
+              <input
+                type="text"
+                placeholder="Search programs…"
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                style={{ flex: 1, border: 'none', outline: 'none', fontSize: 13, fontFamily: 'inherit', color: '#1F2937', background: 'transparent' }}
+              />
+              {query && (
+                <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9CA3AF', fontSize: 14, padding: 0 }}>✕</button>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* Accordion list */}
-        <div>
-          {projects.map(project => (
-            <ProjectAccordion
-              key={project.id}
-              project={project}
-              programs={getFilteredPrograms(project.id)}
-              loading={loadingIds.has(project.id)}
-              open={openIds.has(project.id)}
-              onToggle={() => toggleProject(project.id)}
-              onDelete={handleDelete}
-              deletingId={deletingId}
-              onNavigate={navigateToProgram}
-            />
-          ))}
-        </div>
-      </main>
+          {/* Program table or empty state */}
+          <div style={{ flex: 1, overflowY: 'auto', background: '#fff' }}>
+            {!selectedProject && !isRealData ? (
+              <>
+                {/* Demo table */}
+                <ProgramTable
+                  programs={DEMO_PROGRAMS}
+                  loading={false}
+                  query={query}
+                  onNavigate={name => router.push(`/programs/${name}`)}
+                />
+                <div style={{ padding: '12px 16px', background: '#FFFBEB', borderTop: '1px solid #FDE68A', fontSize: 13, color: '#92400E' }}>
+                  Demo data — connect a project in the sidebar to analyse real COBOL programs.
+                </div>
+              </>
+            ) : !selectedProject ? (
+              <div style={{ textAlign: 'center', padding: '80px 0', color: '#9CA3AF' }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>👈</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: '#1F3864', marginBottom: 6 }}>Select a project</div>
+                <div style={{ fontSize: 14 }}>Click a project in the sidebar to view its programs.</div>
+              </div>
+            ) : (
+              <ProgramTable
+                programs={currentPrograms}
+                loading={isLoading}
+                query={query}
+                onNavigate={name => router.push(`/programs/${name}`)}
+              />
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
