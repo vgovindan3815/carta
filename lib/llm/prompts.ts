@@ -401,7 +401,12 @@ export function businessRulesPrompt(
     ? `\n## Analyzed Callee Programs (business context for downstream calls)\n${portfolioContext}`
     : '';
 
-  return `Analyze the COBOL program below and produce a complete Business Requirements Document (BRD).
+  const missingCopybooks = copybookContext
+    ? ''
+    : '\nNote: copybook source is not available — infer field semantics from in-program data structures and flag uncertainties as ⚠ Gap notes.';
+
+  return `You are a senior business analyst writing a Business Requirements Document (BRD) for a COBOL program.
+Audience: business analysts and architects who may not read COBOL. Write in plain English; cite COBOL identifiers only when they add precision.${missingCopybooks}
 
 ## Dependency Graph
 \`\`\`
@@ -419,50 +424,70 @@ ${program.source}
 ${program.linkageSection ? `\n## LINKAGE SECTION\n\`\`\`cobol\n${program.linkageSection}\n\`\`\`` : ''}
 
 ## Task
-Scan the ENTIRE source — every SECTION and PARAGRAPH of the PROCEDURE DIVISION. Produce a JSON array with EXACTLY these eight sections in order (never skip a section; if a section has nothing meaningful, write one rule explaining why it is not applicable):
+Scan the ENTIRE source — every SECTION and PARAGRAPH of the PROCEDURE DIVISION.
+Produce a JSON array with EXACTLY these 7 sections in order. Never skip a section.
 
-1. "Service Invocation Context" — WHAT TRIGGERS THIS SERVICE: which JCL jobs, upstream programs, or CICS transactions invoke this program; how control is passed (CALL, JCL EXEC, CICS LINK); what parameters/LINKAGE fields are required on entry. Use the dependency graph and JCL callers list above.
+---
 
-2. "Data Reads" — WHAT DATA THIS SERVICE READS: every DB2 table read (SELECT), file opened for INPUT, copybook structures populated on entry, Working-Storage fields loaded from external sources. Name each table/file/field explicitly.
+### Section 1 — "Executive Summary"
+A narrative (2–4 sentences) describing what this service does, when it runs, and who or what it affects.
+Output: \`{ "section": "Executive Summary", "narrative": "...", "rules": [] }\`
 
-3. "Core Business Logic" — the calculations, decisions, validations, EVALUATE/IF blocks, loops, and sequence rules that form the heart of this program's processing.
+### Section 2 — "Business Purpose"
+A narrative (2–3 sentences) explaining why this service exists and what business problem it solves.
+Output: \`{ "section": "Business Purpose", "narrative": "...", "rules": [] }\`
 
-4. "Downstream Service Calls" — WHAT THIS SERVICE TRIGGERS NEXT: every program CALLed, CICS LINKed, or file/queue written that kicks off downstream processing. For each: name the called program, the paragraph that issues the call, and what data is passed.
-
-5. "Data Writes & Persistence" — every DB2 INSERT/UPDATE/DELETE, file WRITE/REWRITE, and audit record produced. Name each table/file and the business event it records.
-
-6. "Error Handling & Return Codes" — how errors, bad status codes, and exception paths are managed; what ABEND codes or return codes are set; rollback logic; how errors are communicated to callers.
-
-7. "Copybook & Data Structure Dependencies" — key copybook layouts (PIC clauses, REDEFINES, OCCURS) that control processing; important Working-Storage flags and their value semantics. Include only if copybook context is provided, otherwise explain what copybooks are referenced but not resolved.
-
-8. "Gaps & Limitations" — missing validations, hardcoded values, undocumented assumptions, potential race conditions, fields with no bounds check, dead code, incomplete error handling, or any place where the implementation may not match the business intent.
-
-For each rule within a section, produce:
-- id: BR-NNN (sequential within section, e.g. BR-001)
-- title: Short noun-phrase (max 10 words)
-- trigger: WHEN/IF condition — specific COBOL fields, status codes, or events (1–2 sentences)
-- action: THE SYSTEM SHALL statement — what happens, naming COBOL fields, DB2 tables, called programs (2–4 sentences)
+### Section 3 — "Key Business Rules"
+Every validation, decision, computation, state transition, and limit check performed by this program.
+- Number each rule: id = "Rule N: Short Title" (e.g. "Rule 1: Account Lookup Is Mandatory Before Any Edit")
+- trigger: WHEN/IF condition — specific field names, status codes, or events (1–2 sentences)
+- action: What THE SYSTEM SHALL do — name fields, tables, and called programs (2–4 sentences)
 - outcome: Expected business result (1–2 sentences)
-- risk: What breaks if this rule fails or is absent (1–2 sentences)
-- gap (optional): Specific gap, ambiguity, or limitation in THIS rule — omit if none
+- risk: What breaks or goes wrong if this rule fails or is absent (1–2 sentences)
+- gap (optional): Add "⚠ Gap — ..." when copybooks are unavailable, behaviour is inferred, or SME confirmation is needed
+Output: \`{ "section": "Key Business Rules", "rules": [ { "id": "Rule N: Title", "trigger": "...", "action": "...", "outcome": "...", "risk": "...", "gap": "⚠ Gap — ..." } ] }\`
 
-Output schema:
+### Section 4 — "Data Read and Changed"
+Every external data source this program reads from or writes to: DB2 tables, VSAM files, IMS segments, queues, copybook-defined records passed via LINKAGE or COMMAREA.
+Do NOT list routine Working-Storage helper flags — only data with business meaning that crosses a system boundary.
+Each row: name (short business name), description (what it represents in business terms), access ("Read only", "Changed", or "Read and Changed").
+Output: \`{ "section": "Data Read and Changed", "rules": [ { "name": "Account Master Record", "description": "All account-level settings: status, limits, balance, dates", "access": "Read and Changed" } ] }\`
+
+### Section 5 — "What Triggers This Service"
+A narrative (2–3 sentences) describing how, by whom, and in what context this program is invoked — JCL step, CICS transaction, direct CALL from another program, or batch scheduler. Reference any LINKAGE SECTION parameters required on entry.
+Output: \`{ "section": "What Triggers This Service", "narrative": "...", "rules": [] }\`
+
+### Section 6 — "What This Service Triggers Next"
+Every downstream effect: DB2/file writes, programs CALLed or LINKed, CICS screens transitioned to, queues written. Each row: downstream (name of system, program, or resource), dependency (what happens there and why it matters).
+If it is uncertain whether updates propagate to other systems (fraud feeds, data warehouses, event queues), add a ⚠ gap note in the "narrative" field.
+Output: \`{ "section": "What This Service Triggers Next", "narrative": "⚠ Gap — ...", "rules": [ { "downstream": "Account Master database", "dependency": "Updated immediately on confirmed save; downstream processes see new values on next access." } ] }\`
+
+### Section 7 — "Gaps and Limitations"
+Every place where: copybooks were unavailable and behaviour was inferred; validations are absent or incomplete; hardcoded values exist; SME confirmation is required; or the code may not match the stated business intent.
+Each row: id (number as string), uncertain (what is unknown), businessRisk (what could go wrong), validationStep (recommended action).
+Output: \`{ "section": "Gaps and Limitations", "rules": [ { "id": "1", "uncertain": "...", "businessRisk": "...", "validationStep": "..." } ] }\`
+
+---
+
+Output the full JSON array. Never omit a section.
+
 \`\`\`json
 [
-  {
-    "section": "Service Invocation Context",
-    "rules": [
-      {
-        "id": "BR-001",
-        "title": "Batch Invocation via JCL Step",
-        "trigger": "JCL job GTMJOB01 executes GTMSETL0 in step SETLSTEP, passing WS-RUN-DATE (PIC 9(8)) via PARM.",
-        "action": "The system SHALL accept WS-RUN-DATE from the JCL PARM field into the LINKAGE SECTION, validate it is numeric, then move it to WS-PROCESS-DATE for downstream use.",
-        "outcome": "The program begins execution with a valid processing date for the settlement cycle.",
-        "risk": "If WS-RUN-DATE is blank or non-numeric the program proceeds with an uninitialised date, silently corrupting settlement records.",
-        "gap": "No validation that WS-RUN-DATE is a valid calendar date — only a numeric check is performed."
-      }
-    ]
-  }
+  { "section": "Executive Summary", "narrative": "...", "rules": [] },
+  { "section": "Business Purpose", "narrative": "...", "rules": [] },
+  { "section": "Key Business Rules", "rules": [
+    { "id": "Rule 1: Title", "trigger": "...", "action": "...", "outcome": "...", "risk": "...", "gap": "⚠ Gap — optional" }
+  ]},
+  { "section": "Data Read and Changed", "rules": [
+    { "name": "...", "description": "...", "access": "Read only|Changed|Read and Changed" }
+  ]},
+  { "section": "What Triggers This Service", "narrative": "...", "rules": [] },
+  { "section": "What This Service Triggers Next", "narrative": "optional ⚠ gap", "rules": [
+    { "downstream": "...", "dependency": "..." }
+  ]},
+  { "section": "Gaps and Limitations", "rules": [
+    { "id": "1", "uncertain": "...", "businessRisk": "...", "validationStep": "..." }
+  ]}
 ]
 \`\`\`
 

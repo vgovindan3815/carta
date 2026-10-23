@@ -128,9 +128,11 @@ export default function BusinessRules({ program: p }: Props) {
                     >
                       Section {si + 1}: {sec.section}
                     </a>
-                    <span style={{ color: 'var(--text-3)', marginLeft: 8, fontSize: 11 }}>
-                      ({sec.rules?.length ?? 0} requirement{(sec.rules?.length ?? 0) !== 1 ? 's' : ''})
-                    </span>
+                    {sec.rules?.length > 0 && (
+                      <span style={{ color: 'var(--text-3)', marginLeft: 8, fontSize: 11 }}>
+                        ({sec.rules.length} item{sec.rules.length !== 1 ? 's' : ''})
+                      </span>
+                    )}
                   </li>
                 ))}
               </ol>
@@ -139,13 +141,24 @@ export default function BusinessRules({ program: p }: Props) {
 
           <div className="biz-container">
             {sections.map((sec, si) => {
-              const abbrev = sec.section
-                .split(/\s+/)
-                .filter((w) => /^[A-Za-z]/.test(w))
-                .map((w) => w[0].toUpperCase())
-                .join('')
-                .slice(0, 3)
-                .padEnd(3, 'X');
+              const sn = sec.section;
+              const isNarrative = sn === 'Executive Summary' || sn === 'Business Purpose' || sn === 'What Triggers This Service';
+              const isDataTable = sn === 'Data Read and Changed';
+              const isDownstreamTable = sn === 'What This Service Triggers Next';
+              const isGapsTable = sn === 'Gaps and Limitations';
+              const isKeyRules = sn === 'Key Business Rules';
+
+              const TH: React.CSSProperties = {
+                padding: '8px 12px', fontSize: 11, fontWeight: 800, color: '#fff',
+                background: 'var(--navy-dark)', textAlign: 'left', letterSpacing: 0.4,
+              };
+              const TD: React.CSSProperties = {
+                padding: '9px 12px', fontSize: 13, color: 'var(--text)', verticalAlign: 'top', lineHeight: 1.55,
+              };
+              const tableStyle: React.CSSProperties = {
+                width: '100%', borderCollapse: 'collapse', borderRadius: 8, overflow: 'hidden',
+                border: '1px solid var(--border)',
+              };
 
               return (
                 <div key={si} id={`brd-section-${si}`} className="biz-section">
@@ -161,11 +174,101 @@ export default function BusinessRules({ program: p }: Props) {
                     >
                       {si + 1}
                     </span>
-                    Section {si + 1}: {sec.section}
+                    {sec.section}
                   </div>
 
-                  {sec.rules.map((rule, ri) => {
-                    const reqId = rule.id ?? `BR-${abbrev}-${String(ri + 1).padStart(3, '0')}`;
+                  {/* ── Narrative sections ── */}
+                  {isNarrative && sec.narrative && (
+                    <div style={{ fontSize: 14, lineHeight: 1.75, color: 'var(--text)', padding: '16px 18px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      {sec.narrative}
+                    </div>
+                  )}
+
+                  {/* ── Data Read and Changed table ── */}
+                  {isDataTable && sec.rules?.length > 0 && (
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...TH, width: '30%' }}>Business Data Name</th>
+                          <th style={TH}>What it represents</th>
+                          <th style={{ ...TH, width: '18%' }}>Read / Changed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sec.rules.map((r, ri) => (
+                          <tr key={ri} style={{ background: ri % 2 === 0 ? '#fff' : '#F8FAFD' }}>
+                            <td style={{ ...TD, fontWeight: 700, color: 'var(--navy-dark)' }}>{r.name ?? r.title ?? ''}</td>
+                            <td style={TD}>{r.description ?? r.text ?? ''}</td>
+                            <td style={{ ...TD, whiteSpace: 'nowrap' }}>
+                              <span style={{
+                                fontSize: 11, padding: '2px 8px', borderRadius: 20, fontWeight: 700,
+                                background: (r.access ?? '').includes('Changed') ? '#FEF3C7' : '#F0FDF4',
+                                color: (r.access ?? '').includes('Changed') ? '#92400E' : '#15803D',
+                                border: `1px solid ${(r.access ?? '').includes('Changed') ? '#FDE68A' : '#BBF7D0'}`,
+                              }}>{r.access ?? 'Read only'}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* ── What This Service Triggers Next table ── */}
+                  {isDownstreamTable && (
+                    <>
+                      {sec.rules?.length > 0 && (
+                        <table style={tableStyle}>
+                          <thead>
+                            <tr>
+                              <th style={{ ...TH, width: '30%' }}>Downstream</th>
+                              <th style={TH}>Dependency</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sec.rules.map((r, ri) => (
+                              <tr key={ri} style={{ background: ri % 2 === 0 ? '#fff' : '#F8FAFD' }}>
+                                <td style={{ ...TD, fontWeight: 700, color: 'var(--navy-dark)', fontFamily: 'Consolas, monospace', fontSize: 12 }}>{r.downstream ?? r.name ?? r.title ?? ''}</td>
+                                <td style={TD}>{r.dependency ?? r.description ?? r.text ?? ''}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                      {sec.narrative && (
+                        <div style={{ marginTop: 10, padding: '8px 14px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, fontSize: 13, color: '#92400E', lineHeight: 1.6 }}>
+                          {sec.narrative}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* ── Gaps and Limitations table ── */}
+                  {isGapsTable && sec.rules?.length > 0 && (
+                    <table style={tableStyle}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...TH, width: '4%' }}>#</th>
+                          <th style={{ ...TH, width: '30%' }}>What is uncertain</th>
+                          <th style={{ ...TH, width: '30%' }}>Business risk</th>
+                          <th style={TH}>Recommended validation step</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sec.rules.map((r, ri) => (
+                          <tr key={ri} style={{ background: ri % 2 === 0 ? '#fff' : '#FFFBEB' }}>
+                            <td style={{ ...TD, textAlign: 'center', fontWeight: 700, color: '#92400E' }}>{r.id ?? String(ri + 1)}</td>
+                            <td style={TD}>{r.uncertain ?? r.title ?? r.text ?? ''}</td>
+                            <td style={{ ...TD, color: '#B45309' }}>{r.businessRisk ?? r.risk ?? ''}</td>
+                            <td style={TD}>{r.validationStep ?? r.outcome ?? ''}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+
+                  {/* ── Key Business Rules (structured cards) ── */}
+                  {(isKeyRules || (!isNarrative && !isDataTable && !isDownstreamTable && !isGapsTable)) && sec.rules?.map((rule, ri) => {
+                    const reqId = rule.id ?? `BR-${String(ri + 1).padStart(3, '0')}`;
                     const isBrd = !!(rule.trigger || rule.action || rule.outcome || rule.risk);
                     return (
                       <div key={ri} className="biz-rule" style={{ marginBottom: 14, padding: '14px 18px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
@@ -185,7 +288,6 @@ export default function BusinessRules({ program: p }: Props) {
                           )}
                         </div>
 
-                        {/* BRD structured format */}
                         {isBrd ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {rule.trigger && (
@@ -214,12 +316,11 @@ export default function BusinessRules({ program: p }: Props) {
                             )}
                             {rule.gap && (
                               <div style={{ marginTop: 4, padding: '8px 12px', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, fontSize: 12, color: '#92400E', lineHeight: 1.5 }}>
-                                ⚠ <em>Gap — {rule.gap}</em>
+                                {rule.gap.startsWith('⚠') ? rule.gap : `⚠ Gap — ${rule.gap}`}
                               </div>
                             )}
                           </div>
                         ) : (
-                          /* Legacy flat-text format */
                           <>
                             <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(rule.text ?? '') }} />
                             {(rule.citations ?? []).length > 0 && (
@@ -228,9 +329,7 @@ export default function BusinessRules({ program: p }: Props) {
                                   <button
                                     key={ci}
                                     title={c.edge}
-                                    onClick={() => setSelectedCitation(
-                                      selectedCitation === c.label ? null : c.label
-                                    )}
+                                    onClick={() => setSelectedCitation(selectedCitation === c.label ? null : c.label)}
                                     style={{
                                       cursor: 'pointer',
                                       background: selectedCitation === c.label ? '#1F3864' : undefined,

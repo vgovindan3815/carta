@@ -506,7 +506,7 @@ export default function ProgramHubPage() {
           <strong>{name}</strong> was identified in an impact or dependency analysis but has not been imported into MAVEN yet.
           Upload its CAST report or connect a GitHub repository that contains this program to add it.
         </div>
-        <a href="/programs" style={{ marginTop: 8, background: 'linear-gradient(135deg,#1F3864,#1C7293)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
+        <a href={`/programs?module=${encodeURIComponent(name || '')}`} style={{ marginTop: 8, background: 'linear-gradient(135deg,#1F3864,#1C7293)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
           ← All Programs
         </a>
       </div>
@@ -557,7 +557,7 @@ export default function ProgramHubPage() {
             </a>
           )}
           <a
-            href="/programs"
+            href={`/programs?module=${encodeURIComponent(name || '')}`}
             style={{ background: '#fff', color: '#1F3864', border: '1.5px solid #E5E7EB', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}
           >
             ← Back to Programs
@@ -580,7 +580,7 @@ export default function ProgramHubPage() {
           </div>
         </Link>
         <div className="breadcrumb" style={{ marginLeft: 12 }}>
-          <Link href="/programs" className="crumb-link">All Programs</Link>
+          <Link href={`/programs?module=${encodeURIComponent(programData?.name ?? name)}`} className="crumb-link">All Programs</Link>
           <span className="sep">/</span>
           <span className="crumb-current">{programData.name}</span>
         </div>

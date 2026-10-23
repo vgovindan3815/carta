@@ -46,7 +46,7 @@ export interface BusinessRule {
   /** Legacy flat-text format */
   text?: string;
   citations?: { label: string; edge: string }[];
-  /** BRD structured format */
+  /** BRD structured format — Key Business Rules */
   id?: string;
   title?: string;
   trigger?: string;
@@ -54,10 +54,23 @@ export interface BusinessRule {
   outcome?: string;
   risk?: string;
   gap?: string;
+  /** Data Read and Changed table row */
+  name?: string;
+  description?: string;
+  access?: string;
+  /** What This Service Triggers Next table row */
+  downstream?: string;
+  dependency?: string;
+  /** Gaps and Limitations table row */
+  uncertain?: string;
+  businessRisk?: string;
+  validationStep?: string;
 }
 
 export interface BusinessRulesSection {
   section: string;
+  /** Narrative text for prose sections (Executive Summary, Business Purpose, What Triggers This Service) */
+  narrative?: string;
   rules: BusinessRule[];
 }
 

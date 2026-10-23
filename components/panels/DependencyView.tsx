@@ -656,7 +656,11 @@ export default function DependencyView({ program: p }: Props) {
               <button onClick={() => setShowParas(v => !v)} style={{ padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', background: showParas ? '#EEF2FF' : '#F9FAFB', color: showParas ? '#3730A3' : '#6B7280', fontSize: 11, fontWeight: 700 }}>
                 {showParas ? '¶ Hide Paragraphs' : `¶ Show ${p.internalFlow.paragraphs.length} Paragraphs`}
               </button>
-            ) : null}
+            ) : (
+              <span title="Re-run 'Build Graph' to enable paragraph overlay" style={{ padding: '4px 10px', border: '1.5px dashed #E5E7EB', borderRadius: 6, fontSize: 11, color: '#C4C9D4', userSelect: 'none', cursor: 'default' }}>
+                ¶ Paragraphs — re-run Build Graph to enable
+              </span>
+            )}
             {Object.keys(userPos).length > 0 && (
               <button onClick={resetLayout} style={{ padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6, background: '#F9FAFB', color: '#6B7280', cursor: 'pointer', fontSize: 11, fontWeight: 700 }}>
                 ↺ Reset layout

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useScan } from '@/components/ScanContext';
 
@@ -183,7 +183,13 @@ function ActionBtn({
 }
 
 // ── Program table row ────────────────────────────────────────────────────────
-function ProgramTableRow({ prog, onOpen, onViewSource }: { prog: ProgramRow; onOpen: () => void; onViewSource: () => void }) {
+function ProgramTableRow({ prog, onOpen, onViewSource, highlighted, rowRef }: {
+  prog: ProgramRow;
+  onOpen: () => void;
+  onViewSource: () => void;
+  highlighted?: boolean;
+  rowRef?: React.Ref<HTMLTableRowElement>;
+}) {
   const ds = prog.docStatus ?? (prog.status === 'analyzed' ? 'documented' : 'not_analyzed');
   const graph = getGraphState(ds);
   const biz   = getBizState(ds);
@@ -193,14 +199,15 @@ function ProgramTableRow({ prog, onOpen, onViewSource }: { prog: ProgramRow; onO
 
   return (
     <tr
+      ref={rowRef}
       onClick={onOpen}
-      style={{ cursor: 'pointer', borderBottom: '1px solid #F3F4F6', transition: 'background .1s' }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#F8FAFD'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+      style={{ cursor: 'pointer', borderBottom: '1px solid #F3F4F6', transition: 'background .1s', background: highlighted ? '#EBF4FF' : undefined }}
+      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = highlighted ? '#DBEAFE' : '#F8FAFD'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = highlighted ? '#EBF4FF' : ''; }}
     >
       {/* Name */}
       <td style={{ padding: '11px 16px' }}>
-        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 700, fontSize: 14, color: '#1F3864' }}>{prog.name}</div>
+        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 700, fontSize: 14, color: highlighted ? '#1C7293' : '#1F3864' }}>{prog.name}</div>
         {prog.domain && prog.domain !== 'Unknown' && (
           <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{prog.domain}</div>
         )}
@@ -250,12 +257,16 @@ function ProgramTable({
   query,
   onNavigate,
   onViewSource,
+  highlightModule,
+  highlightRowRef,
 }: {
   programs: ProgramRow[];
   loading: boolean;
   query: string;
   onNavigate: (name: string) => void;
   onViewSource: (name: string) => void;
+  highlightModule?: string | null;
+  highlightRowRef?: React.Ref<HTMLTableRowElement>;
 }) {
   const filtered = query.trim()
     ? programs.filter(p =>
@@ -327,7 +338,14 @@ function ProgramTable({
         </thead>
         <tbody>
           {filtered.map(prog => (
-            <ProgramTableRow key={prog.name} prog={prog} onOpen={() => onNavigate(prog.name)} onViewSource={() => onViewSource(prog.name)} />
+            <ProgramTableRow
+              key={prog.name}
+              prog={prog}
+              onOpen={() => onNavigate(prog.name)}
+              onViewSource={() => onViewSource(prog.name)}
+              highlighted={prog.name === highlightModule}
+              rowRef={prog.name === highlightModule ? highlightRowRef : undefined}
+            />
           ))}
         </tbody>
       </table>
@@ -563,8 +581,9 @@ const DEMO_PROGRAMS: ProgramRow[] = [
   { name: 'GTMASM01', language: 'HLASM', loc: 143,  domain: 'Utilities',        desc: 'Assembler bit-field utility',   status: 'pending',  docStatus: 'not_analyzed', lastAnalyzedAt: null },
 ];
 
-export default function ProgramsPage() {
+function ProgramsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [projects, setProjects]         = useState<Project[]>([]);
   const [selectedProject, setSelected]  = useState<Project | null>(null);
@@ -576,8 +595,35 @@ export default function ProgramsPage() {
   const [toast, setToast]               = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
   const [sourceViewer, setSourceViewer] = useState<string | null>(null);
   const [isRealData, setIsRealData]     = useState(false);
+  const [highlightModule, setHighlightModule] = useState<string | null>(null);
+  const highlightRowRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => { fetchProjects(); }, []);
+
+  // Restore last-viewed module when navigating back from a program detail page
+  useEffect(() => {
+    const moduleName = searchParams.get('module');
+    if (!moduleName) return;
+    setHighlightModule(moduleName);
+    // Read which project owns this module from sessionStorage
+    try {
+      const stored = sessionStorage.getItem('maven_last_program');
+      if (stored) {
+        const { repoId } = JSON.parse(stored) as { name: string; repoId: string };
+        if (repoId && projects.length > 0) {
+          const proj = projects.find(p => p.id === repoId);
+          if (proj) setSelected(proj);
+        }
+      }
+    } catch { /* ignore */ }
+  }, [searchParams, projects]);
+
+  // Scroll to highlighted row once programs are loaded
+  useEffect(() => {
+    if (highlightModule && highlightRowRef.current) {
+      highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightModule, programsMap]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -813,6 +859,8 @@ export default function ProgramsPage() {
                   query={query}
                   onNavigate={name => router.push(`/programs/${name}`)}
                   onViewSource={name => setSourceViewer(name)}
+                  highlightModule={highlightModule}
+                  highlightRowRef={highlightRowRef}
                 />
                 <div style={{ padding: '12px 16px', background: '#FFFBEB', borderTop: '1px solid #FDE68A', fontSize: 13, color: '#92400E' }}>
                   Demo data — connect a project in the sidebar to analyse real COBOL programs.
@@ -829,8 +877,13 @@ export default function ProgramsPage() {
                 programs={currentPrograms}
                 loading={isLoading}
                 query={query}
-                onNavigate={name => router.push(`/programs/${name}`)}
+                onNavigate={name => {
+                  try { sessionStorage.setItem('maven_last_program', JSON.stringify({ name, repoId: selectedProject?.id })); } catch { /* ignore */ }
+                  router.push(`/programs/${name}`);
+                }}
                 onViewSource={name => setSourceViewer(name)}
+                highlightModule={highlightModule}
+                highlightRowRef={highlightRowRef}
               />
             )}
           </div>
@@ -842,5 +895,13 @@ export default function ProgramsPage() {
         <SourceModal name={sourceViewer} onClose={() => setSourceViewer(null)} />
       )}
     </div>
+  );
+}
+
+export default function ProgramsPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProgramsPageContent />
+    </Suspense>
   );
 }
