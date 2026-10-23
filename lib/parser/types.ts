@@ -162,6 +162,31 @@ export interface PerformEdge {
   condition?: string;
 }
 
+export interface CodeQualityFinding {
+  severity: 'critical' | 'high' | 'medium' | 'low' | 'info';
+  category: string;
+  description: string;
+  location?: string;
+  recommendation: string;
+}
+
+export interface CodeQualityAnalysis {
+  vulnerabilities: CodeQualityFinding[];
+  redundancy: CodeQualityFinding[];
+  standards: CodeQualityFinding[];
+  performance: CodeQualityFinding[];
+  summary: {
+    score: number; // 0–100
+    grade: 'A' | 'B' | 'C' | 'D' | 'F';
+    totalFindings: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+  };
+  generatedAt: string;
+}
+
 export interface InternalFlow {
   paragraphs: ParagraphNode[];
   sections: string[];
@@ -169,6 +194,8 @@ export interface InternalFlow {
   entryParagraph: string;
   /** LLM-generated detailed Mermaid CFG (populated by full analyze pipeline) */
   mermaidCfg?: string;
+  /** LLM-generated code quality analysis */
+  codeQuality?: CodeQualityAnalysis;
 }
 
 export interface ParsedCobolProgram {

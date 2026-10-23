@@ -933,3 +933,91 @@ List any ambiguities, dead code, or static-analysis limitations found.
 ${language} source for "${programName}":
 ${truncated}`;
 }
+
+/**
+ * Prompt for LLM-driven code quality analysis: vulnerabilities, redundancy, standards, performance.
+ */
+export function codeQualityPrompt(source: string, programName: string, language: string): string {
+  const truncated = source.length > 10000 ? source.slice(0, 10000) + '\n... (truncated)' : source;
+  return `Perform a detailed code quality analysis for the ${language} program "${programName}".
+
+Analyse the source code across FOUR dimensions and return findings in each:
+
+1. VULNERABILITIES — security risks and defects that could cause incorrect or unsafe behaviour:
+   - Hardcoded credentials, connection strings, or sensitive literals
+   - SQL injection: dynamic SQL built from unvalidated input fields
+   - Missing SQLCODE / FILE-STATUS checks after I/O operations
+   - Unchecked CALL return codes that could silently propagate errors
+   - Missing AT END handling on READ statements
+   - Buffer or field-size mismatches that could corrupt data
+   - Race conditions or shared-resource issues
+
+2. REDUNDANCY — dead or duplicated code that increases maintenance cost:
+   - Paragraphs defined but never PERFORMED or referenced (dead code)
+   - Identical or near-identical logic blocks copy-pasted in multiple places
+   - COPY members included but never referenced
+   - Working-Storage fields declared but never written or read
+   - Conditions that are always true or always false (unreachable branches)
+
+3. STANDARDS — deviations from COBOL / ${language} coding standards and best practices:
+   - Non-standard or inconsistent naming conventions for data names and paragraphs
+   - Missing or incorrectly structured DIVISIONS / SECTIONS
+   - Use of obsolete verbs (ALTER, GO TO with no structured alternative)
+   - Deeply nested IFs beyond 3–4 levels without EVALUATE
+   - Overly long paragraphs (>50 executable statements) that should be decomposed
+   - Missing program-level comments / identification details
+   - Inconsistent indentation or formatting
+
+4. PERFORMANCE — patterns that may cause runtime inefficiency:
+   - Repeated OPEN/CLOSE of the same file inside a loop
+   - Repeated identical SQL queries in a loop without caching
+   - Nested cursor loops that could be collapsed into a single SQL join
+   - Inefficient table scans where indexed access is possible
+   - Excessive SORT operations on large files
+   - STRING/UNSTRING operations on very large fields in tight loops
+   - Unnecessary data movement (MOVE of the same value repeatedly)
+
+SCORING:
+After analysing, assign an overall code quality score 0–100 and letter grade:
+  90–100 = A (excellent), 75–89 = B (good), 60–74 = C (acceptable), 40–59 = D (poor), 0–39 = F (critical)
+
+SEVERITY levels: critical | high | medium | low | info
+
+OUTPUT FORMAT — return exactly this JSON inside <code_quality> tags (no markdown fences):
+
+<code_quality>
+{
+  "vulnerabilities": [
+    { "severity": "high", "category": "Missing error check", "description": "EXEC SQL SELECT at line 120 has no SQLCODE check", "location": "Line 120", "recommendation": "Add IF SQLCODE NOT = 0 handler after every EXEC SQL" }
+  ],
+  "redundancy": [
+    { "severity": "medium", "category": "Dead paragraph", "description": "9999-OLD-LOGIC is defined but never PERFORMED", "location": "Line 340", "recommendation": "Remove or annotate with reason for retention" }
+  ],
+  "standards": [
+    { "severity": "low", "category": "Naming convention", "description": "WS-TEMP used as an abbreviation; should be WS-TEMPORARY-FIELD", "location": "Line 55", "recommendation": "Use descriptive, hyphen-separated names per IBM COBOL conventions" }
+  ],
+  "performance": [
+    { "severity": "medium", "category": "Loop I/O", "description": "OPEN CUSTOMER-FILE inside PERFORM VARYING at line 210 re-opens file each iteration", "location": "Line 210", "recommendation": "Move OPEN/CLOSE outside the loop" }
+  ],
+  "summary": {
+    "score": 72,
+    "grade": "C",
+    "totalFindings": 4,
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 1
+  }
+}
+</code_quality>
+
+Rules:
+- Include only REAL findings with clear evidence from the source. Do not invent findings.
+- If a category has no findings, return an empty array for that key.
+- location should be "Line NNN" or "Lines NNN–MMM" or "Paragraph PARA-NAME" — precise enough to locate in the source.
+- description should be one concise sentence stating the actual finding.
+- recommendation should be actionable.
+
+${language} source for "${programName}":
+${truncated}`;
+}

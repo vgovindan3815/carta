@@ -35,6 +35,7 @@ function buildStream(name: string): Response {
         const {
           getProgram, getRepo, saveDepGraph, saveProgramSource, getProgramSource, createJob, updateJob, appendJobLog,
         } = await import('@/lib/db/queries');
+        const { getMostRecentDepGraph } = await import('@/lib/db/knowledge');
         const { parseCobolFile } = await import('@/lib/parser/cobol');
         const { parseJclFile } = await import('@/lib/parser/jcl');
         const { parsePliFile } = await import('@/lib/parser/pli');
@@ -134,13 +135,25 @@ function buildStream(name: string): Response {
           await persist('INFO', `Paragraphs: <span class="hl">${parsed.internalFlow.paragraphs.length}</span> · PERFORM edges: <span class="hl">${parsed.internalFlow.performEdges.length}</span>`);
         }
 
+        // Carry forward mermaidCfg and codeQuality from the previous dep_graph so a
+        // Refresh Graph does not wipe the LLM-generated Detailed CFG or quality analysis.
+        const prevDepGraph = await getMostRecentDepGraph(prog.id);
+        const prevFlow = prevDepGraph?.internalFlow as (typeof parsed.internalFlow & { mermaidCfg?: string; codeQuality?: unknown }) | null;
+        const internalFlowWithPreserved = parsed.internalFlow
+          ? {
+              ...parsed.internalFlow,
+              ...(prevFlow?.mermaidCfg ? { mermaidCfg: prevFlow.mermaidCfg } : {}),
+              ...(prevFlow?.codeQuality ? { codeQuality: prevFlow.codeQuality } : {}),
+            }
+          : parsed.internalFlow;
+
         const cLayoutNodes = parsed.graph.nodes.filter((n) => n.cx !== undefined);
         await saveDepGraph(prog.id, job.id, {
           nodes: parsed.graph.nodes,
           edges: parsed.graph.edges,
           coveragePct: parsed.graph.coveragePct,
           cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
-          internalFlow: parsed.internalFlow,
+          internalFlow: internalFlowWithPreserved,
         });
 
         await updateJob(job.id, { status: 'completed', phase: 'done', progressPct: 100, completedAt: new Date(), tokensUsed: 0 });

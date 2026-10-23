@@ -9,12 +9,13 @@ import BusinessRules from '@/components/panels/BusinessRules';
 import ChangeImpact from '@/components/panels/ChangeImpact';
 import ModernizationSpec from '@/components/panels/ModernizationSpec';
 import InternalFlowTab from '@/components/panels/InternalFlowTab';
+import CodeQuality from '@/components/panels/CodeQuality';
 import { ApiKeyGate } from '@/components/ApiKeyGate';
 import { useApiKey } from '@/hooks/useApiKey';
 import type { ProgramData } from '@/lib/parser/types';
 
 type Phase = 'processing' | 'hub' | 'not-found';
-type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec' | 'flow';
+type TabId = 'overview' | 'dependency' | 'business' | 'impact' | 'spec' | 'flow' | 'quality';
 
 interface LogLine {
   lv: string;
@@ -741,6 +742,7 @@ export default function ProgramHubPage() {
               { id: 'business' as TabId, label: 'Business Rules', icon: '📋' },
               { id: 'impact' as TabId, label: 'Change Impact', icon: '💥' },
               { id: 'spec' as TabId, label: 'Modernization Spec', icon: '🏗️' },
+              { id: 'quality' as TabId, label: 'Code Quality', icon: '🔬' },
               ...(programData?.internalFlow ? [{ id: 'flow' as TabId, label: 'Internal flow', icon: '🔀' }] : []),
             ]
           ).map((tab) => (
@@ -777,6 +779,11 @@ export default function ProgramHubPage() {
                 program={programData}
                 onRefreshed={(updated) => setProgramData(updated)}
               />
+            </div>
+          )}
+          {activeTab === 'quality' && (
+            <div className="tab-panel">
+              <CodeQuality program={programData} />
             </div>
           )}
           {activeTab === 'flow' && programData?.internalFlow && (

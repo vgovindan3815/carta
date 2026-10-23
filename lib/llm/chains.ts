@@ -11,6 +11,7 @@ import type {
   RuleCard,
   GraphDiscrepancy,
   AppCapability,
+  CodeQualityAnalysis,
 } from '../parser/types';
 import type { CallLLM } from './types';
 import {
@@ -24,6 +25,7 @@ import {
   appBrdPrompt,
   appModSpecPrompt,
   mermaidCfgPrompt,
+  codeQualityPrompt,
 } from './prompts';
 
 // ---------------------------------------------------------------------------
@@ -572,6 +574,38 @@ export function createChains(callLLM: CallLLM) {
     return { mermaid, tokensUsed: totalTokens };
   }
 
+  /** Analyse source for vulnerabilities, redundancy, standards violations and performance issues. */
+  async function generateCodeQuality(
+    source: string,
+    programName: string,
+    language: string
+  ): Promise<{ quality: CodeQualityAnalysis; tokensUsed: number }> {
+    const { text: raw, totalTokens } = await callLLM(
+      'You are a mainframe code quality analyst. Return findings strictly as JSON inside <code_quality>...</code_quality> tags.',
+      codeQualityPrompt(source, programName, language),
+      4000
+    );
+
+    const match = /<code_quality>([\s\S]*?)<\/code_quality>/i.exec(raw);
+    const jsonStr = match ? match[1].trim() : raw.trim();
+
+    let quality: CodeQualityAnalysis;
+    try {
+      quality = JSON.parse(jsonStr) as CodeQualityAnalysis;
+    } catch {
+      // Fallback: try to extract any JSON object from the response
+      const objMatch = /(\{[\s\S]*\})/.exec(jsonStr);
+      if (objMatch) {
+        quality = JSON.parse(objMatch[1]) as CodeQualityAnalysis;
+      } else {
+        throw new Error('Failed to parse code quality JSON from LLM response');
+      }
+    }
+
+    quality.generatedAt = new Date().toISOString();
+    return { quality, tokensUsed: totalTokens };
+  }
+
   return {
     generateDepGraph,
     generateBusinessRules,
@@ -582,5 +616,6 @@ export function createChains(callLLM: CallLLM) {
     generateAppBrd,
     generateAppModSpec,
     generateMermaidCFG,
+    generateCodeQuality,
   };
 }

@@ -33,6 +33,23 @@ export async function saveDepGraph(
   return row.id;
 }
 
+/** Attach LLM-generated code quality analysis to an existing dep_graph row's internalFlow JSONB. */
+export async function updateDepGraphCodeQuality(depGraphId: string, codeQuality: unknown): Promise<void> {
+  const db = getDb();
+  const [row] = await db
+    .select({ internalFlow: schema.depGraphs.internalFlow })
+    .from(schema.depGraphs)
+    .where(eq(schema.depGraphs.id, depGraphId))
+    .limit(1);
+  if (!row) return;
+  const current = (row.internalFlow ?? {}) as Record<string, unknown>;
+  const updated = { ...current, codeQuality };
+  await db
+    .update(schema.depGraphs)
+    .set({ internalFlow: updated as (typeof schema.depGraphs.$inferInsert)['internalFlow'] })
+    .where(eq(schema.depGraphs.id, depGraphId));
+}
+
 /** Attach LLM-generated Mermaid CFG to an existing dep_graph row's internalFlow JSONB. */
 export async function updateDepGraphMermaid(depGraphId: string, mermaidCfg: string): Promise<void> {
   const db = getDb();
