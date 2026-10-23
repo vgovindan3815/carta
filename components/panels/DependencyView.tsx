@@ -129,7 +129,7 @@ function NodeShape({ n, selected }: { n: GraphNode; selected: boolean }) {
 
 // ─── Sub-component: code inspector panel ─────────────────────────────────────
 function CodeInspector({
-  inspected, program, loadedSource, loading, onLoad, onNavigate,
+  inspected, program, loadedSource, loading, onLoad, onNavigate, renderMode,
 }: {
   inspected: { id: string; type: string; lineStart?: number; lineEnd?: number } | null;
   program: ProgramData;
@@ -137,13 +137,23 @@ function CodeInspector({
   loading: string | null;
   onLoad: (name: string) => void;
   onNavigate: (url: string) => void;
+  renderMode: 'graph' | 'mermaid';
 }) {
   if (!inspected) {
     return (
       <div style={{ padding: 20, color: '#9CA3AF', fontSize: 12, textAlign: 'center', marginTop: 60 }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>◎</div>
-        <div>Click any node in the graph to inspect it</div>
-        <div style={{ marginTop: 8, fontSize: 11 }}>Drag nodes to rearrange the layout</div>
+        {renderMode === 'mermaid' ? (
+          <>
+            <div>Click any node in the CFG to view its source</div>
+            <div style={{ marginTop: 8, fontSize: 11 }}>Paragraph nodes jump to the matching code block</div>
+          </>
+        ) : (
+          <>
+            <div>Click any node in the graph to inspect it</div>
+            <div style={{ marginTop: 8, fontSize: 11 }}>Drag nodes to rearrange the layout</div>
+          </>
+        )}
       </div>
     );
   }
@@ -435,6 +445,11 @@ export default function DependencyView({ program: p }: Props) {
   const cNodesRef = useRef<GraphNode[]>([]);
   const mermaidRef = useRef<HTMLDivElement>(null);
   const mermaidIdRef = useRef(0);
+  // Kept current via effect so Mermaid click closures never go stale
+  const paragraphsRef = useRef(p.internalFlow?.paragraphs ?? []);
+  useEffect(() => { paragraphsRef.current = p.internalFlow?.paragraphs ?? []; }, [p.internalFlow?.paragraphs]);
+  const loadedSourceRef = useRef(loadedSource);
+  useEffect(() => { loadedSourceRef.current = loadedSource; }, [loadedSource]);
 
   // ── Layout computation ───────────────────────────────────────────────────
   const baseLayout = p.cLayout ?? {
@@ -624,13 +639,44 @@ export default function DependencyView({ program: p }: Props) {
       try {
         const uid = `mm-${++mermaidIdRef.current}`;
         const { svg } = await mermaid.render(uid, mermaidDef);
-        if (!cancelled && mermaidRef.current) mermaidRef.current.innerHTML = svg;
+        if (!cancelled && mermaidRef.current) {
+          mermaidRef.current.innerHTML = svg;
+          // Wire click-to-inspect: clicking a Mermaid CFG node shows its source in the Code Inspector
+          const paragraphs = paragraphsRef.current;
+          mermaidRef.current.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
+            nodeEl.style.cursor = 'pointer';
+            nodeEl.addEventListener('click', (e) => {
+              e.stopPropagation();
+              // Extract visible text from label, collapsing whitespace
+              const rawText = (nodeEl.textContent ?? '').trim().replace(/\s+/g, ' ');
+              const up = rawText.toUpperCase();
+
+              // 1. Exact paragraph name match
+              let match = paragraphs.find(par => par.name === up);
+
+              // 2. Strip leading verb (PERFORM, CALL) and take first token
+              if (!match) {
+                const stripped = up.replace(/^(PERFORM|CALL|EXEC)\s+/, '').split(/[\s.(]/)[0];
+                if (stripped) match = paragraphs.find(par => par.name === stripped);
+              }
+
+              // 3. Any paragraph name contained in the label text
+              if (!match) match = paragraphs.find(par => up.includes(par.name));
+
+              if (match) {
+                setInspected({ id: `para:${match.name}`, type: 'para', lineStart: match.lineStart, lineEnd: match.lineEnd });
+                if (loadedSourceRef.current[p.name] === undefined) loadSource(p.name);
+              }
+            });
+          });
+        }
       } catch (err) {
         console.error('[Mermaid] render error', err);
       }
     };
     render();
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mermaidDef]);
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -764,6 +810,7 @@ export default function DependencyView({ program: p }: Props) {
               loading={loadingSource}
               onLoad={loadSource}
               onNavigate={router.push}
+              renderMode={renderMode}
             />
           </div>
         </div>
