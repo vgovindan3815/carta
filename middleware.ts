@@ -32,7 +32,7 @@ export default async function middleware(req: NextRequest) {
   }
 
   // 3. Standard NextAuth token check for everything else
-  const token = await getToken({ req });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   if (!token) {
     // Redirect pages to /login; return 401 for API routes

@@ -20,7 +20,7 @@ export interface ResolvedApiConfig {
  * BYOK from URL query params (?p=<provider>&k=<key>) instead.
  */
 export async function resolveApiConfig(req: NextRequest): Promise<ResolvedApiConfig | null> {
-  const token = await getToken({ req });
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   if (token) {
     // Authenticated: use DB settings (same as existing getLLMSettings())
