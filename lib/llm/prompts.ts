@@ -759,22 +759,23 @@ CONDITIONAL LOGIC — show every material occurrence:
   - Decision node label MUST contain the actual condition: e.g. {WS-STATUS = 'A'?} or {SQLCODE = 0?}
 
 PERFORM
-  - PERFORM paragraph-name → subroutine node [[paragraph-name]]
-  - PERFORM section-name → subroutine node [[section-name]]
-  - PERFORM para-A THRU para-B → subroutine node [[para-A THRU para-B]]
+  - PERFORM paragraph-name → define nodeId[["PERFORM paragraph-name"]] then edge to that nodeId
+  - PERFORM section-name → define nodeId[["PERFORM section-name"]] then edge to that nodeId
+  - PERFORM para-A THRU para-B → define nodeId[["PERFORM para-A THRU para-B"]] then edge to nodeId
   - PERFORM UNTIL / VARYING / TIMES → show: [Init loop vars] → {loop condition?} → [loop body] → [increment] → loop-back edge → exit
-  - Inline PERFORM → inline subroutine node
+  - Inline PERFORM → inline subroutine node using nodeId[["label"]]
   - Do NOT represent PERFORM UNTIL as a simple sequential call
+  - NEVER write `source --> [[label]]`; always write `source --> nodeId` where nodeId is defined as `nodeId[["label"]]`
 
 GO TO / CONTROL TRANSFER
-  - GO TO paragraph → arrow to target paragraph node
-  - GO TO DEPENDING ON → one outgoing edge per possible target
+  - GO TO paragraph → arrow to target paragraph node (use paragraph's nodeId)
+  - GO TO DEPENDING ON → one outgoing edge per possible target nodeId
   - ALTER → show the altered target
   - Paragraph fall-through where no EXIT stops it
 
 CALLS
-  - CALL 'literal' → subroutine [[CALL 'literal']]
-  - CALL variable → subroutine [[CALL (variable-name)]]
+  - CALL 'literal' → define call_node[["CALL 'literal'"]] and add edge to call_node
+  - CALL variable → define call_node[["CALL (variable-name)"]] and add edge to call_node
   - Dynamic CALLs where identifiable
   - Label the node with the called program or variable name
 
@@ -824,13 +825,35 @@ If a target cannot be resolved: create node [Unresolved: target-name]
 Format: flowchart TD
 
 Node shapes (use consistently):
-  Start/End:              ([label])   ← rounded
-  Processing block:       [label]     ← rectangle
-  Decision (IF/EVALUATE): {label?}   ← diamond
-  PERFORM/CALL:           [[label]]  ← subroutine double-border
-  I/O / SQL operation:    [label]     ← rectangle with descriptive label
-  Error termination:      ([ABEND])   ← distinct rounded node
-  Data store:             [(label)]   ← cylinder
+  Start/End:              nodeId([label])      ← rounded
+  Processing block:       nodeId[label]        ← rectangle
+  Decision (IF/EVALUATE): nodeId{label?}      ← diamond
+  PERFORM/CALL:           nodeId[["label"]]   ← subroutine double-border
+  I/O / SQL operation:    nodeId[label]        ← rectangle with descriptive label
+  Error termination:      nodeId([ABEND])      ← distinct rounded node
+  Data store:             nodeId[(label)]      ← cylinder
+
+⚠️  CRITICAL MERMAID SYNTAX RULE — READ CAREFULLY:
+Every node MUST have a unique nodeId BEFORE the shape brackets.
+nodeId is a simple alphanumeric identifier (letters, digits, underscores).
+
+CORRECT:
+  p1_VALIDATE[["PERFORM VALIDATE-CUSTOMER"]]   %% subroutine node definition
+  p2_CHECK{"WS-STATUS = 'A'?"}                 %% decision node definition
+  A --> p1_VALIDATE                             %% edge to subroutine node
+  p1_VALIDATE --> p2_CHECK                      %% edge between nodes
+
+WRONG — will cause parse errors:
+  A --> [[VALIDATE-CUSTOMER]]     %% INVALID: no nodeId before [[
+  A --> [["label"]]               %% INVALID: no nodeId before [[
+  --> [[label]]                   %% INVALID: always need nodeId first
+
+RULE: In edges (-->) the target MUST be a plain nodeId, NEVER a shape expression.
+Define the subroutine node shape separately, then reference it by its nodeId.
+
+Example — PERFORM VALIDATE-CUSTOMER:
+  validate_para[["PERFORM VALIDATE-CUSTOMER"]]  %% define node
+  source_node --> validate_para                  %% edge uses nodeId only
 
 Subgraph hierarchy:
   COBOL: subgraph PROGRAM → subgraph SECTION → paragraph nodes

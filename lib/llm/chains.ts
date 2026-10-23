@@ -536,6 +536,39 @@ export function createChains(callLLM: CallLLM) {
       .replace(/```\s*$/i, '')
       .trim();
 
+    // Fix invalid Mermaid: edge targets cannot use [[...]] shape notation without a node ID.
+    // LLMs often generate `source --> [[label]]` which Mermaid rejects (SUBROUTINESTART error).
+    // Fix: `source --> [[label]]`  →  `source --> _nodeId` + define `_nodeId[["label"]]`
+    // Also handles: `source -->|edge label| [[label]]`
+    const extraDefs: string[] = [];
+    mermaid = mermaid.replace(
+      /(--[->](?:\|[^|]*\|)?)\s*\[\[([^\]]+)\]\]/g,
+      (_match, arrow, label) => {
+        const nodeId = '_' + label.trim()
+          .replace(/[^a-zA-Z0-9]/g, '_')
+          .replace(/_+/g, '_')
+          .replace(/^_|_$/g, '')
+          .slice(0, 40) || 'node';
+        const safeLabel = label.trim().replace(/"/g, "'");
+        if (!extraDefs.some(d => d.includes(nodeId + '[['))) {
+          extraDefs.push(`  ${nodeId}[["${safeLabel}"]]`);
+        }
+        return `${arrow} ${nodeId}`;
+      }
+    );
+    if (extraDefs.length > 0) {
+      // Append synthesised node definitions after the flowchart header line
+      const headerEnd = mermaid.indexOf('\n');
+      if (headerEnd !== -1) {
+        mermaid = mermaid.slice(0, headerEnd + 1) +
+          '%% Auto-fixed subroutine node definitions\n' +
+          extraDefs.join('\n') + '\n' +
+          mermaid.slice(headerEnd + 1);
+      } else {
+        mermaid += '\n' + extraDefs.join('\n');
+      }
+    }
+
     return { mermaid, tokensUsed: totalTokens };
   }
 
