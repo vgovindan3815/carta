@@ -765,7 +765,7 @@ PERFORM
   - PERFORM UNTIL / VARYING / TIMES → show: [Init loop vars] → {loop condition?} → [loop body] → [increment] → loop-back edge → exit
   - Inline PERFORM → inline subroutine node using nodeId[["label"]]
   - Do NOT represent PERFORM UNTIL as a simple sequential call
-  - NEVER write `source --> [[label]]`; always write `source --> nodeId` where nodeId is defined as `nodeId[["label"]]`
+  - NEVER write "source --> [[label]]"; always write "source --> nodeId" where nodeId is defined as nodeId[["label"]]
 
 GO TO / CONTROL TRANSFER
   - GO TO paragraph → arrow to target paragraph node (use paragraph's nodeId)
