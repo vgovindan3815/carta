@@ -66,7 +66,7 @@ export async function GET(
           return;
         }
 
-        const eligible = files.filter((f) => f.language !== 'other').slice(0, 100);
+        const eligible = files.filter((f) => f.language !== 'other');
         await updateScanJob(jobId, { totalFiles: eligible.length });
         enc(controller, 'progress', { done: 0, total: eligible.length });
 

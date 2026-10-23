@@ -27,6 +27,96 @@ interface ProgramRow {
   lastAnalyzedAt: string | null;
 }
 
+// ── Source viewer modal ──────────────────────────────────────────────────────
+function SourceModal({ name, onClose }: { name: string; onClose: () => void }) {
+  const [source, setSource] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`/api/programs/${encodeURIComponent(name)}/source`);
+        const data = await res.json();
+        if (data.sourceText) setSource(data.sourceText);
+        else setError(data.error ?? 'Source not available for this program.');
+      } catch (e) {
+        setError(String(e));
+      } finally { setLoading(false); }
+    })();
+  }, [name]);
+
+  const lines = source ? source.split('\n') : [];
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 10000,
+        background: 'rgba(15,23,42,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: '#0F172A', border: '1px solid #1E293B', borderRadius: 10,
+          width: '90vw', maxWidth: 1100, height: '85vh',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+        }}
+      >
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: '1px solid #1E293B', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, fontSize: 15, color: '#38BDF8' }}>{name}</span>
+          {source && (
+            <span style={{ fontSize: 12, color: '#64748B', background: '#1E293B', padding: '2px 10px', borderRadius: 20 }}>
+              {lines.length.toLocaleString()} lines
+            </span>
+          )}
+          <div style={{ flex: 1 }} />
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: '1px solid #334155', borderRadius: 6, padding: '4px 12px', color: '#94A3B8', cursor: 'pointer', fontSize: 13 }}
+          >
+            ✕ Close
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748B', fontSize: 14 }}>Loading source…</div>
+          )}
+          {error && (
+            <div style={{ textAlign: 'center', padding: '60px 0', color: '#F87171', fontSize: 14 }}>{error}</div>
+          )}
+          {source && (
+            <table style={{ borderCollapse: 'collapse', width: '100%', fontFamily: 'Consolas,monospace', fontSize: 13 }}>
+              <tbody>
+                {lines.map((line, i) => (
+                  <tr key={i} style={{ lineHeight: 1.5 }}>
+                    <td style={{
+                      padding: '0 14px 0 16px', color: '#475569', textAlign: 'right',
+                      userSelect: 'none', width: 48, borderRight: '1px solid #1E293B',
+                      background: '#0D1526', fontSize: 11,
+                    }}>
+                      {i + 1}
+                    </td>
+                    <td style={{ padding: '0 16px', color: '#CBD5E1', whiteSpace: 'pre', background: i % 2 === 0 ? '#0F172A' : '#0D1526' }}>
+                      {line || ' '}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Status helpers ───────────────────────────────────────────────────────────
 type DotState = 'ok' | 'cast' | 'warn' | 'none';
 
@@ -93,7 +183,7 @@ function ActionBtn({
 }
 
 // ── Program table row ────────────────────────────────────────────────────────
-function ProgramTableRow({ prog, onOpen }: { prog: ProgramRow; onOpen: () => void }) {
+function ProgramTableRow({ prog, onOpen, onViewSource }: { prog: ProgramRow; onOpen: () => void; onViewSource: () => void }) {
   const ds = prog.docStatus ?? (prog.status === 'analyzed' ? 'documented' : 'not_analyzed');
   const graph = getGraphState(ds);
   const biz   = getBizState(ds);
@@ -146,6 +236,7 @@ function ProgramTableRow({ prog, onOpen }: { prog: ProgramRow; onOpen: () => voi
               <ActionBtn label="Analyse" kind="gray" onClick={onOpen} />
             </>
           )}
+          <ActionBtn label="View source" kind="gray" onClick={onViewSource} />
         </div>
       </td>
     </tr>
@@ -158,11 +249,13 @@ function ProgramTable({
   loading,
   query,
   onNavigate,
+  onViewSource,
 }: {
   programs: ProgramRow[];
   loading: boolean;
   query: string;
   onNavigate: (name: string) => void;
+  onViewSource: (name: string) => void;
 }) {
   const filtered = query.trim()
     ? programs.filter(p =>
@@ -234,7 +327,7 @@ function ProgramTable({
         </thead>
         <tbody>
           {filtered.map(prog => (
-            <ProgramTableRow key={prog.name} prog={prog} onOpen={() => onNavigate(prog.name)} />
+            <ProgramTableRow key={prog.name} prog={prog} onOpen={() => onNavigate(prog.name)} onViewSource={() => onViewSource(prog.name)} />
           ))}
         </tbody>
       </table>
@@ -481,6 +574,7 @@ export default function ProgramsPage() {
   const [showNewForm, setShowNewForm]   = useState(false);
   const [query, setQuery]               = useState('');
   const [toast, setToast]               = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
+  const [sourceViewer, setSourceViewer] = useState<string | null>(null);
   const [isRealData, setIsRealData]     = useState(false);
 
   useEffect(() => { fetchProjects(); }, []);
@@ -718,6 +812,7 @@ export default function ProgramsPage() {
                   loading={false}
                   query={query}
                   onNavigate={name => router.push(`/programs/${name}`)}
+                  onViewSource={name => setSourceViewer(name)}
                 />
                 <div style={{ padding: '12px 16px', background: '#FFFBEB', borderTop: '1px solid #FDE68A', fontSize: 13, color: '#92400E' }}>
                   Demo data — connect a project in the sidebar to analyse real COBOL programs.
@@ -735,11 +830,17 @@ export default function ProgramsPage() {
                 loading={isLoading}
                 query={query}
                 onNavigate={name => router.push(`/programs/${name}`)}
+                onViewSource={name => setSourceViewer(name)}
               />
             )}
           </div>
         </main>
       </div>
+
+      {/* Source viewer modal */}
+      {sourceViewer && (
+        <SourceModal name={sourceViewer} onClose={() => setSourceViewer(null)} />
+      )}
     </div>
   );
 }
