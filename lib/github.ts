@@ -120,8 +120,14 @@ export async function listCobolFiles(
 /**
  * Fetches the raw content of a file from GitHub, decodes it from base64,
  * and returns it as a UTF-8 string.
+ *
+ * Strategy (fastest to slowest):
+ *   1. raw.githubusercontent.com CDN — no base64, no rate limits, works for
+ *      both public repos and private repos with a PAT.
+ *   2. GitHub Contents API (repos.getContent) as fallback (e.g. when `ref`
+ *      is a commit SHA not reachable via the CDN path).
  */
-const FETCH_TIMEOUT_MS = 12000;
+const FETCH_TIMEOUT_MS = 30_000; // 30 s — large COBOL files can be slow
 
 export async function fetchFileContent(
   owner: string,
@@ -130,31 +136,46 @@ export async function fetchFileContent(
   ref: string,
   pat?: string
 ): Promise<string> {
+  // ── 1. Raw CDN path (fast, no API quota) ─────────────────────────────────
+  const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${encodeURIComponent(ref)}/${path}`;
+  try {
+    const headers: Record<string, string> = {};
+    if (pat) headers['Authorization'] = `token ${pat}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    try {
+      const res = await fetch(rawUrl, { headers, signal: controller.signal });
+      if (res.ok) return await res.text();
+      // 404 → file not at this ref via CDN; fall through to API
+      // 401/403 → PAT issue or private repo; fall through to API which gives a better error
+    } finally {
+      clearTimeout(timer);
+    }
+  } catch {
+    // Network error or abort — fall through to API
+  }
+
+  // ── 2. GitHub Contents API (handles SHAs, redirects, edge cases) ─────────
   const octokit = makeOctokit(pat);
 
   const fetchPromise = withRetry(() =>
     octokit.repos.getContent({ owner, repo, path, ref })
   );
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`GitHub fetch timed out after ${FETCH_TIMEOUT_MS / 1000}s for "${path}"`)), FETCH_TIMEOUT_MS)
+    setTimeout(
+      () => reject(new Error(`GitHub fetch timed out after ${FETCH_TIMEOUT_MS / 1000}s for "${path}"`)),
+      FETCH_TIMEOUT_MS
+    )
   );
 
   const { data } = await Promise.race([fetchPromise, timeoutPromise]);
 
-  // getContent returns an array for directories; for a file it returns a single object
-  if (Array.isArray(data)) {
-    throw new Error(`Path "${path}" is a directory, not a file.`);
-  }
-
-  if (data.type !== 'file') {
-    throw new Error(`Unexpected content type "${data.type}" for path "${path}".`);
-  }
-
-  if (!('content' in data) || typeof data.content !== 'string') {
+  if (Array.isArray(data)) throw new Error(`Path "${path}" is a directory, not a file.`);
+  if (data.type !== 'file') throw new Error(`Unexpected content type "${data.type}" for path "${path}".`);
+  if (!('content' in data) || typeof data.content !== 'string')
     throw new Error(`No content returned for "${path}".`);
-  }
 
-  // GitHub returns content with newlines embedded in the base64 string
   const raw = data.content.replace(/\n/g, '');
   return Buffer.from(raw, 'base64').toString('utf-8');
 }
@@ -230,6 +251,8 @@ export async function parseGithubUrl(
  * Tries the git tree index so it costs only 1-2 API calls (no per-file fetches until a match).
  * Returns the source text if found, or null if not found.
  */
+const TREE_TIMEOUT_MS = 20_000; // 20 s — large repos' recursive trees can be slow
+
 export async function findProgramSource(
   owner: string,
   repo: string,
@@ -240,7 +263,7 @@ export async function findProgramSource(
   try {
     const octokit = makeOctokit(pat);
 
-    // Resolve branch to tree SHA — if the stored branch is wrong, auto-detect the default
+    // ── Resolve branch → commit SHA ──────────────────────────────────────────
     let refData: Awaited<ReturnType<typeof octokit.git.getRef>>['data'];
     try {
       ({ data: refData } = await withRetry(() =>
@@ -252,21 +275,27 @@ export async function findProgramSource(
         octokit.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` })
       ));
     }
-    const { data: treeData } = await withRetry(() =>
+
+    // ── Fetch recursive tree with timeout (large repos can hang) ─────────────
+    const treePromise = withRetry(() =>
       octokit.git.getTree({ owner, repo, tree_sha: refData.object.sha, recursive: 'true' })
     );
+    const treeTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Tree fetch timed out')), TREE_TIMEOUT_MS)
+    );
+    const { data: treeData } = await Promise.race([treePromise, treeTimeout]);
 
-    // Look for a file whose base name (without extension) matches the program name (case-insensitive)
+    // ── Find file by name (case-insensitive stem match) ───────────────────────
     const nameUpper = programName.toUpperCase();
-    const COBOL_EXTS = ['.cbl', '.cob', '.cobol', '.CBL', '.COB', '.COBOL'];
+    const COBOL_EXTS = ['.cbl', '.cob', '.cobol'];
     const match = treeData.tree.find((item) => {
       if (item.type !== 'blob' || !item.path) return false;
       const base = item.path.split('/').pop() ?? '';
       const dotIdx = base.lastIndexOf('.');
       if (dotIdx === -1) return false;
-      const ext = base.slice(dotIdx);
+      const ext = base.slice(dotIdx).toLowerCase();
       const stem = base.slice(0, dotIdx).toUpperCase();
-      return stem === nameUpper && COBOL_EXTS.some((e) => e.toLowerCase() === ext.toLowerCase());
+      return stem === nameUpper && COBOL_EXTS.includes(ext);
     });
 
     if (!match?.path) return null;
