@@ -96,7 +96,7 @@ export async function GET(
           const srcRow = await getProgramSource(prog.id);
           source = srcRow?.sourceText ?? null;
           if (!source) {
-            emit({ lv: 'WARN', t: `No stored source for ${prog.name} — running doc chains only…` });
+            emit({ lv: 'WARN', t: `No stored source found for ${prog.name}.` });
           }
         }
 
@@ -115,7 +115,7 @@ export async function GET(
               pat
             );
           } catch {
-            emit({ lv: 'WARN', t: `Source not found in GitHub — checking for existing CAST dep graph…` });
+            emit({ lv: 'WARN', t: `Could not fetch source from GitHub — ${prog.filePath} not found or inaccessible.` });
           }
         }
 
@@ -132,8 +132,8 @@ export async function GET(
             (line) => emit(line),
             llmConfig
           );
-        } else {
-          // No source available — use existing CAST dep graph and run LLM doc chains only
+        } else if (repo.githubUrl.startsWith('cast://')) {
+          // CAST import — no source file; rely on the pre-built dep graph from the CAST report
           await runCastLLMPipeline(
             jobId,
             prog.id,
@@ -142,6 +142,15 @@ export async function GET(
             (line) => emit(line),
             llmConfig
           );
+        } else {
+          // GitHub or upload repo — source was unavailable (fetch failed or not stored yet)
+          const why = repo.githubUrl.startsWith('upload://')
+            ? `No source stored for ${prog.name}. Re-upload the source file to re-run analysis.`
+            : `Could not fetch ${prog.filePath} from ${repo.owner}/${repo.repo}. Check that the file path and branch are correct, and that your GitHub PAT has read access to this repository.`;
+          emit({ lv: 'ERROR', t: `✕ ${why}` });
+          await updateJob(jobId, { status: 'failed', error: why, completedAt: new Date() });
+          emit({}, 'done');
+          return;
         }
 
         await updateJob(jobId, { status: 'completed', completedAt: new Date() });
