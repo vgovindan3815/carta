@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { checkAdminAuth, unauthorizedResponse } from '@/lib/auth';
+import { getToken } from 'next-auth/jwt';
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!checkAdminAuth(req)) return unauthorizedResponse();
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (!token || token.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden — admin only' }, { status: 403 });
+  }
 
   const { id } = await params;
   if (!process.env.DATABASE_URL) {

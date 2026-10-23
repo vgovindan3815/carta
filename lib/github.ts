@@ -160,6 +160,19 @@ export async function fetchFileContent(
 }
 
 /**
+ * Returns the default branch name for a GitHub repo (e.g. "main" or "master").
+ */
+export async function getDefaultBranch(
+  owner: string,
+  repo: string,
+  pat?: string
+): Promise<string> {
+  const octokit = makeOctokit(pat);
+  const { data } = await withRetry(() => octokit.repos.get({ owner, repo }));
+  return data.default_branch;
+}
+
+/**
  * Returns the SHA of the latest commit on the specified branch.
  */
 export async function getLatestCommitSha(
@@ -227,10 +240,18 @@ export async function findProgramSource(
   try {
     const octokit = makeOctokit(pat);
 
-    // Resolve branch to tree SHA
-    const { data: refData } = await withRetry(() =>
-      octokit.git.getRef({ owner, repo, ref: `heads/${branch}` })
-    );
+    // Resolve branch to tree SHA — if the stored branch is wrong, auto-detect the default
+    let refData: Awaited<ReturnType<typeof octokit.git.getRef>>['data'];
+    try {
+      ({ data: refData } = await withRetry(() =>
+        octokit.git.getRef({ owner, repo, ref: `heads/${branch}` })
+      ));
+    } catch {
+      const defaultBranch = await getDefaultBranch(owner, repo, pat);
+      ({ data: refData } = await withRetry(() =>
+        octokit.git.getRef({ owner, repo, ref: `heads/${defaultBranch}` })
+      ));
+    }
     const { data: treeData } = await withRetry(() =>
       octokit.git.getTree({ owner, repo, tree_sha: refData.object.sha, recursive: 'true' })
     );

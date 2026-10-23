@@ -102,25 +102,33 @@ export async function GET(
 
         if (!isLocalRepo) {
           const { decrypt } = await import('@/lib/crypto');
-          const { findProgramSource } = await import('@/lib/github');
+          const { findProgramSource, getDefaultBranch } = await import('@/lib/github');
           const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
 
-          emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo}…` });
+          // Stored branch may be "main" while the repo uses "master" — auto-correct on failure
+          let branch = repo.branch ?? 'main';
+          emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo} (${branch})…` });
 
           try {
-            source = await fetchFileContent(
-              repo.owner,
-              repo.repo,
-              prog.filePath,
-              repo.branch,
-              pat
-            );
+            source = await fetchFileContent(repo.owner, repo.repo, prog.filePath, branch, pat);
           } catch {
-            // Exact path failed — search the repo tree by program name (handles case/path mismatches)
-            emit({ lv: 'WARN', t: `Exact path not found — searching repo for ${prog.name}…` });
-            source = await findProgramSource(repo.owner, repo.repo, repo.branch, prog.name, pat);
-            if (source) {
-              emit({ lv: 'INFO', t: `Found ${prog.name} via name search.` });
+            // Branch or path wrong — try the repo's actual default branch
+            try {
+              const defaultBranch = await getDefaultBranch(repo.owner, repo.repo, pat);
+              if (defaultBranch !== branch) {
+                branch = defaultBranch;
+                emit({ lv: 'WARN', t: `Retrying with default branch "${branch}"…` });
+                source = await fetchFileContent(repo.owner, repo.repo, prog.filePath, branch, pat);
+              }
+            } catch { /* fall through */ }
+
+            if (!source) {
+              // Path still wrong — search the whole repo tree by program name
+              emit({ lv: 'WARN', t: `Searching repo for ${prog.name}…` });
+              source = await findProgramSource(repo.owner, repo.repo, branch, prog.name, pat);
+              if (source) {
+                emit({ lv: 'INFO', t: `Found ${prog.name} via name search.` });
+              }
             }
           }
         }

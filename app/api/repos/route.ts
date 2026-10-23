@@ -59,12 +59,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'GitHub integration not available' }, { status: 503 });
   }
 
-  // 1. Parse URL → owner/repo
+  // 1. Parse URL → owner/repo, auto-detect default branch
   let parsed: { owner: string; repo: string; branch: string };
   try {
     const result = await gh.parseGithubUrl(githubUrl);
     if (!result) throw new Error('Could not parse GitHub URL');
-    parsed = { ...result, branch: 'main' };
+    // Detect the actual default branch (main, master, develop, etc.)
+    let branch = 'main';
+    try {
+      const { getDefaultBranch } = await import('@/lib/github');
+      branch = await getDefaultBranch(result.owner, result.repo, pat ?? undefined);
+    } catch { /* fall back to 'main' if GitHub API is unreachable */ }
+    parsed = { ...result, branch };
   } catch (e) {
     return NextResponse.json({ error: `Invalid GitHub URL: ${e}` }, { status: 400 });
   }
