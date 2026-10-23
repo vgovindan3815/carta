@@ -178,6 +178,7 @@ export async function runAnalysisPipeline(
       edges: parsed.graph.edges,
       coveragePct: parsed.graph.coveragePct,
       cLayoutNodes: cLayoutNodes.length > 0 ? cLayoutNodes : undefined,
+      internalFlow: parsed.internalFlow ?? undefined,
     });
 
     await emit(jobId, done('Phase 1 complete — deterministic graph saved (source: static parser)'), onEvent);

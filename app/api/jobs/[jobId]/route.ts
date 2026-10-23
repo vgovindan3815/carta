@@ -102,6 +102,7 @@ export async function GET(
 
         if (!isLocalRepo) {
           const { decrypt } = await import('@/lib/crypto');
+          const { findProgramSource } = await import('@/lib/github');
           const pat = repo.patEncrypted ? decrypt(repo.patEncrypted) : undefined;
 
           emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo}…` });
@@ -115,7 +116,12 @@ export async function GET(
               pat
             );
           } catch {
-            emit({ lv: 'WARN', t: `Could not fetch source from GitHub — ${prog.filePath} not found or inaccessible.` });
+            // Exact path failed — search the repo tree by program name (handles case/path mismatches)
+            emit({ lv: 'WARN', t: `Exact path not found — searching repo for ${prog.name}…` });
+            source = await findProgramSource(repo.owner, repo.repo, repo.branch, prog.name, pat);
+            if (source) {
+              emit({ lv: 'INFO', t: `Found ${prog.name} via name search.` });
+            }
           }
         }
 
