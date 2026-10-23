@@ -3,11 +3,11 @@ import { getToken } from 'next-auth/jwt';
 
 // Read-only paths guests can access without a login session
 const GUEST_GET: RegExp[] = [
-  /^\/programs(\/|$)/,           // /programs and all sub-paths (UI pages)
-  /^\/api\/programs\/?$/,        // GET /api/programs  (list)
-  /^\/api\/programs\/[^/]+$/,    // GET /api/programs/[name]  (detail, no sub-paths)
-  /^\/api\/repos\/?$/,           // GET /api/repos  (list)
-  /^\/api\/jobs\//,              // GET /api/jobs/*  (SSE stream + status polling)
+  /^\/programs(\/|$)/,    // /programs and all sub-paths (UI pages)
+  /^\/api\/programs\//,   // GET /api/programs/* (list, detail, graph-only, staleness, source, …)
+  /^\/api\/programs$/,    // GET /api/programs  (list without trailing slash)
+  /^\/api\/repos\/?$/,    // GET /api/repos  (list)
+  /^\/api\/jobs\//,       // GET /api/jobs/*  (SSE stream + status polling)
 ];
 
 // LLM mutation routes guests may access if they supply their own API key header
@@ -68,7 +68,9 @@ export default async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    '/api/:path*',
+    // Exclude /api/auth/* — NextAuth handles its own endpoints; intercepting them breaks
+    // the client-side session fetch (CLIENT_FETCH_ERROR) for unauthenticated users.
+    '/api/((?!auth/).*)',
     '/programs/:path*',
     '/agents/:path*',
     '/scopes/:path*',
