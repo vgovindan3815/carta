@@ -732,49 +732,180 @@ OUTPUT RULES:
 
 /**
  * Prompt for generating a detailed Mermaid control-flow graph (CFG) from COBOL/JCL source.
- * Based on the MAVEN Mermaid graph instructions specification.
+ * Fully implements the MAVEN Mermaid graph instructions specification.
  */
 export function mermaidCfgPrompt(source: string, programName: string, language: string): string {
   const truncated = source.length > 8000 ? source.slice(0, 8000) + '\n... (truncated)' : source;
-  return `Generate a detailed Mermaid flowchart TD control-flow graph for the ${language} program "${programName}".
+  return `Generate a detailed Mermaid flowchart TD control-flow graph (CFG) for the ${language} program "${programName}".
 
-CRITICAL REQUIREMENTS — follow these exactly:
+PURPOSE: Allow a developer to understand the actual execution logic without reading every line of code.
+Do NOT generate a high-level architecture or paragraph-only dependency diagram.
 
-GRAPH FORMAT: Use \`flowchart TD\`
+━━━ GRAPH GRANULARITY ━━━
 
-NODE SHAPES — use consistently:
-  Start/End:             ([label]) rounded
-  Processing block:      [label] rectangle (group consecutive MOVE/INITIALIZE/COMPUTE with no branches)
-  Decision (IF/EVALUATE): {condition?} diamond — include the actual condition, e.g. {WS-STATUS = 'A'?}
-  PERFORM / CALL:        [[label]] subroutine double-border
-  I/O / SQL:             [label] rectangle, e.g. [READ CUSTOMER-FILE] or [EXEC SQL SELECT]
-  Error termination:     ([ABEND / STOP RUN])
+Represent ALL of the following where present in the source:
 
-WHAT TO REPRESENT:
-  - PROCEDURE DIVISION entry and STOP RUN / GOBACK as start/end nodes
-  - Every SECTION as a labeled subgraph
-  - Every paragraph as a named node or node group
-  - All IF / ELSE / nested IF: diamond {condition?} with Yes/No edge labels
-  - All EVALUATE: one diamond per EVALUATE, one edge per WHEN value + WHEN OTHER
-  - PERFORM paragraph: subroutine [[paragraph-name]]
-  - PERFORM UNTIL / VARYING: show init → condition diamond → body → increment → loop-back → exit
-  - GO TO: arrow to the target paragraph node
-  - CALL 'program': subroutine [[CALL 'program']]
-  - OPEN/CLOSE/READ/WRITE/REWRITE: rectangle e.g. [READ TRANS-FILE]
-  - READ AT END: diamond {AT END?} with AT END / NOT AT END branches
-  - EXEC SQL: rectangle [SQL SELECT FROM TABLE] with SQLCODE check diamond {SQLCODE = 0?}
-  - EXEC CICS LINK/XCTL: subroutine [[CICS LINK program]]
-  - FILE STATUS check: diamond {FILE-STATUS = '00'?}
+PROGRAM STRUCTURE
+  - Program entry (([${programName} START])) and exit (([STOP RUN]) / ([GOBACK]) / ([EXIT PROGRAM]))
+  - PROCEDURE DIVISION entry node
+  - Every SECTION boundary → Mermaid subgraph
+  - Every paragraph boundary → named node group within its section subgraph
+  - ENTRY points if present
+  - Abnormal termination paths
 
-EDGE LABELS: Yes/No for IF; WHEN 'X'/WHEN OTHER for EVALUATE; AT END/NOT AT END for READ; SUCCESS/ERROR for SQL/file status; LOOP/EXIT LOOP for PERFORM loops.
+CONDITIONAL LOGIC — show every material occurrence:
+  - IF / ELSE / nested IF / ELSE IF → diamond {actual-condition?} with Yes/No edges
+  - EVALUATE expression → one diamond per EVALUATE; one outgoing edge per WHEN value + WHEN OTHER
+  - Decision node label MUST contain the actual condition: e.g. {WS-STATUS = 'A'?} or {SQLCODE = 0?}
 
-COLLAPSE (sequential blocks with no branches): Consecutive MOVE/INITIALIZE/COMPUTE/SET/STRING → single [Init: field1, field2] block.
-NEVER COLLAPSE: IF, ELSE, EVALUATE/WHEN, PERFORM loops, CALL, GO TO, READ AT END, SQLCODE checks.
+PERFORM
+  - PERFORM paragraph-name → subroutine node [[paragraph-name]]
+  - PERFORM section-name → subroutine node [[section-name]]
+  - PERFORM para-A THRU para-B → subroutine node [[para-A THRU para-B]]
+  - PERFORM UNTIL / VARYING / TIMES → show: [Init loop vars] → {loop condition?} → [loop body] → [increment] → loop-back edge → exit
+  - Inline PERFORM → inline subroutine node
+  - Do NOT represent PERFORM UNTIL as a simple sequential call
 
-Use subgraphs for SECTION boundaries. Use short stable node IDs (p1, p2, d1, d2, etc.).
-Labels MUST use actual COBOL identifiers — not generic "Process" or "Step 1".
+GO TO / CONTROL TRANSFER
+  - GO TO paragraph → arrow to target paragraph node
+  - GO TO DEPENDING ON → one outgoing edge per possible target
+  - ALTER → show the altered target
+  - Paragraph fall-through where no EXIT stops it
 
-Return ONLY the raw Mermaid flowchart code. No explanation, no markdown fences — just the flowchart starting with "flowchart TD".
+CALLS
+  - CALL 'literal' → subroutine [[CALL 'literal']]
+  - CALL variable → subroutine [[CALL (variable-name)]]
+  - Dynamic CALLs where identifiable
+  - Label the node with the called program or variable name
+
+DATA / I-O OPERATIONS
+  - OPEN / CLOSE → [OPEN INPUT file] or [CLOSE file]
+  - READ → [READ file]; READ AT END → diamond {AT END?} with AT END / NOT AT END edges
+  - WRITE / REWRITE / DELETE → [WRITE record] etc.
+  - START → [START file]
+  - SORT / MERGE → [SORT WORK-FILE]
+  - File status checks → diamond {FILE-STATUS = '00'?}
+
+DATABASE / MIDDLEWARE
+  - EXEC SQL SELECT/INSERT/UPDATE/DELETE → [SQL: purpose] then {SQLCODE = 0?} diamond
+  - EXEC SQL COMMIT / ROLLBACK → [SQL COMMIT] / [SQL ROLLBACK]
+  - Cursor OPEN/FETCH/CLOSE → show as sequence: [OPEN cursor] → [FETCH cursor] → {AT END?} loop → [CLOSE cursor]
+  - EXEC CICS LINK / XCTL / RETURN → subroutine [[CICS LINK program]] or [[CICS XCTL program]]
+  - MQ GET/PUT → [MQ GET queue] / [MQ PUT queue]
+  - IMS/DL-I GU/GHU/ISRT/DLET → [IMS ISRT segment]
+
+ERROR AND RETURN-CODE PROCESSING
+  - SQLCODE checks → diamond {SQLCODE = 0?} with SUCCESS / ERROR edges
+  - FILE STATUS checks → diamond {FILE-STATUS = '00'?}
+  - RETURN-CODE checks → diamond {RETURN-CODE = 0?} with RC = 0 / RC > 0 edges
+  - Error paragraphs → show as distinct named nodes
+  - Retry logic → show loop-back edge
+  - Abnormal termination → distinct termination node ([ABEND])
+
+JCL CONTROL FLOW (when source is JCL/PROC)
+  - JOB statement as start node
+  - Each EXEC PGM as a subroutine node [[PGM=name]]
+  - Each EXEC PROC as a subroutine node [[PROC=name]]
+  - JCL IF / THEN / ELSE / ENDIF → diamond {condition?}
+  - COND processing → decision node with RC conditions
+  - Step dependencies and execution order
+  - Relevant DD datasets as data nodes [(dsname)]
+  - Dataset flow: [(input dataset)] → [[PGM]] → [(output dataset)]
+
+━━━ CONTROL-FLOW ACCURACY ━━━
+
+Reconstruct flow from source code. Physical source order ≠ execution order.
+Resolve: PERFORM targets, PERFORM THRU ranges, GO TO targets, paragraph fall-through, EXIT behavior, CALL relationships, EVALUATE branches, loops, JCL conditional execution.
+Do NOT invent paths not in the source.
+If a target cannot be resolved: create node [Unresolved: target-name]
+
+━━━ GRAPH STRUCTURE ━━━
+
+Format: flowchart TD
+
+Node shapes (use consistently):
+  Start/End:              ([label])   ← rounded
+  Processing block:       [label]     ← rectangle
+  Decision (IF/EVALUATE): {label?}   ← diamond
+  PERFORM/CALL:           [[label]]  ← subroutine double-border
+  I/O / SQL operation:    [label]     ← rectangle with descriptive label
+  Error termination:      ([ABEND])   ← distinct rounded node
+  Data store:             [(label)]   ← cylinder
+
+Subgraph hierarchy:
+  COBOL: subgraph PROGRAM → subgraph SECTION → paragraph nodes
+  JCL:   subgraph JOB → subgraph STEP → program/proc nodes
+
+━━━ NODE LABELS ━━━
+
+Labels MUST be meaningful — use actual COBOL/JCL identifiers.
+BAD: Process / Decision / Step 1 / Logic
+GOOD: READ CUSTOMER-FILE / WS-EOF = 'Y'? / PERFORM VALIDATE-CUSTOMER / SQLCODE = 0? / CALL 'CUSTUPDT'
+
+TRACEABILITY: For important decision/I-O/call nodes, add line number(s):
+  D17{"WS-RETURN-CODE > 4?<br/>Lines 420-423"}
+  This allows tracing back to the original source.
+
+━━━ EDGE LABELS ━━━
+
+Label conditional edges: Yes / No / WHEN 'A' / WHEN OTHER / AT END / NOT AT END / ERROR / SUCCESS / RC = 0 / RC > 4 / LOOP / EXIT LOOP
+
+━━━ LEVEL OF DETAIL ━━━
+
+COLLAPSE into one [block] ONLY: consecutive MOVE / INITIALIZE / COMPUTE / STRING / UNSTRING / SET — when sequential and no branch, CALL, PERFORM, I/O, SQL, CICS, IMS, MQ, or error boundary in between.
+
+NEVER collapse:
+  IF / ELSE / EVALUATE / WHEN / PERFORM / loops / CALL / GO TO / READ branching / SQLCODE checks / FILE STATUS checks / RETURN-CODE checks / JCL conditional execution
+
+━━━ LARGE PROGRAMS ━━━
+
+If the graph would be excessively large, DO NOT remove detail. Instead produce THREE graphs:
+  Level 1 — Program Overview (section-level flow)
+  Level 2 — Section/Paragraph Flow (paragraph-level with PERFORM links)
+  Level 3 — Detailed Control Flow per complex paragraph
+
+Wrap each level in a comment: %% === LEVEL 1: Program Overview ===
+Use stable node IDs across all levels.
+
+━━━ VALIDATION (perform before returning) ━━━
+
+Check that:
+- Every IF has Yes and No branches
+- Every EVALUATE WHEN is represented
+- Every PERFORM target has a node
+- PERFORM UNTIL/VARYING loops show a loop-back path
+- Every GO TO has its target
+- Important CALL statements are represented
+- Significant READ/WRITE/SQL operations are represented
+- Error/exception paths are represented
+- JCL conditional steps are represented
+- No invented execution paths
+- No major construct silently collapsed
+
+━━━ OUTPUT ━━━
+
+Return your response in this exact structure:
+
+<analysis_summary>
+One paragraph describing the program's overall structure, key sections, and notable control-flow characteristics.
+</analysis_summary>
+
+<sections_and_paragraphs>
+List every identified SECTION and PARAGRAPH (or JCL STEP) in execution order.
+</sections_and_paragraphs>
+
+<mermaid_cfg>
+flowchart TD
+  %% ... complete Mermaid CFG here ...
+</mermaid_cfg>
+
+<unresolved_references>
+List any PERFORM/GO TO/CALL targets that could not be resolved, one per line.
+</unresolved_references>
+
+<warnings>
+List any ambiguities, dead code, or static-analysis limitations found.
+</warnings>
 
 ${language} source for "${programName}":
 ${truncated}`;

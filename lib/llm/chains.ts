@@ -514,23 +514,29 @@ export function createChains(callLLM: CallLLM) {
     yield { done: true, sections, tokensUsed: totalTokens };
   }
 
-  /** Generate a detailed Mermaid CFG for a program from its source. Returns the raw Mermaid string. */
+  /** Generate a detailed Mermaid CFG for a program from its source. Returns the Mermaid string. */
   async function generateMermaidCFG(
     source: string,
     programName: string,
     language: string
   ): Promise<{ mermaid: string; tokensUsed: number }> {
     const { text: raw, totalTokens } = await callLLM(
-      'You are a COBOL control-flow analyst. Return only the raw Mermaid flowchart code starting with "flowchart TD". No explanations, no markdown fences.',
+      'You are a mainframe control-flow analyst. Follow the output structure exactly: wrap the Mermaid graph inside <mermaid_cfg>...</mermaid_cfg> tags.',
       mermaidCfgPrompt(source, programName, language),
-      4000
+      6000
     );
-    // Strip any accidental markdown fences
-    const cleaned = raw
+
+    // Extract the <mermaid_cfg> block from the structured output
+    const mermaidMatch = /<mermaid_cfg>([\s\S]*?)<\/mermaid_cfg>/i.exec(raw);
+    let mermaid = mermaidMatch ? mermaidMatch[1].trim() : raw.trim();
+
+    // Strip accidental markdown fences if the LLM wrapped it anyway
+    mermaid = mermaid
       .replace(/^```(?:mermaid)?\s*/i, '')
       .replace(/```\s*$/i, '')
       .trim();
-    return { mermaid: cleaned, tokensUsed: totalTokens };
+
+    return { mermaid, tokensUsed: totalTokens };
   }
 
   return {
