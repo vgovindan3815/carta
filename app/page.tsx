@@ -32,7 +32,7 @@ const ARTIFACTS = [
     title: 'Modernization Spec',
     badge: 'LLM · Draft',
     badgeColor: '#9CA3AF',
-    desc: '7-section specification targeting Java / Spring Boot: Executive Summary, Architecture Analysis, Modernization Strategy, Interface Contracts, Data Layer Migration, Migration Roadmap, Risk Assessment.',
+    desc: '5-section specification targeting Java / Spring Boot: Executive Summary, Architecture Analysis, Modernization Strategy, Data Layer Migration, and Risk Assessment.',
     detail: 'Draft · engineer validation required before use',
   },
 ];
@@ -56,14 +56,14 @@ const PATH_B = [
 const LIMITATIONS = [
   { icon: '⚠', text: 'No CAST static analysis — dependency graphs are LLM-inferred from source, not deterministically computed. Accuracy ~70–85%; verify critical paths manually.' },
   { icon: '📏', text: 'Program size: recommended ≤ 1,500 LOC per file for reliable LLM extraction. Larger programs are truncated to the first 12–14 k characters.' },
-  { icon: '⏱', text: 'LLM provider rate limits apply. Analysis of one program takes 20–60 seconds. Parallel analysis is not supported in the current prototype.' },
+  { icon: '⏱', text: 'LLM provider rate limits apply. Analysis of one program takes 20–60 seconds; multiple programs can be queued and run sequentially.' },
   { icon: '🔗', text: 'Dynamic CALL targets (variable-name CALLs) are resolved at ~71% confidence. Assembler dependencies are partially covered.' },
   { icon: '🗄', text: 'Results are persisted to Neon PostgreSQL. Each project is isolated; delete a project to reclaim storage.' },
 ];
 
 const TECH_STACK = [
   { name: 'LLM Engine', detail: 'Groq · Anthropic · configurable', color: '#7C3AED', desc: 'Multi-provider — Groq (Llama 3.3 70B) and Anthropic (Claude) selectable in LLM Settings' },
-  { name: 'Next.js 14', detail: 'App Router + SSE', color: '#000000', desc: 'React framework — SSE streaming, API routes, server components' },
+  { name: 'Next.js 15', detail: 'App Router + SSE', color: '#000000', desc: 'React framework — SSE streaming, API routes, server components' },
   { name: 'Neon', detail: 'Serverless Postgres', color: '#00A67E', desc: 'Stores all programs, graphs, and analysis results' },
   { name: 'GitHub API', detail: 'REST v3', color: '#24292F', desc: 'Source discovery — lists COBOL files, fetches content by SHA' },
   { name: 'Drizzle ORM', detail: 'Type-safe', color: '#C5A82E', desc: 'Schema-first ORM — migrations via drizzle-kit push' },
@@ -85,7 +85,7 @@ export default function HomePage() {
         </div>
         <div style={{ flex: 1 }} />
         <span style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.5)', color: '#C4B5FD', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700 }}>
-          PROTOTYPE · Multi-LLM
+          Multi-LLM · CAST + GitHub
         </span>
         <Link href="/admin" style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>
           Admin
@@ -96,7 +96,7 @@ export default function HomePage() {
       <section style={{ background: 'linear-gradient(160deg, #0F1E3A 0%, #1F3864 50%, #1a4a6a 100%)', padding: '72px 32px 80px', textAlign: 'center' }}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(28,114,147,0.25)', border: '1px solid rgba(77,170,199,0.4)', borderRadius: 20, padding: '5px 14px', marginBottom: 28, fontSize: 12, color: '#4DAAC7', fontWeight: 600 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#4DAAC7', display: 'inline-block' }} />
-          Prototype · Groq / Anthropic · LLM Dependency Analysis · CAST Integration
+          Groq · Anthropic · OpenAI · LLM Dependency Analysis · CAST Integration
         </div>
         <h1 style={{ fontSize: 'clamp(32px, 5vw, 54px)', fontWeight: 800, color: '#fff', margin: '0 0 18px', lineHeight: 1.15, letterSpacing: -1 }}>
           COBOL Intelligence Platform
@@ -107,7 +107,7 @@ export default function HomePage() {
         </p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 48 }}>
           <Link href="/programs" style={{ background: 'linear-gradient(135deg, #1C7293, #4DAAC7)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 4px 20px rgba(28,114,147,0.5)' }}>
-            Explore Prototype →
+            Browse Programs →
           </Link>
           <Link href="/architecture" style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', padding: '14px 36px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Architecture →
@@ -307,7 +307,7 @@ export default function HomePage() {
         <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.75)', margin: '0 0 32px' }}>Connect a GitHub repository and get dependency maps, business rules, and modernization specs in under 60 seconds.</p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link href="/programs" style={{ background: '#fff', color: '#1F3864', padding: '14px 40px', borderRadius: 8, fontWeight: 800, fontSize: 15, textDecoration: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-            Explore Prototype →
+            Browse Programs →
           </Link>
           <Link href="/admin" style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', padding: '14px 32px', borderRadius: 8, fontWeight: 600, fontSize: 15, textDecoration: 'none' }}>
             Admin / Maintenance
@@ -319,7 +319,7 @@ export default function HomePage() {
       <footer style={{ background: '#0F1E3A', padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 14, color: '#4DAAC7' }}>MAVEN/CARTA</span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>— Illustrative Prototype · Not for production use</span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>— COBOL Intelligence Platform</span>
         </div>
         <div style={{ display: 'flex', gap: 20 }}>
           {([['Prototype', '/programs'], ['Architecture', '/architecture'], ['Admin', '/admin']] as const).map(([label, href]) => (

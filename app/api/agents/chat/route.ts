@@ -39,28 +39,33 @@ export async function POST(req: NextRequest) {
       agentId?: string;
     };
 
-    const { getLLMSettings, createAgentRun, updateAgentRun } = await import('@/lib/db/queries');
+    const { createAgentRun, updateAgentRun } = await import('@/lib/db/queries');
     const { runAgent } = await import('@/lib/agents/runner');
+    const { resolveApiConfig } = await import('@/lib/llm/resolveKey');
+    const { isPlaceholderKey } = await import('@/lib/llm/types');
 
-    const settings = await getLLMSettings();
+    const apiConfig = await resolveApiConfig(req);
+    if (!apiConfig) {
+      return NextResponse.json({ error: 'needs_api_key', message: 'Provide an Anthropic API key to use agent chat.' }, { status: 401 });
+    }
 
     // Agent tool-use requires Anthropic — use anthropicKey regardless of the main provider setting
-    // so users who use Groq for analysis but also have an Anthropic key can still use agents
-    const { isPlaceholderKey } = await import('@/lib/llm/types');
-    const anthropicKey = settings.anthropicKey || process.env.ANTHROPIC_API_KEY || '';
+    const anthropicKey = apiConfig.source === 'byok' && apiConfig.provider === 'anthropic'
+      ? apiConfig.apiKey
+      : (apiConfig.anthropicKey || process.env.ANTHROPIC_API_KEY || '');
     if (isPlaceholderKey(anthropicKey)) {
       return NextResponse.json(
         {
-          error:
-            'Agent chat requires an Anthropic API key. Go to Settings → enter your Anthropic key (your main provider can remain Groq or OpenAI).',
+          error: 'needs_api_key',
+          message: 'Agent chat requires an Anthropic API key. Enter your Anthropic key to continue.',
         },
-        { status: 400 }
+        { status: 401 }
       );
     }
 
     // Always use a capable Claude model for agents; respect model setting if provider is Anthropic
-    const model = settings.provider === 'anthropic' && settings.model
-      ? settings.model
+    const model = apiConfig.provider === 'anthropic' && apiConfig.model
+      ? apiConfig.model
       : 'claude-sonnet-4-6';
 
     // Create a DB run record

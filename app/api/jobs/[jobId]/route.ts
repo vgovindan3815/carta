@@ -38,15 +38,22 @@ export async function GET(
       try {
         // Load dependencies lazily so module errors don't break the SSE response
         const [
-          { getJob, getProgramById, getRepo, updateJob, listPrograms, getLLMSettings },
+          { getJob, getProgramById, getRepo, updateJob, listPrograms },
           { fetchFileContent },
+          { resolveApiConfig },
         ] = await Promise.all([
           import('@/lib/db/queries'),
           import('@/lib/github'),
+          import('@/lib/llm/resolveKey'),
         ]);
 
-        const llmSettings = await getLLMSettings();
-        const llmConfig = { provider: llmSettings.provider, apiKey: llmSettings.apiKey };
+        const apiConfig = await resolveApiConfig(_req);
+        if (!apiConfig) {
+          emit({ error: 'needs_api_key', message: 'No LLM key configured.' }, 'error');
+          controller.close();
+          return;
+        }
+        const llmConfig = { provider: apiConfig.provider, apiKey: apiConfig.apiKey };
 
         // 1. Look up job
         const job = await getJob(jobId);

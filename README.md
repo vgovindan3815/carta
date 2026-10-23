@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MAVEN / CARTA — Mainframe Analysis & Intelligence
 
-## Getting Started
+On-demand dependency mapping, business rules extraction, change impact analysis, and modernization planning for COBOL estates — powered by multi-LLM AI grounded in static analysis.
 
-First, run the development server:
+## What it does
+
+- **Dependency Graph** — deterministic call-tree, SQL table deps, CICS transactions, and dynamic call edges from CAST static analysis or LLM-inferred from source
+- **Business Rules** — plain-language extraction of what each COBOL program does, grouped into sections with graph-edge citations
+- **Change Impact** — blast-radius analysis rating each affected program/data store (Critical / High / Medium / Unknown)
+- **Modernization Spec** — 5-section Java / Spring Boot target architecture draft, gated by engineer sign-off
+
+## Quick start
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Required environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+DATABASE_URL=postgres://...          # Neon or any Postgres instance
+NEXTAUTH_SECRET=<random-string>      # NextAuth session signing
+MAVEN_USERS=email:password:role,...  # Static user list (role: viewer|editor|admin)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# LLM providers — at least one required
+GROQ_API_KEY=gsk_...
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
 
-## Learn More
+# Optional
+GITHUB_PAT=ghp_...                   # GitHub Personal Access Token for repo browsing
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Database setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:push    # Push schema to Neon via drizzle-kit
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+- **Next.js 15** App Router — SSE streaming, API routes, server + client components
+- **Neon** (serverless Postgres) + **Drizzle ORM** — stores programs, graphs, artifacts
+- **LLM providers** — Groq (Llama 3.3 70B), Anthropic (Claude Sonnet), OpenAI (GPT-4o); configurable at runtime in Settings
+- **Structured RAG** — SQL joins inject relevant context into prompts; no vector embeddings at current scale
+- **NextAuth.js** — credentials-based auth with role-based access (viewer / editor / admin)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See [`app/architecture/page.tsx`](app/architecture/page.tsx) for the interactive reference diagram, or [`spec/MAVEN-CARTA-SYSTEM-SPEC-v2.2.md`](spec/MAVEN-CARTA-SYSTEM-SPEC-v2.2.md) for the full system specification.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Guest access
+
+Unauthenticated visitors can browse programs and view existing dependency graphs and artifacts without logging in. AI analysis features (Analyze, Refresh Spec, Agent Chat) require either:
+- A signed-in account with LLM settings configured, **or**
+- A BYOK (Bring Your Own Key) API key entered in the in-app prompt
+
+## Project structure
+
+```
+app/               Next.js App Router pages and API routes
+components/        Shared UI components (AppNav, DependencyView, etc.)
+lib/               Parser, DB queries, LLM chains, agent runner
+hooks/             Client-side React hooks
+spec/              System specification documents
+cast-reports/      Reference CAST analysis examples
+```

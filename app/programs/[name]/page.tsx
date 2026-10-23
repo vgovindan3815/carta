@@ -9,6 +9,8 @@ import BusinessRules from '@/components/panels/BusinessRules';
 import ChangeImpact from '@/components/panels/ChangeImpact';
 import ModernizationSpec from '@/components/panels/ModernizationSpec';
 import InternalFlowTab from '@/components/panels/InternalFlowTab';
+import { ApiKeyGate } from '@/components/ApiKeyGate';
+import { useApiKey } from '@/hooks/useApiKey';
 import type { ProgramData } from '@/lib/parser/types';
 
 type Phase = 'processing' | 'hub' | 'not-found';
@@ -73,6 +75,8 @@ export default function ProgramHubPage() {
   const [processingMode, setProcessingMode] = useState<'full' | 'graph-only'>('full');
   const [staleness, setStaleness] = useState<{ isStale: boolean; lastAnalyzedAt: string | null } | null>(null);
   const [graphOnlyMode, setGraphOnlyMode] = useState(false); // dep graph exists but no LLM docs
+  const [showApiKeyGate, setShowApiKeyGate] = useState(false);
+  const { byokHeaders, byokParams } = useApiKey();
   const terminalRef = useRef<HTMLDivElement>(null);
   const esRef = useRef<EventSource | null>(null);
   const timerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -139,7 +143,17 @@ export default function ProgramHubPage() {
 
     // Try to create a real job
     try {
-      const res = await fetch(`/api/programs/${name}/analyze`, { method: 'POST' });
+      const res = await fetch(`/api/programs/${name}/analyze`, {
+        method: 'POST',
+        headers: byokHeaders(),
+      });
+      if (res.status === 401) {
+        const body = await res.json().catch(() => ({}));
+        if (body.error === 'needs_api_key' || body.code === 'not_authenticated') {
+          setShowApiKeyGate(true);
+          return;
+        }
+      }
       if (res.ok) {
         const { jobId } = await res.json();
         if (jobId) {
@@ -156,7 +170,7 @@ export default function ProgramHubPage() {
 
   function openSSE(jobId: string) {
     if (esRef.current) esRef.current.close();
-    const es = new EventSource(`/api/jobs/${jobId}`);
+    const es = new EventSource(`/api/jobs/${jobId}${byokParams()}`);
     esRef.current = es;
 
     es.onmessage = (evt) => {
@@ -401,6 +415,17 @@ export default function ProgramHubPage() {
           <div className="header-spacer" />
           <span className="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
         </header>
+
+        {/* API key gate — shown when guest tries to run analysis without a key */}
+        {showApiKeyGate && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 900,
+            background: 'rgba(3,7,18,0.7)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <ApiKeyGate onKeySet={() => { setShowApiKeyGate(false); startProcessing(); }} />
+          </div>
+        )}
 
         <div className="proc-body">
           <div className="proc-frame">

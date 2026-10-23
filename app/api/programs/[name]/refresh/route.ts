@@ -22,7 +22,7 @@ export async function POST(
   const artifact = body.artifact ?? 'all';
 
   const {
-    getProgram, createJob, updateJob, getLLMSettings, listPrograms,
+    getProgram, createJob, updateJob, listPrograms,
     getMostRecentDepGraph, saveBizRules, saveChangeImpact, saveModSpec,
     getCopybooksByNames, getJclCallers, getRepo, saveProgramSource,
     getProgramSource,
@@ -42,9 +42,13 @@ export async function POST(
   const job = await createJob(prog.id);
   await updateJob(job.id, { status: 'running', phase: 'refresh', progressPct: 0, startedAt: new Date() });
 
-  const llmSettings = await getLLMSettings();
+  const { resolveApiConfig } = await import('@/lib/llm/resolveKey');
+  const apiConfig = await resolveApiConfig(req);
+  if (!apiConfig) {
+    return NextResponse.json({ error: 'needs_api_key', message: 'Provide an API key to run LLM analysis.' }, { status: 401 });
+  }
   const { generateBusinessRules, generateChangeImpact, generateModSpec } = createLLMProvider({
-    provider: llmSettings.provider, apiKey: llmSettings.apiKey,
+    provider: apiConfig.provider, apiKey: apiConfig.apiKey,
   });
 
   // Build the ParsedCobolProgram shell from the stored dep graph
