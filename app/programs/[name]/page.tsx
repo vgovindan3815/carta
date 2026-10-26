@@ -10,6 +10,7 @@ import ChangeImpact from '@/components/panels/ChangeImpact';
 import ModernizationSpec from '@/components/panels/ModernizationSpec';
 import InternalFlowTab from '@/components/panels/InternalFlowTab';
 import CodeQuality from '@/components/panels/CodeQuality';
+import DependentModulesAlert from '@/components/panels/DependentModulesAlert';
 import { ApiKeyGate } from '@/components/ApiKeyGate';
 import { useApiKey } from '@/hooks/useApiKey';
 import type { ProgramData } from '@/lib/parser/types';
@@ -758,7 +759,12 @@ export default function ProgramHubPage() {
 
         <div className="tab-content">
           {activeTab === 'overview' && (
-            <OverviewDashboard program={programData} onTabChange={setActiveTab} />
+            <>
+              <OverviewDashboard program={programData} onTabChange={setActiveTab} />
+              <div style={{ padding: '0 24px 24px' }}>
+                <DependentModulesAlert programName={programData.name} />
+              </div>
+            </>
           )}
           {activeTab === 'dependency' && (
             <DependencyView program={programData} />
