@@ -6,7 +6,7 @@ import { SessionWrapper } from '@/components/SessionWrapper';
 import { AppNav } from '@/components/AppNav';
 
 export const metadata: Metadata = {
-  title: 'MAVEN — Mainframe Analysis, Visualization & Engineering iNtelligence',
+  title: 'Mainframe Knowledge Platform — AI-Powered Mainframe Intelligence',
   description: 'On-demand, grounded understanding of your COBOL estate',
 };
 
@@ -17,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionWrapper>
           <ScanProvider>
             <AppNav />
-            {children}
+            <main id="main-content">
+              {children}
+            </main>
             <ScanToast />
           </ScanProvider>
         </SessionWrapper>

@@ -407,18 +407,6 @@ export default function ProgramHubPage() {
   if (phase === 'processing') {
     return (
       <div className="proc-screen">
-        <header className="app-header">
-          <button onClick={skipProcessing} className="logo" style={{ background: 'none', border: 'none' }}>
-            <span className="logo-mark">MAVEN</span>
-            <div>
-              <div className="logo-name">CARTA</div>
-              <div className="logo-tagline">Mainframe Intelligence</div>
-            </div>
-          </button>
-          <div className="header-spacer" />
-          <span className="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
-        </header>
-
         {/* API key gate — shown when guest tries to run analysis without a key */}
         {showApiKeyGate && (
           <div style={{
@@ -437,7 +425,7 @@ export default function ProgramHubPage() {
                 <div>
                   <div className="proc-prog-name">{name}</div>
                   <div className="proc-subtitle">
-                    MAVEN Analysis Engine &nbsp;·&nbsp;{' '}
+                    MKP Analysis Engine &nbsp;·&nbsp;{' '}
                     {analysisError
                       ? <span style={{ color: '#FCA5A5' }}>Pipeline failed</span>
                       : processingMode === 'graph-only'
@@ -506,7 +494,7 @@ export default function ProgramHubPage() {
         <div style={{ fontSize: 48 }}>🔍</div>
         <div style={{ fontWeight: 800, fontSize: 20, color: '#1F3864' }}>Program not in registry</div>
         <div style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', maxWidth: 460, lineHeight: 1.6 }}>
-          <strong>{name}</strong> was identified in an impact or dependency analysis but has not been imported into MAVEN yet.
+          <strong>{name}</strong> was identified in an impact or dependency analysis but has not been imported into the platform yet.
           Upload its CAST report or connect a GitHub repository that contains this program to add it.
         </div>
         <a href={`/programs?module=${encodeURIComponent(name || '')}`} style={{ marginTop: 8, background: 'linear-gradient(135deg,#1F3864,#1C7293)', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontSize: 14, fontWeight: 700, textDecoration: 'none' }}>
@@ -574,25 +562,6 @@ export default function ProgramHubPage() {
 
   return (
     <div className="hub-screen">
-      <header className="app-header">
-        <Link href="/" className="logo">
-          <span className="logo-mark">MAVEN</span>
-          <div>
-            <div className="logo-name">CARTA</div>
-            <div className="logo-tagline">Mainframe Intelligence</div>
-          </div>
-        </Link>
-        <div className="breadcrumb" style={{ marginLeft: 12 }}>
-          <Link href={`/programs?module=${encodeURIComponent(programData?.name ?? name)}`} className="crumb-link">All Programs</Link>
-          <span className="sep">/</span>
-          <span className="crumb-current">{programData.name}</span>
-        </div>
-        <div className="header-spacer" />
-        <Link href="/agents" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6, marginRight: 4 }}>🤖 Agents</Link>
-        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>⚙ LLM</Link>
-        <span className="prototype-badge">ILLUSTRATIVE PROTOTYPE</span>
-      </header>
-
       {/* Banner: dep graph exists but LLM docs not yet generated */}
       {graphOnlyMode && (
         <div style={{

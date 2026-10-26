@@ -135,7 +135,7 @@ function ToolCallCard({ msg }: { msg: ChatMessage }) {
 // ---------------------------------------------------------------------------
 
 const AGENT_LABELS: Record<string, { name: string; icon: string }> = {
-  general: { name: 'MAVEN Agent', icon: '🤖' },
+  general: { name: 'Knowledge Agent', icon: '🤖' },
   rules: { name: 'Business Rules Analyst', icon: '📋' },
   impact: { name: 'Change Impact Assessor', icon: '🎯' },
   spec: { name: 'Modernization Planner', icon: '🏗️' },
@@ -213,22 +213,23 @@ function AgentsPageInner() {
   const updateLastAssistant = useCallback((append: string) => {
     setMessages((prev) => {
       const copy = [...prev];
+      let lastAssistantIdx = -1;
       for (let i = copy.length - 1; i >= 0; i--) {
-        if (copy[i].role === 'assistant') {
-          copy[i] = { ...copy[i], content: copy[i].content + append };
-          return copy;
-        }
+        if (copy[i].role === 'assistant') { lastAssistantIdx = i; break; }
       }
-      // No assistant message yet — create one
-      return [
-        ...copy,
-        {
-          id: Math.random().toString(36).slice(2),
-          role: 'assistant' as const,
-          content: append,
-          timestamp: new Date(),
-        },
-      ];
+      // If a tool_call card was inserted after the last assistant bubble,
+      // start a new bubble so the answer appears below the tool card.
+      const hasToolAfterAssistant =
+        lastAssistantIdx >= 0 &&
+        copy.slice(lastAssistantIdx + 1).some((m) => m.role === 'tool_call');
+      if (lastAssistantIdx === -1 || hasToolAfterAssistant) {
+        return [
+          ...copy,
+          { id: Math.random().toString(36).slice(2), role: 'assistant' as const, content: append, timestamp: new Date() },
+        ];
+      }
+      copy[lastAssistantIdx] = { ...copy[lastAssistantIdx], content: copy[lastAssistantIdx].content + append };
+      return copy;
     });
   }, []);
 
@@ -337,6 +338,18 @@ function AgentsPageInner() {
               );
             }
           } else if (eventType === 'done') {
+            // Fallback: if no text event arrived after the last tool call, show the final response now
+            const resp = String(payload.response ?? '').trim();
+            if (resp) {
+              setMessages((prev) => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant' && last.content.trim()) return prev;
+                return [
+                  ...prev,
+                  { id: Math.random().toString(36).slice(2), role: 'assistant' as const, content: resp, timestamp: new Date() },
+                ];
+              });
+            }
             loadRuns();
           } else if (eventType === 'error') {
             addMessage({
@@ -377,49 +390,11 @@ function AgentsPageInner() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: '"Segoe UI", system-ui, sans-serif', background: '#F4F7FA' }}>
-      {/* Header */}
-      <header style={{
-        background: '#1F3864',
-        color: '#fff',
-        padding: '0 24px',
-        height: 56,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        flexShrink: 0,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: 1, color: '#E07B39' }}>MAVEN</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1 }}>CARTA</div>
-            <div style={{ fontSize: 9, opacity: 0.6, lineHeight: 1, letterSpacing: 0.5 }}>Mainframe Intelligence</div>
-          </div>
-        </Link>
-
-        <div style={{ marginLeft: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-          <Link href="/programs" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>All Programs</Link>
-          <span style={{ color: 'rgba(255,255,255,0.3)' }}>/</span>
-          <Link href="/agents" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>Agents</Link>
-          <span style={{ color: 'rgba(255,255,255,0.3)' }}>/</span>
-          <span style={{ color: '#fff' }}>{agentMeta.icon} {agentMeta.name}</span>
-        </div>
-
-        <div style={{ flex: 1 }} />
-
-        <Link href="/agents" style={{ color: '#E07B39', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid #E07B39', borderRadius: 6, fontWeight: 600 }}>
-          ← All Agents
-        </Link>
-        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>
-          Settings
-        </Link>
-      </header>
-
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', fontFamily: '"Segoe UI", system-ui, sans-serif', background: '#F4F7FA' }}>
       {/* Provider warning */}
       {providerOk === false && (
         <div style={{ background: '#FEF3C7', borderBottom: '1px solid #FCD34D', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
-          <span>Agent requires an Anthropic API key (your main analysis provider can remain Groq or OpenAI).</span>
+          <span>No LLM API key configured. Go to Settings and add a Groq, OpenAI, or Anthropic key to use agents.</span>
           <Link href="/settings" style={{ color: '#1F3864', fontWeight: 700, textDecoration: 'underline' }}>Go to Settings</Link>
         </div>
       )}
@@ -655,7 +630,7 @@ function AgentsPageInner() {
               disabled={isStreaming || providerOk === false}
               placeholder={
                 providerOk === false
-                  ? 'Agent requires an Anthropic API key — go to Settings to add one'
+                  ? 'No LLM key configured — go to Settings to add one'
                   : 'Ask the agent anything about your mainframe programs… (Enter to send, Shift+Enter for newline)'
               }
               rows={2}

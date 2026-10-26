@@ -22,7 +22,7 @@ const AGENTS: AgentDef[] = [
   {
     id: 'general',
     icon: '🤖',
-    name: 'MAVEN Agent',
+    name: 'Knowledge Agent',
     tagline: 'General-purpose mainframe analyst',
     description:
       'Freeform conversational agent with full tool access. Ask anything about your COBOL/JCL programs — it autonomously fetches source code, dependency graphs, business rules, and change impact data to answer your questions.',
@@ -417,44 +417,12 @@ export default function AgentsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F4F7FA', fontFamily: '"Segoe UI", system-ui, sans-serif' }}>
-      {/* Header */}
-      <header style={{
-        background: '#1F3864', color: '#fff',
-        padding: '0 32px', height: 56,
-        display: 'flex', alignItems: 'center', gap: 16,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-        position: 'sticky', top: 0, zIndex: 100,
-      }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
-          <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: 1, color: '#E07B39' }}>MAVEN</span>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1 }}>CARTA</div>
-            <div style={{ fontSize: 9, opacity: 0.6, lineHeight: 1, letterSpacing: 0.5 }}>Mainframe Intelligence</div>
-          </div>
-        </Link>
-
-        <div style={{ marginLeft: 12, display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
-          <Link href="/programs" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none' }}>All Programs</Link>
-          <span style={{ color: 'rgba(255,255,255,0.3)' }}>/</span>
-          <span style={{ color: '#fff', fontWeight: 600 }}>Agents</span>
-        </div>
-
-        <div style={{ flex: 1 }} />
-
-        <Link href="/settings" style={{
-          color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none',
-          padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6,
-        }}>
-          ⚙ Settings
-        </Link>
-      </header>
-
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 32px' }}>
 
         {/* Hero */}
         <div style={{ marginBottom: 40 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 8 }}>
-            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#1F3864' }}>MAVEN Agents</h1>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#1F3864' }}>MKP Agents</h1>
             <span style={{
               background: '#E07B39', color: '#fff',
               fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, letterSpacing: 0.5,

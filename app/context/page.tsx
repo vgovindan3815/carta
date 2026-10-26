@@ -205,23 +205,6 @@ export default function ContextPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#F4F7FA', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg,#1F3864 0%,#2E4D7B 60%,#1C7293 100%)', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'Consolas,monospace', fontWeight: 900, fontSize: 18, color: '#4DAAC7', letterSpacing: 2 }}>MAVEN</span>
-          <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#fff', lineHeight: 1 }}>CARTA</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.5 }}>Mainframe Intelligence</div>
-          </div>
-        </Link>
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/</span>
-        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600 }}>Contextual Engineering</span>
-        <div style={{ flex: 1 }} />
-        <Link href="/programs" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>← Programs</Link>
-        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 10px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>⚙ LLM</Link>
-      </header>
-
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
         {/* Sidebar */}
@@ -310,7 +293,7 @@ export default function ContextPage() {
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 15, color: '#1F3864' }}>Domain Glossary</div>
                       <div style={{ fontSize: 12, color: '#6B7280', marginTop: 2 }}>
-                        Field name patterns → plain-English meanings. MAVEN matches these during analysis and injects them into business rules prompts.
+                        Field name patterns → plain-English meanings. The platform matches these during analysis and injects them into business rules prompts.
                       </div>
                     </div>
                     <button onClick={() => { setShowAddForm(!showAddForm); setGlossaryError(''); }}
@@ -356,7 +339,7 @@ export default function ContextPage() {
                     <div style={{ textAlign: 'center', padding: 40, background: '#fff', border: '1.5px dashed #E5E7EB', borderRadius: 10 }}>
                       <div style={{ fontSize: 32, marginBottom: 8 }}>📖</div>
                       <div style={{ fontWeight: 700, color: '#1F3864', marginBottom: 4 }}>No glossary entries yet</div>
-                      <div style={{ fontSize: 12, color: '#9CA3AF' }}>Add entries to help MAVEN understand your domain-specific field names and business codes.</div>
+                      <div style={{ fontSize: 12, color: '#9CA3AF' }}>Add entries to help the platform understand your domain-specific field names and business codes.</div>
                     </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

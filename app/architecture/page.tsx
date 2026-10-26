@@ -6,32 +6,13 @@ export default function ArchitecturePage() {
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', fontFamily: 'system-ui, sans-serif' }}>
 
-      {/* Header */}
-      <header style={{ background: '#0F1E3A', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 16, color: '#4DAAC7', letterSpacing: 1 }}>MAVEN</span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', letterSpacing: 0.5 }}>/ CARTA</span>
-        </Link>
-        <nav style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-          {([['Programs', '/programs'], ['Agents', '/agents'], ['Context', '/context'], ['Architecture', '/architecture'], ['Settings', '/settings']] as const).map(([label, href]) => (
-            <Link key={label} href={href} style={{
-              fontSize: 13, fontWeight: label === 'Architecture' ? 700 : 500,
-              color: label === 'Architecture' ? '#4DAAC7' : 'rgba(255,255,255,0.6)',
-              textDecoration: 'none',
-              borderBottom: label === 'Architecture' ? '2px solid #4DAAC7' : 'none',
-              paddingBottom: 2,
-            }}>{label}</Link>
-          ))}
-        </nav>
-      </header>
-
       {/* Page title */}
       <div style={{ background: '#1F3864', padding: '36px 48px 32px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: '#4DAAC7', textTransform: 'uppercase', marginBottom: 8 }}>Platform Reference</div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>System Architecture</h1>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', margin: 0, lineHeight: 1.6 }}>
-            End-to-end view of MAVEN/CARTA — ingestion, analysis pipeline, context/RAG layer, storage, and UI.
+            End-to-end view of the Mainframe Knowledge Platform — ingestion, analysis pipeline, context/RAG layer, storage, and UI.
           </p>
         </div>
       </div>
@@ -46,7 +27,7 @@ export default function ArchitecturePage() {
             <span style={{ fontSize: 11, color: '#9CA3AF' }}>Ingestion → Pipeline → Storage → UI</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', minWidth: 700 }} role="img" aria-label="MAVEN/CARTA end-to-end architecture">
+            <svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', minWidth: 700 }} role="img" aria-label="Mainframe Knowledge Platform end-to-end architecture">
               <defs>
                 <marker id="a1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6B7280"/></marker>
                 <marker id="a2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#2E5FA3"/></marker>
@@ -198,7 +179,7 @@ export default function ArchitecturePage() {
             <span style={{ fontSize: 11, color: '#9CA3AF' }}>Structured RAG (current) · Vector RAG (planned)</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
-            <svg viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', minWidth: 700 }} role="img" aria-label="MAVEN/CARTA RAG architecture detail">
+            <svg viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', minWidth: 700 }} role="img" aria-label="Mainframe Knowledge Platform RAG architecture detail">
               <defs>
                 <marker id="b1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#6B7280"/></marker>
                 <marker id="b2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#7C3AED"/></marker>
@@ -325,7 +306,7 @@ export default function ArchitecturePage() {
 
       {/* Footer */}
       <footer style={{ background: '#0F1E3A', padding: '20px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 13, color: '#4DAAC7' }}>MAVEN/CARTA</span>
+        <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 13, color: '#4DAAC7' }}>MKP</span>
         <div style={{ display: 'flex', gap: 20 }}>
           {([['Home', '/'], ['Programs', '/programs'], ['Agents', '/agents'], ['Architecture', '/architecture']] as const).map(([label, href]) => (
             <Link key={label} href={href} style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textDecoration: 'none' }}>{label}</Link>

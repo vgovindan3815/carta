@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useScan } from '@/components/ScanContext';
+import { SkeletonTable } from '@/components/Skeleton';
 
 interface Project {
   id: string;
@@ -278,8 +279,8 @@ function ProgramTable({
 
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '60px 0', color: '#9CA3AF', fontSize: 14 }}>
-        Loading programs…
+      <div style={{ padding: '16px 0' }} aria-label="Loading programs" aria-busy="true">
+        <SkeletonTable rows={6} cols={5} />
       </div>
     );
   }
@@ -697,25 +698,6 @@ function ProgramsPageContent() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#F4F7FA' }}>
-
-      {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #1F3864 0%, #2E4D7B 60%, #1C7293 100%)', padding: '0 24px', height: 58, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 18, color: '#4DAAC7', letterSpacing: 2 }}>MAVEN</span>
-          <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#fff', lineHeight: 1 }}>CARTA</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.5 }}>Mainframe Intelligence</div>
-          </div>
-        </Link>
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/</span>
-        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 14, fontWeight: 600 }}>Program Knowledge Base</span>
-        <div style={{ flex: 1 }} />
-        <Link href="/context" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🧠 Context</Link>
-        <Link href="/agents"  style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>🤖 Agents</Link>
-        <Link href="/settings" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>⚙ LLM</Link>
-        <Link href="/admin"   style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, textDecoration: 'none', padding: '5px 11px', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}>Admin</Link>
-      </header>
 
       {/* Toast */}
       {toast && (

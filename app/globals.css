@@ -18,6 +18,15 @@ html, body { height: 100%; }
 body { font-family: var(--font-body); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Skip-nav — keyboard accessible, hidden until focused */
+.skip-nav {
+  position: absolute; top: -48px; left: 8px; z-index: 200;
+  background: #fff; color: #1F3864; padding: 8px 16px; border-radius: 6px;
+  font-weight: 600; font-size: 13px; text-decoration: none;
+  transition: top 0.1s;
+}
+.skip-nav:focus { top: 8px; }
+
 /* ── App header ── */
 .app-header{background:linear-gradient(135deg,var(--navy-dark) 0%,var(--navy) 60%,var(--teal) 100%);padding:0 32px;display:flex;align-items:center;gap:24px;height:60px;box-shadow:var(--shadow-md);flex-shrink:0;position:sticky;top:0;z-index:100;}
 .app-header .logo{display:flex;align-items:center;gap:12px;color:#fff;cursor:pointer;text-decoration:none;}

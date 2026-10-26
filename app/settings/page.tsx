@@ -153,29 +153,11 @@ export default function SettingsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#F4F7FA', display: 'flex', flexDirection: 'column' }}>
 
-      {/* Header */}
-      <header style={{ background: 'linear-gradient(135deg, #1F3864 0%, #2E4D7B 60%, #1C7293 100%)', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'Consolas, monospace', fontWeight: 900, fontSize: 18, color: '#4DAAC7', letterSpacing: 2 }}>MAVEN</span>
-          <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.2)' }} />
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 13, color: '#fff', lineHeight: 1 }}>CARTA</div>
-            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', letterSpacing: 0.5 }}>Mainframe Intelligence</div>
-          </div>
-        </Link>
-        <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>/</span>
-        <span style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600 }}>LLM Settings</span>
-        <div style={{ flex: 1 }} />
-        <Link href="/programs" style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, textDecoration: 'none', padding: '4px 12px', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 6 }}>
-          ← Program Knowledge Base
-        </Link>
-      </header>
-
       <div style={{ maxWidth: 820, margin: '0 auto', padding: '32px 24px', width: '100%' }}>
 
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1F3864', margin: '0 0 4px' }}>LLM Provider Settings</h1>
         <p style={{ fontSize: 13, color: '#6B7280', margin: '0 0 28px' }}>
-          Choose which AI model powers MAVEN analysis. The active provider and model are used for all new analyses.
+          Choose which AI model powers platform analysis. The active provider and model are used for all new analyses.
         </p>
 
         {/* Feedback banner */}
