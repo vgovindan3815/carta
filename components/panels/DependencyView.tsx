@@ -273,9 +273,9 @@ function CodeInspector({
 
         {program.internalFlow && (
           <div>
-            <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>Paragraphs ({program.internalFlow.paragraphs.length})</div>
+            <div style={{ fontWeight: 700, color: '#374151', marginBottom: 4 }}>Paragraphs ({program.internalFlow.paragraphs?.length ?? 0})</div>
             <div style={{ maxHeight: 200, overflow: 'auto' }}>
-              {program.internalFlow.paragraphs.map(p => (
+              {(program.internalFlow.paragraphs ?? []).map(p => (
                 <div key={p.name} style={{ padding: '3px 8px', borderLeft: '3px solid #6366F1', marginBottom: 3, fontSize: 11, fontFamily: 'Consolas,monospace', color: '#374151' }}>
                   {p.name} <span style={{ color: '#9CA3AF', fontFamily: 'sans-serif' }}>L{p.lineStart}–{p.lineEnd}</span>
                 </div>
@@ -539,7 +539,7 @@ export default function DependencyView({ program: p }: Props) {
   const mermaidIdRef = useRef(0);
   // Kept current via effect so Mermaid click closures never go stale
   const paragraphsRef = useRef(p.internalFlow?.paragraphs ?? []);
-  useEffect(() => { paragraphsRef.current = p.internalFlow?.paragraphs ?? []; }, [p.internalFlow?.paragraphs]);
+  useEffect(() => { paragraphsRef.current = p.internalFlow?.paragraphs ?? []; }, [p.internalFlow?.paragraphs]);  // eslint-disable-line react-hooks/exhaustive-deps
   const loadedSourceRef = useRef(loadedSource);
   useEffect(() => { loadedSourceRef.current = loadedSource; }, [loadedSource]);
 
@@ -562,7 +562,7 @@ export default function DependencyView({ program: p }: Props) {
 
   // Paragraph nodes arranged around the hero when Detail mode is on
   const paraNodes: GraphNode[] = useMemo(() => {
-    if (!showParas || !p.internalFlow?.paragraphs.length) return [];
+    if (!showParas || !p.internalFlow?.paragraphs?.length) return [];
     const hero = externalNodes.find(n => n.type === 'hero');
     const hcx = hero?.cx ?? (activeLayout.w / 2);
     const hcy = hero?.cy ?? (activeLayout.h / 2);
@@ -590,7 +590,7 @@ export default function DependencyView({ program: p }: Props) {
   // Paragraph perform edges
   const paraEdges: GraphEdge[] = useMemo(() => {
     if (!showParas || !p.internalFlow) return [];
-    return p.internalFlow.performEdges.map(e => ({
+    return (p.internalFlow.performEdges ?? []).map(e => ({
       from: `para:${e.from}`,
       to:   `para:${e.to}`,
       type: 'perform' as GraphEdge['type'],
@@ -828,7 +828,7 @@ export default function DependencyView({ program: p }: Props) {
               </button>
             </div>
             {/* Paragraph detail toggle */}
-            {p.internalFlow?.paragraphs.length ? (
+            {p.internalFlow?.paragraphs?.length ? (
               <button
                 onClick={() => {
                   if (renderMode === 'mermaid') setRenderMode('graph');
@@ -836,7 +836,7 @@ export default function DependencyView({ program: p }: Props) {
                 }}
                 style={{ padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', background: showParas ? '#EEF2FF' : '#F9FAFB', color: showParas ? '#3730A3' : '#6B7280', fontSize: 11, fontWeight: 700 }}
               >
-                {showParas ? '¶ Hide Paragraphs' : `¶ Show ${p.internalFlow.paragraphs.length} Paragraphs`}
+                {showParas ? '¶ Hide Paragraphs' : `¶ Show ${p.internalFlow?.paragraphs?.length ?? 0} Paragraphs`}
               </button>
             ) : (
               <span title="Re-run 'Build Graph' to enable paragraph overlay" style={{ padding: '4px 10px', border: '1.5px dashed #E5E7EB', borderRadius: 6, fontSize: 11, color: '#C4C9D4', userSelect: 'none', cursor: 'default' }}>
@@ -975,7 +975,7 @@ export default function DependencyView({ program: p }: Props) {
       <div className="honesty-note" style={{ maxWidth: 900 }}>
         <strong>Coverage note:</strong>{' '}
         {p.changeImpact?.coverageNote ?? `Dependency graph for ${p.name}.`}
-        {showParas && p.internalFlow && ` · ${p.internalFlow.paragraphs.length} paragraphs shown (purple rings).`}
+        {showParas && p.internalFlow && ` · ${p.internalFlow.paragraphs?.length ?? 0} paragraphs shown (purple rings).`}
       </div>
     </>
   );

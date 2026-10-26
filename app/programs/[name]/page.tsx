@@ -88,7 +88,7 @@ export default function ProgramHubPage() {
   // Fetch program data from API — returns raw JSON including castOnly flag
   async function fetchProgramRaw(): Promise<{ data: ProgramData | null; castOnly: boolean; notFound: boolean }> {
     try {
-      const res = await fetch(`/api/programs/${name}`);
+      const res = await fetch(`/api/programs/${name}`, { cache: 'no-store' });
       if (!res.ok) return { data: null, castOnly: false, notFound: true };
       const json = await res.json();
       if (json.status === 'not_found') return { data: null, castOnly: false, notFound: true };
@@ -330,6 +330,7 @@ export default function ProgramHubPage() {
         const data = await fetchWithRetry(3, 800);
         if (data) {
           setProgramData(data);
+          setIsFromCache(true);
           setGraphOnlyMode(!data.businessRules?.length && !data.changeImpact?.items?.length);
           setPhase('hub');
           setActiveTab('dependency');
