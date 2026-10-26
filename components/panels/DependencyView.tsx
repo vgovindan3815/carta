@@ -446,6 +446,23 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
     '"' + content.replace(/\{/g, '(').replace(/\}/g, ')') + '"'
   );
 
+  // Pass 5: rename reserved Mermaid keywords used as node IDs
+  // 'end' closes subgraph blocks so the parser rejects it as a node ID.
+  // LLMs frequently use 'end', 'start', 'style', 'default' etc. as node names.
+  fixed = fixed.split('\n').map(line => {
+    const t = line.trim();
+    if (!t || t.startsWith('%%')) return line; // skip blanks and comments
+    // Leave a bare `end` alone — it's a valid subgraph closer
+    if (/^end\s*$/.test(t)) return line;
+    return line
+      // node definition:  end[...] / end(...) / end{...} / end>...< / end((..))
+      .replace(/\bend(?=\s*[\[({>])/g, '_end')
+      // edge target:  --> end   or  -->|label| end
+      .replace(/(--[->](?:\|[^|]*\|)?\s*)end\b(?!\s*[\[({>])/g, '$1_end')
+      // edge source at line start:  end --> ...
+      .replace(/^(\s*)end\b(?=\s*---?[->])/gm, '$1_end');
+  }).join('\n');
+
   if (extraDefs.length === 0) return fixed;
   // Insert node definitions right after the flowchart header line
   const nl = fixed.indexOf('\n');
