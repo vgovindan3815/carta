@@ -1,21 +1,70 @@
 @import "tailwindcss";
 
-/* ── Design tokens — copied verbatim from prototype ── */
+/* ── MKP design tokens ── */
 :root {
-  --navy-dark:#1F3864; --navy:#065A82; --teal:#1C7293; --teal-light:#2A9FC0;
-  --mid:#21295C; --accent:#E07B39; --success:#2E7D5E; --warning:#B45309;
-  --danger:#C0392B; --partial:#7C5E14;
-  --bg:#EEF2F7; --surface:#FFFFFF; --surface-2:#F4F7FB; --border:#CBD5E8;
-  --text:#1A2340; --text-2:#4A5568; --text-3:#718096;
-  --font-body:'Segoe UI',Arial,sans-serif; --font-mono:'Consolas','Courier New',monospace;
-  --radius:8px;
-  --shadow-sm:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
-  --shadow-md:0 4px 12px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.08);
-  --shadow-lg:0 10px 32px rgba(0,0,0,.14),0 4px 8px rgba(0,0,0,.08);
+  /* Brand palette */
+  --mkp-navy-900: #172D52;
+  --mkp-navy-800: #1F3864;
+  --mkp-navy-700: #284775;
+  --mkp-blue-700: #165C78;
+  --mkp-blue-600: #1C7293;
+  --mkp-teal-500: #4DAAC7;
+  --mkp-green-600: #059669;
+  --mkp-amber-600: #D97706;
+  --mkp-red-600:   #DC2626;
+  --mkp-purple-600:#7C3AED;
+
+  /* Semantic surfaces */
+  --surface-page:   #F5F8FB;
+  --surface-card:   #FFFFFF;
+  --surface-subtle: #EEF3F7;
+  --text-primary:   #142033;
+  --text-secondary: #64748B;
+  --border-default: #DBE3EC;
+
+  /* Shape */
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --shadow-card: 0 8px 24px rgba(31,56,100,.08);
+  --focus-ring:  0 0 0 3px rgba(28,114,147,.18);
+
+  /* Spacing scale */
+  --space-1:4px;  --space-2:8px;  --space-3:12px; --space-4:16px;
+  --space-5:20px; --space-6:24px; --space-8:32px; --space-10:40px; --space-12:48px;
+
+  /* Typography */
+  --font-body: var(--font-inter, 'Segoe UI'), system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+
+  /* Legacy aliases — keeps all existing components working unchanged */
+  --navy-dark:  var(--mkp-navy-800);
+  --navy:       var(--mkp-blue-600);
+  --teal:       var(--mkp-blue-600);
+  --teal-light: var(--mkp-teal-500);
+  --mid:        var(--mkp-navy-900);
+  --accent:     #E07B39;
+  --success:    var(--mkp-green-600);
+  --warning:    var(--mkp-amber-600);
+  --danger:     var(--mkp-red-600);
+  --partial:    #7C5E14;
+  --bg:         var(--surface-page);
+  --surface:    var(--surface-card);
+  --surface-2:  var(--surface-subtle);
+  --border:     var(--border-default);
+  --text:       var(--text-primary);
+  --text-2:     var(--text-secondary);
+  --text-3:     #718096;
+  --radius:     var(--radius-md);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:  var(--shadow-card);
+  --shadow-lg:  0 10px 32px rgba(0,0,0,.14),0 4px 8px rgba(0,0,0,.08);
 }
 
 html, body { height: 100%; }
-body { font-family: var(--font-body); background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.6; }
+body { font-family: var(--font-body); background: var(--surface-page); color: var(--text-primary); font-size: 14px; line-height: 1.5; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 /* Skip-nav — keyboard accessible, hidden until focused */
