@@ -476,6 +476,34 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
     fixed = chars.join('');
   }
 
+  // Pass 7: wrap unquoted node labels that contain ( or ) in double quotes.
+  // COBOL/CICS syntax like PROGRAM(WS-VAR) inside a [label] or [[subroutine]] shape
+  // triggers Mermaid's PS (paren-start) token. Quoting makes ( and ) safe.
+  // Excludes already-quoted labels (content starts with ") and nested shapes (content
+  // contains [ or ]) — so [[label]] subroutine shapes get their own sub-pattern below.
+
+  // 7a: rectangle [label]
+  fixed = fixed.replace(
+    /\[([^"\[\]\n]*[()][^"\[\]\n]*)\]/g,
+    (_, label) => `["${label.replace(/"/g, '’')}"]`
+  );
+  // 7b: subroutine [[label]] — must run after 7a so 7a doesn't eat the first [
+  fixed = fixed.replace(
+    /\[\[([^"\[\]\n]*[()][^"\[\]\n]*)\]\]/g,
+    (_, label) => `[["${label.replace(/"/g, '’')}"]]`
+  );
+
+  // Pass 8: replace inner ( and ) inside stadium-shape node labels: nodeId(label).
+  // If the label itself contains ( or ), Mermaid tokenises them as PS/PE tokens even
+  // inside the outer shape delimiters. Replace inner parens with ornamental equivalents
+  // ❨ (U+2768) and ❩ (U+2769) which are visually identical but safe for Mermaid.
+  // Only matches where the outer ( ) are a node shape (preceded by a word identifier,
+  // not an edge arrow) and the inner label already contains a nested ( or ).
+  fixed = fixed.replace(
+    /\b([\w][\w-]*)\(([^"()\n]*\([^)\n]*\)[^)\n]*)\)/g,
+    (_, nodeId, label) => `${nodeId}(${label.replace(/\(/g, '❨').replace(/\)/g, '❩')})`
+  );
+
   if (extraDefs.length === 0) return fixed;
   // Insert node definitions right after the flowchart header line
   const nl = fixed.indexOf('\n');
