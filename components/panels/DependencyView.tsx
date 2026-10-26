@@ -688,6 +688,10 @@ export default function DependencyView({ program: p }: Props) {
       mermaid.initialize({
         startOnLoad: false,
         theme: 'base',
+        // Mermaid 12 defaults to ELK which fails on hierarchy-crossing edges.
+        // Force Dagre to avoid the UnsupportedGraphException.
+        layout: 'dagre',
+        flowchart: { defaultRenderer: 'dagre' },
         themeVariables: {
           darkMode: dark,
           fontSize: '12px',
