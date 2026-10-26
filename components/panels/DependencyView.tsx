@@ -463,6 +463,19 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
       .replace(/^(\s*)end\b(?=\s*---?[->])/gm, '$1_end');
   }).join('\n');
 
+  // Pass 6: replace single quotes outside double-quoted label strings
+  // Single quotes in COBOL literals (e.g. 'Y', 'ACTIVE') inside unquoted Mermaid labels
+  // trigger SQS (single-quote-start) token errors. Replace ' with the typographic ' (U+2019).
+  {
+    let inDQ = false;
+    const chars: string[] = [];
+    for (const ch of fixed) {
+      if (ch === '"') { inDQ = !inDQ; chars.push(ch); continue; }
+      chars.push(!inDQ && ch === "'" ? '’' : ch);
+    }
+    fixed = chars.join('');
+  }
+
   if (extraDefs.length === 0) return fixed;
   // Insert node definitions right after the flowchart header line
   const nl = fixed.indexOf('\n');
@@ -816,7 +829,13 @@ export default function DependencyView({ program: p }: Props) {
             </div>
             {/* Paragraph detail toggle */}
             {p.internalFlow?.paragraphs.length ? (
-              <button onClick={() => setShowParas(v => !v)} style={{ padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', background: showParas ? '#EEF2FF' : '#F9FAFB', color: showParas ? '#3730A3' : '#6B7280', fontSize: 11, fontWeight: 700 }}>
+              <button
+                onClick={() => {
+                  if (renderMode === 'mermaid') setRenderMode('graph');
+                  setShowParas(v => !v);
+                }}
+                style={{ padding: '4px 10px', border: '1.5px solid #E5E7EB', borderRadius: 6, cursor: 'pointer', background: showParas ? '#EEF2FF' : '#F9FAFB', color: showParas ? '#3730A3' : '#6B7280', fontSize: 11, fontWeight: 700 }}
+              >
                 {showParas ? '¶ Hide Paragraphs' : `¶ Show ${p.internalFlow.paragraphs.length} Paragraphs`}
               </button>
             ) : (
