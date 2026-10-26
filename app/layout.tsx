@@ -4,7 +4,7 @@ import './globals.css';
 import { ScanProvider } from '@/components/ScanContext';
 import { ScanToast } from '@/components/ScanToast';
 import { SessionWrapper } from '@/components/SessionWrapper';
-import { AppNav } from '@/components/AppNav';
+import { AppShell } from '@/components/shell/AppShell';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -23,10 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <SessionWrapper>
           <ScanProvider>
-            <AppNav />
-            <main id="main-content">
-              {children}
-            </main>
+            <AppShell>{children}</AppShell>
             <ScanToast />
           </ScanProvider>
         </SessionWrapper>

@@ -390,7 +390,7 @@ function AgentsPageInner() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 56px)', fontFamily: '"Segoe UI", system-ui, sans-serif', background: '#F4F7FA' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: '"Segoe UI", system-ui, sans-serif', background: '#F4F7FA' }}>
       {/* Provider warning */}
       {providerOk === false && (
         <div style={{ background: '#FEF3C7', borderBottom: '1px solid #FCD34D', padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
