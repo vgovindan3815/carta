@@ -406,7 +406,9 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
   const seen = new Set<string>();
   const extraDefs: string[] = [];
 
-  const fixed = mermaid.replace(
+  // Pass 1: fix subroutine edge targets with no nodeId prefix
+  // e.g. `PSU4 --> [[COMMON-RETURN]]` → `PSU4 --> _COMMON_RETURN[["COMMON-RETURN"]]`
+  let fixed = mermaid.replace(
     /(--[->](?:\|[^|]*\|)?)\s*\[\[([^\]]+)\]\]/g,
     (_match, arrow, label) => {
       const nodeId = '_' + label.trim()
@@ -421,6 +423,19 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
       }
       return `${arrow} ${nodeId}`;
     }
+  );
+
+  // Pass 2: remove LLM-added `<br/>Lines N-M` / `<br/>Line N` annotations
+  // These appear after a closed node shape and cause TAGSTART parse errors
+  fixed = fixed.replace(/<br\s*\/?>\s*(?:Lines?\s*)?\d+[-–]\d+/gi, '');
+
+  // Pass 3: replace remaining <br/> inside labels with a space
+  fixed = fixed.replace(/<br\s*\/?>/gi, ' ');
+
+  // Pass 4: replace { } inside quoted label strings with ( )
+  // Curly braces trigger Mermaid's diamond-shape tokeniser when they appear in labels
+  fixed = fixed.replace(/"([^"]*?)"/g, (_m, content) =>
+    '"' + content.replace(/\{/g, '(').replace(/\}/g, ')') + '"'
   );
 
   if (extraDefs.length === 0) return fixed;
