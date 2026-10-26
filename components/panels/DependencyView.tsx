@@ -395,6 +395,45 @@ function CodeInspector({
 function sanitizeMermaidId(id: string): string {
   return id.replace(/[^a-zA-Z0-9_]/g, '_').replace(/^(\d)/, '_$1');
 }
+
+/**
+ * Fix LLM-generated Mermaid that uses [[label]] directly as an edge target
+ * e.g. `PSU4 --> [[COMMON-RETURN]]` → `PSU4 --> COMMON_RETURN[["COMMON-RETURN"]]`
+ * This pattern is invalid: Mermaid requires a nodeId BEFORE the [[ shape delimiter.
+ * Run at render time so cached data stored before the prompt fix is also corrected.
+ */
+function fixMermaidSubroutineEdges(mermaid: string): string {
+  const seen = new Set<string>();
+  const extraDefs: string[] = [];
+
+  const fixed = mermaid.replace(
+    /(--[->](?:\|[^|]*\|)?)\s*\[\[([^\]]+)\]\]/g,
+    (_match, arrow, label) => {
+      const nodeId = '_' + label.trim()
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'node';
+      const safeLabel = label.trim().replace(/"/g, "'");
+      if (!seen.has(nodeId)) {
+        seen.add(nodeId);
+        extraDefs.push(`  ${nodeId}[["${safeLabel}"]]`);
+      }
+      return `${arrow} ${nodeId}`;
+    }
+  );
+
+  if (extraDefs.length === 0) return fixed;
+  // Insert node definitions right after the flowchart header line
+  const nl = fixed.indexOf('\n');
+  if (nl !== -1) {
+    return fixed.slice(0, nl + 1) +
+      '%% [auto-fixed subroutine nodes]\n' +
+      extraDefs.join('\n') + '\n' +
+      fixed.slice(nl + 1);
+  }
+  return fixed + '\n' + extraDefs.join('\n');
+}
 function buildMermaidDef(nodes: GraphNode[], edges: GraphEdge[]): string {
   const lines: string[] = ['flowchart TD'];
   const included = new Set<string>();
@@ -610,9 +649,9 @@ export default function DependencyView({ program: p }: Props) {
   const hasMermaidCfg = !!(p.internalFlow?.mermaidCfg);
   const mermaidDef = useMemo(() => {
     if (renderMode !== 'mermaid') return '';
-    // Prefer LLM-generated detailed CFG when available
-    if (p.internalFlow?.mermaidCfg) return p.internalFlow.mermaidCfg;
-    return buildMermaidDef(cNodes, cEdges);
+    // Prefer LLM-generated detailed CFG; sanitize to fix any cached invalid syntax
+    const raw = p.internalFlow?.mermaidCfg ?? buildMermaidDef(cNodes, cEdges);
+    return fixMermaidSubroutineEdges(raw);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [renderMode, viewMode, showParas, p.internalFlow?.mermaidCfg]);
 
