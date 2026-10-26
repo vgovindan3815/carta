@@ -529,6 +529,8 @@ export default function DependencyView({ program: p }: Props) {
   const [loadedSource, setLoadedSource] = useState<Record<string, string | null>>({});
   const [loadingSource, setLoadingSource] = useState<string | null>(null);
   const [renderMode, setRenderMode] = useState<'graph' | 'mermaid'>('graph');
+  const [mermaidZoom, setMermaidZoom] = useState(1);
+  const mermaidNaturalWRef = useRef<number | null>(null);
 
   // Drag tracking (refs — no re-renders during drag)
   const dragRef = useRef<{ id: string; origX: number; origY: number; startPx: number; startPy: number } | null>(null);
@@ -737,6 +739,16 @@ export default function DependencyView({ program: p }: Props) {
         const { svg } = await mermaid.render(uid, mermaidDef);
         if (!cancelled && mermaidRef.current) {
           mermaidRef.current.innerHTML = svg;
+          // Capture natural SVG width for zoom scaling
+          const svgEl = mermaidRef.current.querySelector<SVGSVGElement>('svg');
+          if (svgEl) {
+            const vbParts = (svgEl.getAttribute('viewBox') ?? '').split(/[\s,]+/).map(Number);
+            const naturalW = (vbParts[2] > 0 ? vbParts[2] : null) ?? svgEl.getBoundingClientRect().width ?? 600;
+            mermaidNaturalWRef.current = naturalW;
+            svgEl.style.width = `${Math.round(naturalW * mermaidZoom)}px`;
+            svgEl.style.height = 'auto';
+            svgEl.style.display = 'block';
+          }
           // Wire click-to-inspect on every Mermaid CFG node
           mermaidRef.current.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
             nodeEl.style.cursor = 'pointer';
@@ -806,6 +818,29 @@ export default function DependencyView({ program: p }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mermaidDef]);
 
+  // Apply zoom to already-rendered Mermaid SVG when zoom state changes
+  useEffect(() => {
+    const svgEl = mermaidRef.current?.querySelector<SVGSVGElement>('svg');
+    if (!svgEl || mermaidNaturalWRef.current === null) return;
+    svgEl.style.width = `${Math.round(mermaidNaturalWRef.current * mermaidZoom)}px`;
+    svgEl.style.height = 'auto';
+  }, [mermaidZoom]);
+
+  // Non-passive wheel listener for Ctrl+scroll zoom on the Mermaid container
+  // (React's synthetic onWheel is passive in modern React — must add imperatively)
+  useEffect(() => {
+    const el = mermaidRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setMermaidZoom(z => Math.min(3, Math.max(0.3, +(z + delta).toFixed(2))));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, [renderMode]); // re-attach when switching to mermaid mode
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
@@ -838,9 +873,13 @@ export default function DependencyView({ program: p }: Props) {
               >
                 {showParas ? '¶ Hide Paragraphs' : `¶ Show ${p.internalFlow?.paragraphs?.length ?? 0} Paragraphs`}
               </button>
+            ) : p.internalFlow ? (
+              <span title="No paragraph names were detected in this program's Procedure Division" style={{ padding: '4px 10px', border: '1.5px dashed #E5E7EB', borderRadius: 6, fontSize: 11, color: '#C4C9D4', userSelect: 'none', cursor: 'default' }}>
+                ¶ No paragraphs found in source
+              </span>
             ) : (
-              <span title="Re-run 'Build Graph' to enable paragraph overlay" style={{ padding: '4px 10px', border: '1.5px dashed #E5E7EB', borderRadius: 6, fontSize: 11, color: '#C4C9D4', userSelect: 'none', cursor: 'default' }}>
-                ¶ Paragraphs — re-run Build Graph to enable
+              <span title="Run 'Build Graph' to extract paragraph information" style={{ padding: '4px 10px', border: '1.5px dashed #E5E7EB', borderRadius: 6, fontSize: 11, color: '#C4C9D4', userSelect: 'none', cursor: 'default' }}>
+                ¶ Paragraphs — Build Graph to enable
               </span>
             )}
             {Object.keys(userPos).length > 0 && (
@@ -853,15 +892,40 @@ export default function DependencyView({ program: p }: Props) {
               <button onClick={() => setRenderMode('graph')} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'graph' ? '#1F3864' : '#F9FAFB', color: renderMode === 'graph' ? '#fff' : '#6B7280' }}>
                 Graph
               </button>
-              <button onClick={() => setRenderMode('mermaid')} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'mermaid' ? '#1F3864' : '#F9FAFB', color: renderMode === 'mermaid' ? '#fff' : '#6B7280', borderLeft: '1.5px solid #E5E7EB' }}>
+              <button onClick={() => { setRenderMode('mermaid'); setMermaidZoom(1); }} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: renderMode === 'mermaid' ? '#1F3864' : '#F9FAFB', color: renderMode === 'mermaid' ? '#fff' : '#6B7280', borderLeft: '1.5px solid #E5E7EB' }}>
                 {hasMermaidCfg ? 'Detailed CFG' : 'Mermaid'}
               </button>
             </div>
+            {/* Zoom controls — only in Mermaid / Detailed CFG mode */}
+            {renderMode === 'mermaid' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, border: '1.5px solid #E5E7EB', borderRadius: 6, overflow: 'hidden', fontSize: 11, fontWeight: 700 }}>
+                <button
+                  onClick={() => setMermaidZoom(z => Math.max(0.3, +(z - 0.15).toFixed(2)))}
+                  style={{ padding: '4px 8px', border: 'none', cursor: 'pointer', background: '#F9FAFB', color: '#374151', fontSize: 14, lineHeight: 1 }}
+                  title="Zoom out"
+                >−</button>
+                <span style={{ padding: '4px 2px', minWidth: 38, textAlign: 'center', color: '#374151', fontSize: 11 }}>
+                  {Math.round(mermaidZoom * 100)}%
+                </span>
+                <button
+                  onClick={() => setMermaidZoom(z => Math.min(3, +(z + 0.15).toFixed(2)))}
+                  style={{ padding: '4px 8px', border: 'none', cursor: 'pointer', background: '#F9FAFB', color: '#374151', fontSize: 14, lineHeight: 1 }}
+                  title="Zoom in"
+                >+</button>
+                {mermaidZoom !== 1 && (
+                  <button
+                    onClick={() => setMermaidZoom(1)}
+                    style={{ padding: '4px 8px', border: 'none', borderLeft: '1.5px solid #E5E7EB', cursor: 'pointer', background: '#F9FAFB', color: '#6B7280', fontSize: 10 }}
+                    title="Reset zoom"
+                  >↺</button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
         {/* Main split view */}
-        <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', minHeight: 'calc(100vh - 320px)' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minHeight: 'calc(100vh - 320px)' }}>
           {/* Graph panel */}
           <div style={{ flex: '0 0 58%', background: '#F8FAFD', borderRadius: 10, border: '1.5px solid #E5E7EB', overflow: 'auto', minHeight: 480 }}>
             {renderMode === 'graph' ? (
@@ -924,15 +988,28 @@ export default function DependencyView({ program: p }: Props) {
             ) : (
               <div
                 ref={mermaidRef}
-                style={{ padding: 24, overflow: 'auto', minHeight: 480, display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}
+                style={{ padding: 24, overflow: 'auto', minHeight: 480 }}
               >
                 <div style={{ color: '#9CA3AF', fontSize: 12, marginTop: 40 }}>Rendering flowchart…</div>
               </div>
             )}
           </div>
 
-          {/* Code inspector panel */}
-          <div style={{ flex: '1 1 40%', background: '#fff', borderRadius: 10, border: '1.5px solid #E5E7EB', minHeight: 480, overflow: 'auto' }}>
+          {/* Code inspector panel — sticky in Mermaid mode so it stays visible while scrolling a tall graph */}
+          <div style={{
+            flex: '1 1 40%',
+            background: '#fff',
+            borderRadius: 10,
+            border: '1.5px solid #E5E7EB',
+            minHeight: 480,
+            overflow: 'auto',
+            ...(renderMode === 'mermaid' ? {
+              position: 'sticky' as const,
+              top: 0,
+              maxHeight: 'calc(100vh - 100px)',
+              alignSelf: 'flex-start',
+            } : {}),
+          }}>
             <div style={{ padding: '10px 12px', borderBottom: '1px solid #F3F4F6', fontSize: 11, fontWeight: 700, color: '#9CA3AF', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Code Inspector
             </div>
