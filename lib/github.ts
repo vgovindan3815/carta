@@ -228,10 +228,16 @@ export async function parseGithubUrl(
 ): Promise<{ owner: string; repo: string } | null> {
   const trimmed = url.trim();
 
+  const VALID_OWNER = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+  const VALID_REPO  = /^[a-zA-Z0-9._-]{1,100}$/;
+
   // SSH format: git@github.com:owner/repo[.git]
   const sshMatch = /^git@github\.com:([^/]+)\/([^/]+?)(?:\.git)?$/.exec(trimmed);
   if (sshMatch) {
-    return { owner: sshMatch[1], repo: sshMatch[2] };
+    const owner = sshMatch[1];
+    const repo = sshMatch[2];
+    if (!VALID_OWNER.test(owner) || !VALID_REPO.test(repo)) return null;
+    return { owner, repo };
   }
 
   // HTTPS format: https://github.com/owner/repo[.git] (protocol optional)
@@ -240,7 +246,10 @@ export async function parseGithubUrl(
       trimmed
     );
   if (httpsMatch) {
-    return { owner: httpsMatch[1], repo: httpsMatch[2] };
+    const owner = httpsMatch[1];
+    const repo = httpsMatch[2];
+    if (!VALID_OWNER.test(owner) || !VALID_REPO.test(repo)) return null;
+    return { owner, repo };
   }
 
   return null;

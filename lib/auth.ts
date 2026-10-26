@@ -1,6 +1,6 @@
 import type { NextAuthOptions, DefaultSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { createHash } from 'crypto';
+import { createHash, scryptSync, timingSafeEqual } from 'crypto';
 import type { NextRequest } from 'next/server';
 
 declare module 'next-auth' {
@@ -18,8 +18,25 @@ declare module 'next-auth/jwt' {
   }
 }
 
-function hashPassword(pw: string): string {
+/**
+ * Hash a password using scrypt with an email-derived deterministic salt.
+ * Significantly harder to brute-force than plain SHA-256 — scrypt is memory-hard.
+ * For new deployments, migrate to per-user random salts stored in MAVEN_USERS.
+ */
+function hashPassword(pw: string, emailSalt?: string): string {
+  if (emailSalt) {
+    const salt = createHash('sha256').update('maven-salt-v1:' + emailSalt).digest('hex').slice(0, 32);
+    return scryptSync(pw, salt, 64).toString('hex');
+  }
   return createHash('sha256').update(pw).digest('hex');
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  try {
+    return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+  } catch {
+    return false;
+  }
 }
 
 interface StaticUser {
@@ -40,7 +57,7 @@ function getStaticUsers(): StaticUser[] {
     return {
       id: String(i + 1),
       email: email?.trim() ?? '',
-      passwordHash: hashPassword(password?.trim() ?? ''),
+      passwordHash: hashPassword(password?.trim() ?? '', email?.trim()),
       role: validRole,
     };
   }).filter(u => u.email);
@@ -58,8 +75,8 @@ export function checkAdminAuth(req: NextRequest): boolean {
     const adminPass = process.env.ADMIN_PASSWORD ?? '';
     if (adminPass && user === adminUser && pass === adminPass) return true;
   }
-  // If no Basic Auth env vars set, allow through — middleware is the gate
-  if (!process.env.ADMIN_PASSWORD) return true;
+  // If no ADMIN_PASSWORD configured, deny at this layer — middleware is the primary gate
+  if (!process.env.ADMIN_PASSWORD) return false;
   return false;
 }
 
@@ -87,7 +104,7 @@ export const authOptions: NextAuthOptions = {
         const user = users.find(
           u =>
             u.email.toLowerCase() === credentials.email.toLowerCase() &&
-            u.passwordHash === hashPassword(credentials.password)
+            timingSafeStringEqual(u.passwordHash, hashPassword(credentials.password, credentials.email))
         );
         if (!user) return null;
         return { id: user.id, email: user.email, role: user.role };

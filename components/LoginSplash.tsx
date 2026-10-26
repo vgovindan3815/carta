@@ -58,7 +58,7 @@ export function LoginSplash() {
             letterSpacing: '-0.5px',
             color: '#f8fafc',
           }}>
-            MAVEN
+            MKP
           </span>
           <span style={{
             display: 'inline-block',
@@ -71,7 +71,7 @@ export function LoginSplash() {
             verticalAlign: 'middle',
             paddingBottom: 2,
           }}>
-            / CARTA
+            Mainframe Knowledge Platform
           </span>
         </div>
 

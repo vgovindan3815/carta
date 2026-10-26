@@ -746,7 +746,7 @@ Do NOT generate a high-level architecture or paragraph-only dependency diagram.
 Represent ALL of the following where present in the source:
 
 PROGRAM STRUCTURE
-  - Program entry (([${programName} START])) and exit (([STOP RUN]) / ([GOBACK]) / ([EXIT PROGRAM]))
+  - Program entry: start node e.g. start["${programName} START"] and exit nodes e.g. exit_node["STOP RUN"] / goback_node["GOBACK"] / exitpgm_node["EXIT PROGRAM"]
   - PROCEDURE DIVISION entry node
   - Every SECTION boundary → Mermaid subgraph
   - Every paragraph boundary → named node group within its section subgraph
@@ -762,13 +762,28 @@ PERFORM
   - PERFORM paragraph-name → define nodeId[["PERFORM paragraph-name"]] then edge to that nodeId
   - PERFORM section-name → define nodeId[["PERFORM section-name"]] then edge to that nodeId
   - PERFORM para-A THRU para-B → define nodeId[["PERFORM para-A THRU para-B"]] then edge to nodeId
-  - PERFORM UNTIL / VARYING / TIMES → show: [Init loop vars] → {loop condition?} → [loop body] → [increment] → loop-back edge → exit
+  - PERFORM UNTIL / VARYING / TIMES → show as a loop with nodeIds:
+      loop_init["Init loop vars"]
+      loop_cond{loop condition?}
+      loop_body["loop body"]
+      loop_incr["increment"]
+      loop_init --> loop_cond
+      loop_cond -->|LOOP| loop_body
+      loop_body --> loop_incr
+      loop_incr --> loop_cond
+      loop_cond -->|EXIT LOOP| next_node
+    NEVER write bare shapes like [Init loop vars] as edge targets — always define nodeId first.
   - Inline PERFORM → inline subroutine node using nodeId[["label"]]
   - Do NOT represent PERFORM UNTIL as a simple sequential call
   - NEVER write "source --> [[label]]"; always write "source --> nodeId" where nodeId is defined as nodeId[["label"]]
 
 GO TO / CONTROL TRANSFER
-  - GO TO paragraph → arrow to target paragraph node (use paragraph's nodeId)
+  - GO TO paragraph → draw an edge directly to the TARGET paragraph's own nodeId
+    e.g. A --> screenzz_read_exit    %% where screenzz_read_exit is defined as a paragraph node
+  - NEVER create a new rectangle node ["GO TO paragraphname"] as an edge target
+    WRONG: A -->|Yes| ["GO TO SCREENZZ-READ"]   ← INVALID bare shape in edge
+    WRONG: A -->|Yes| [GO TO SCREENZZ-READ]     ← INVALID bare shape in edge
+    CORRECT: A -->|Yes| screenzz_read           ← direct reference to paragraph nodeId
   - GO TO DEPENDING ON → one outgoing edge per possible target nodeId
   - ALTER → show the altered target
   - Paragraph fall-through where no EXIT stops it
@@ -780,20 +795,32 @@ CALLS
   - Label the node with the called program or variable name
 
 DATA / I-O OPERATIONS
-  - OPEN / CLOSE → [OPEN INPUT file] or [CLOSE file]
-  - READ → [READ file]; READ AT END → diamond {AT END?} with AT END / NOT AT END edges
-  - WRITE / REWRITE / DELETE → [WRITE record] etc.
-  - START → [START file]
-  - SORT / MERGE → [SORT WORK-FILE]
-  - File status checks → diamond {FILE-STATUS = '00'?}
+⚠️  In all examples below, the notation "define nodeId['label'] then edge to nodeId" means: write the node definition as a separate line, then reference only the nodeId in the edge.
+    NEVER write the bare ["label"] or [label] directly as an edge target.
+
+  - OPEN / CLOSE: define open_node["OPEN INPUT filename"] then edge to open_node
+  - READ: define read_node["READ filename"] then edge to read_node
+    READ AT END: define {AT END?} diamond, edges to AT END and NOT AT END branches
+  - WRITE / REWRITE / DELETE: define write_node["WRITE recordname"] then edge to write_node
+  - START: define start_node["START filename"] then edge to start_node
+  - SORT / MERGE: define sort_node["SORT WORK-FILE"] then edge to sort_node
+  - File status checks: define d_fs{FILE-STATUS = '00'?} then conditional edges
 
 DATABASE / MIDDLEWARE
-  - EXEC SQL SELECT/INSERT/UPDATE/DELETE → [SQL: purpose] then {SQLCODE = 0?} diamond
-  - EXEC SQL COMMIT / ROLLBACK → [SQL COMMIT] / [SQL ROLLBACK]
-  - Cursor OPEN/FETCH/CLOSE → show as sequence: [OPEN cursor] → [FETCH cursor] → {AT END?} loop → [CLOSE cursor]
-  - EXEC CICS LINK / XCTL / RETURN → subroutine [[CICS LINK program]] or [[CICS XCTL program]]
-  - MQ GET/PUT → [MQ GET queue] / [MQ PUT queue]
-  - IMS/DL-I GU/GHU/ISRT/DLET → [IMS ISRT segment]
+  - EXEC SQL SELECT/INSERT/UPDATE/DELETE: define sql_node["SQL: purpose"] then {SQLCODE = 0?} diamond
+  - EXEC SQL COMMIT / ROLLBACK: define commit_node["SQL COMMIT"] or rollback_node["SQL ROLLBACK"]
+  - Cursor OPEN/FETCH/CLOSE — show as loop:
+      open_cur["OPEN cursor"]
+      fetch_cur["FETCH cursor"]
+      at_end_cur{AT END?}
+      close_cur["CLOSE cursor"]
+      open_cur --> fetch_cur --> at_end_cur
+      at_end_cur -->|LOOP| fetch_cur
+      at_end_cur -->|EXIT LOOP| close_cur
+  - EXEC CICS LINK / XCTL: define cics_lnk[["CICS LINK programname"]] then edge to cics_lnk
+  - EXEC CICS RETURN: define cics_ret["CICS RETURN"] then edge to cics_ret
+  - MQ GET/PUT: define mq_node["MQ GET queuename"] then edge to mq_node
+  - IMS/DL-I: define ims_node["IMS ISRT segmentname"] then edge to ims_node
 
 ERROR AND RETURN-CODE PROCESSING
   - SQLCODE checks → diamond {SQLCODE = 0?} with SUCCESS / ERROR edges
@@ -801,37 +828,47 @@ ERROR AND RETURN-CODE PROCESSING
   - RETURN-CODE checks → diamond {RETURN-CODE = 0?} with RC = 0 / RC > 0 edges
   - Error paragraphs → show as distinct named nodes
   - Retry logic → show loop-back edge
-  - Abnormal termination → distinct termination node ([ABEND])
+  - Abnormal termination → distinct termination node with label "ABEND" e.g. abend_node["ABEND"]
 
 JCL CONTROL FLOW (when source is JCL/PROC)
   - JOB statement as start node
-  - Each EXEC PGM as a subroutine node [[PGM=name]]
-  - Each EXEC PROC as a subroutine node [[PROC=name]]
-  - JCL IF / THEN / ELSE / ENDIF → diamond {condition?}
-  - COND processing → decision node with RC conditions
+  - Each EXEC PGM: define pgm_node[["EXEC PGM=name"]] then edge to pgm_node
+  - Each EXEC PROC: define proc_node[["EXEC PROC=name"]] then edge to proc_node
+  - JCL IF / THEN / ELSE / ENDIF: define d_jcl{condition?} diamond then conditional edges
+  - COND processing: define d_cond{RC condition?} decision node with conditional edges
   - Step dependencies and execution order
-  - Relevant DD datasets as data nodes [(dsname)]
-  - Dataset flow: [(input dataset)] → [[PGM]] → [(output dataset)]
+  - Relevant DD datasets: define ds_node["dsname"] then edge to or from ds_node
+  - Dataset flow example (ALL three must have nodeIds):
+      in_ds["input dataset"]
+      pgm_step[["EXEC PGM=MYPROG"]]
+      out_ds["output dataset"]
+      in_ds --> pgm_step --> out_ds
 
 ━━━ CONTROL-FLOW ACCURACY ━━━
 
 Reconstruct flow from source code. Physical source order ≠ execution order.
 Resolve: PERFORM targets, PERFORM THRU ranges, GO TO targets, paragraph fall-through, EXIT behavior, CALL relationships, EVALUATE branches, loops, JCL conditional execution.
 Do NOT invent paths not in the source.
-If a target cannot be resolved: create node [Unresolved: target-name]
+If a target cannot be resolved: create node unresolved_N["Unresolved: target-name"] (quoted label, unique nodeId)
 
 ━━━ GRAPH STRUCTURE ━━━
 
 Format: flowchart TD
 
 Node shapes (use consistently):
-  Start/End:              nodeId([label])      ← rounded
-  Processing block:       nodeId[label]        ← rectangle
-  Decision (IF/EVALUATE): nodeId{label?}      ← diamond
+  Start/End:              nodeId["label"]      ← rectangle (use for PROGRAM START, STOP RUN, GOBACK, EXIT PROGRAM)
+  Processing block:       nodeId["label"]      ← rectangle
+  Decision (IF/EVALUATE): nodeId{label?}       ← diamond — UNQUOTED plain text only
   PERFORM/CALL:           nodeId[["label"]]   ← subroutine double-border
-  I/O / SQL operation:    nodeId[label]        ← rectangle with descriptive label
-  Error termination:      nodeId([ABEND])      ← distinct rounded node
-  Data store:             nodeId[(label)]      ← cylinder
+  I/O / SQL operation:    nodeId["label"]      ← rectangle with descriptive label
+  Error termination:      nodeId["ABEND"]      ← rectangle with label ABEND
+  Data store:             nodeId["label"]      ← rectangle (do NOT use cylinder [(label)] syntax)
+
+⚠️  DO NOT USE these shapes — they cause parse errors in this Mermaid version:
+  nodeId([label])    ← BROKEN — stadium/pill shape
+  nodeId[(label)]    ← BROKEN — cylinder shape
+  nodeId((label))    ← BROKEN — circle shape
+Use nodeId["label"] (quoted rectangle) for ALL of the above instead.
 
 ⚠️  CRITICAL MERMAID SYNTAX RULE — READ CAREFULLY:
 Every node MUST have a unique nodeId BEFORE the shape brackets.
@@ -839,17 +876,38 @@ nodeId is a simple alphanumeric identifier (letters, digits, underscores).
 
 CORRECT:
   p1_VALIDATE[["PERFORM VALIDATE-CUSTOMER"]]   %% subroutine node definition
-  p2_CHECK{"WS-STATUS = 'A'?"}                 %% decision node definition
+  p2_CHECK{WS-STATUS = 'A'?}                   %% decision node — UNQUOTED plain text
   A --> p1_VALIDATE                             %% edge to subroutine node
   p1_VALIDATE --> p2_CHECK                      %% edge between nodes
 
-WRONG — will cause parse errors:
+WRONG — will cause parse errors (ALL of these — missing nodeId before shape):
   A --> [[VALIDATE-CUSTOMER]]     %% INVALID: no nodeId before [[
   A --> [["label"]]               %% INVALID: no nodeId before [[
+  A --> ["GO TO SCREENZZ-READ"]   %% INVALID: no nodeId before [
+  A --> [GO TO SCREENZZ-READ]     %% INVALID: no nodeId before [
+  A -->|Yes| ["label"]            %% INVALID: no nodeId before [ (even with edge label)
   --> [[label]]                   %% INVALID: always need nodeId first
 
-RULE: In edges (-->) the target MUST be a plain nodeId, NEVER a shape expression.
-Define the subroutine node shape separately, then reference it by its nodeId.
+RULE: In edges (-->) the target MUST be a plain nodeId — NEVER a shape expression.
+This applies to ALL shape types: [["..."]], ["..."], [...], {}, {{}}.
+Define every node as a separate line, then reference it only by its nodeId in edges.
+
+⚠️  FLOWCHART ONLY — DO NOT USE OTHER DIAGRAM SYNTAX:
+This is a flowchart TD diagram. NEVER use syntax from other Mermaid diagram types.
+FORBIDDEN (sequence/state diagram syntax — causes "got NODE_STRING" parse errors):
+  note left of INIT: text     ← INVALID in flowchart — sequence diagram only
+  note right of nodeId: text  ← INVALID in flowchart — sequence diagram only
+  note over nodeId: text      ← INVALID in flowchart — sequence diagram only
+  actor / participant          ← INVALID in flowchart — sequence diagram only
+  state / transition           ← INVALID in flowchart — state diagram only
+To annotate a node, use a Mermaid comment instead: %% Note: text
+
+RULE: Each node definition and each edge MUST be on its own line.
+NEVER put two node definitions or a node definition and an edge on the same line.
+WRONG:  abend_node["ABEND"]  goback_node[["GOBACK"]]
+CORRECT:
+  abend_node["ABEND"]
+  goback_node[["GOBACK"]]
 
 Example — PERFORM VALIDATE-CUSTOMER:
   validate_para[["PERFORM VALIDATE-CUSTOMER"]]  %% define node
@@ -859,15 +917,38 @@ Subgraph hierarchy:
   COBOL: subgraph PROGRAM → subgraph SECTION → paragraph nodes
   JCL:   subgraph JOB → subgraph STEP → program/proc nodes
 
+⚠️  SUBGRAPH NAME QUOTING:
+Subgraph names containing hyphens, spaces, or special characters MUST be double-quoted.
+CORRECT:   subgraph "SCREENZZ-READ"
+CORRECT:   subgraph "SCREENZZ-BUILD-AND-SEND"
+WRONG:     subgraph SCREENZZ-READ        ← hyphens break parsing
+
+⚠️  NODE LABEL QUOTING — DIFFERENT RULES FOR DIFFERENT SHAPES:
+
+Rectangle/subroutine labels MUST use double quotes:
+  nodeId["label text here"]      ← rectangle — ALWAYS double-quote the label
+  nodeId[["label text here"]]    ← subroutine — ALWAYS double-quote the label
+CORRECT:   n1["CALL 'UDATECNV' USING WS-TIME-DATE-WORK-AREA"]
+CORRECT:   n2[["PERFORM VALIDATE-CUSTOMER"]]
+
+Diamond labels MUST use plain unquoted text — NO double quotes inside {}:
+  nodeId{label text?}            ← diamond — NEVER wrap label in double quotes
+CORRECT:   d1{BANK-LAST-MAP = 'BANKZZA'?}
+CORRECT:   d2{EIBCALEN = 0?}
+CORRECT:   d3{SQLCODE = 0?}
+WRONG:     d1{"BANK-LAST-MAP = 'BANKZZA'?"}   ← double quotes inside {} cause "got STR" parse error
+WRONG:     d2{"EIBCALEN = 0?"}                 ← same error
+
 ━━━ NODE LABELS ━━━
 
 Labels MUST be meaningful — use actual COBOL/JCL identifiers.
 BAD: Process / Decision / Step 1 / Logic
 GOOD: READ CUSTOMER-FILE / WS-EOF = 'Y'? / PERFORM VALIDATE-CUSTOMER / SQLCODE = 0? / CALL 'CUSTUPDT'
 
-TRACEABILITY: For important decision/I-O/call nodes, add line number(s):
-  D17{"WS-RETURN-CODE > 4?<br/>Lines 420-423"}
+TRACEABILITY: For important decision/I-O/call nodes, add a comment with line number(s):
+  D17{WS-RETURN-CODE > 4?}  %% Lines 420-423
   This allows tracing back to the original source.
+  Note: do NOT use <br/> or HTML inside diamond {} labels — it causes parse errors.
 
 ━━━ EDGE LABELS ━━━
 

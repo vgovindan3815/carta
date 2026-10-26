@@ -433,6 +433,53 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
     }
   );
 
+  // Pass 1b: fix bare rectangle edge targets with no nodeId prefix
+  // e.g. `A -->|Yes| ["GO TO SCREENZZ-READ"]` → `A -->|Yes| _GO_TO_SCREENZZ_READ`
+  // Matches: arrow (with optional |edge label|) then whitespace then ["quoted"] or [unquoted]
+  // Does NOT match `nodeId["label"]` (nodeId comes before [) — only bare [...]
+  fixed = fixed.replace(
+    /(--[->](?:\|[^|]*\|)?)\s*\[(?!\[)"([^"\n]+)"\]/g,
+    (_match, arrow, label) => {
+      const nodeId = '_' + label.trim()
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'node';
+      const safeLabel = label.trim().replace(/"/g, "'");
+      if (!seen.has(nodeId)) {
+        seen.add(nodeId);
+        extraDefs.push(`  ${nodeId}["${safeLabel}"]`);
+      }
+      return `${arrow} ${nodeId}`;
+    }
+  );
+  // Pass 1c: same but for unquoted bare rectangle edge targets: A --> [GO TO LABEL]
+  fixed = fixed.replace(
+    /(--[->](?:\|[^|]*\|)?)\s*\[(?!\[)([^\[\]"\n]+)\]/g,
+    (_match, arrow, label) => {
+      const nodeId = '_' + label.trim()
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 40) || 'node';
+      const safeLabel = label.trim().replace(/"/g, "'");
+      if (!seen.has(nodeId)) {
+        seen.add(nodeId);
+        extraDefs.push(`  ${nodeId}["${safeLabel}"]`);
+      }
+      return `${arrow} ${nodeId}`;
+    }
+  );
+
+  // Pass 1d: strip sequence/state diagram annotations mixed into flowchart
+  // `note left of X: text` and `note right of X: text` are sequence diagram syntax
+  // that cause "got NODE_STRING" parse errors inside flowchart TD.
+  // Convert to a Mermaid comment so the intent is preserved but syntax is safe.
+  fixed = fixed.replace(
+    /^\s*note\s+(?:left|right|over)\s+of\s+\S+\s*:\s*.*/gim,
+    (match) => `  %% ${match.trim()}`
+  );
+
   // Pass 2: remove LLM-added `<br/>Lines N-M` / `<br/>Line N` annotations
   // These appear after a closed node shape and cause TAGSTART parse errors
   fixed = fixed.replace(/<br\s*\/?>\s*(?:Lines?\s*)?\d+[-–]\d+/gi, '');
@@ -747,6 +794,7 @@ export default function DependencyView({ program: p }: Props) {
       const dark = document.documentElement.dataset.mode === 'dark';
       mermaid.initialize({
         startOnLoad: false,
+        securityLevel: 'strict',
         theme: 'base',
         // Mermaid 12 defaults to ELK which fails on hierarchy-crossing edges.
         // Force Dagre to avoid the UnsupportedGraphException.
@@ -766,7 +814,8 @@ export default function DependencyView({ program: p }: Props) {
         const uid = `mm-${++mermaidIdRef.current}`;
         const { svg } = await mermaid.render(uid, mermaidDef);
         if (!cancelled && mermaidRef.current) {
-          mermaidRef.current.innerHTML = svg;
+          const { default: DOMPurify } = await import('isomorphic-dompurify');
+          mermaidRef.current.innerHTML = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } });
           // Capture natural SVG width for zoom scaling
           const svgEl = mermaidRef.current.querySelector<SVGSVGElement>('svg');
           if (svgEl) {

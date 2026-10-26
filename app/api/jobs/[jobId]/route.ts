@@ -2,6 +2,11 @@ import { NextRequest } from 'next/server';
 
 export const maxDuration = 300; // 5 min timeout on Vercel
 
+/** Escape HTML special characters to prevent XSS in log messages rendered via dangerouslySetInnerHTML */
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 // GET /api/jobs/[jobId] — SSE endpoint that runs the analysis pipeline and streams log lines
 export async function GET(
   _req: NextRequest,
@@ -96,7 +101,7 @@ export async function GET(
           const srcRow = await getProgramSource(prog.id);
           source = srcRow?.sourceText ?? null;
           if (!source) {
-            emit({ lv: 'WARN', t: `No stored source found for ${prog.name}.` });
+            emit({ lv: 'WARN', t: `No stored source found for ${esc(prog.name)}.` });
           }
         }
 
@@ -107,7 +112,7 @@ export async function GET(
 
           // Stored branch may be "main" while the repo uses "master" — auto-correct on failure
           let branch = repo.branch ?? 'main';
-          emit({ lv: 'INFO', t: `Fetching ${prog.filePath} from ${repo.owner}/${repo.repo} (${branch})…` });
+          emit({ lv: 'INFO', t: `Fetching ${esc(prog.filePath)} from ${esc(repo.owner)}/${esc(repo.repo)} (${esc(branch)})…` });
 
           try {
             source = await fetchFileContent(repo.owner, repo.repo, prog.filePath, branch, pat);
@@ -117,17 +122,17 @@ export async function GET(
               const defaultBranch = await getDefaultBranch(repo.owner, repo.repo, pat);
               if (defaultBranch !== branch) {
                 branch = defaultBranch;
-                emit({ lv: 'WARN', t: `Retrying with default branch "${branch}"…` });
+                emit({ lv: 'WARN', t: `Retrying with default branch "${esc(branch)}"…` });
                 source = await fetchFileContent(repo.owner, repo.repo, prog.filePath, branch, pat);
               }
             } catch { /* fall through */ }
 
             if (!source) {
               // Path still wrong — search the whole repo tree by program name
-              emit({ lv: 'WARN', t: `Searching repo for ${prog.name}…` });
+              emit({ lv: 'WARN', t: `Searching repo for ${esc(prog.name)}…` });
               source = await findProgramSource(repo.owner, repo.repo, branch, prog.name, pat);
               if (source) {
-                emit({ lv: 'INFO', t: `Found ${prog.name} via name search.` });
+                emit({ lv: 'INFO', t: `Found ${esc(prog.name)} via name search.` });
               }
             }
           }
@@ -159,8 +164,8 @@ export async function GET(
         } else {
           // GitHub or upload repo — source was unavailable (fetch failed or not stored yet)
           const why = repo.githubUrl.startsWith('upload://')
-            ? `No source stored for ${prog.name}. Re-upload the source file to re-run analysis.`
-            : `Could not fetch ${prog.filePath} from ${repo.owner}/${repo.repo}. Check that the file path and branch are correct, and that your GitHub PAT has read access to this repository.`;
+            ? `No source stored for ${esc(prog.name)}. Re-upload the source file to re-run analysis.`
+            : `Could not fetch ${esc(prog.filePath)} from ${esc(repo.owner)}/${esc(repo.repo)}. Check that the file path and branch are correct, and that your GitHub PAT has read access to this repository.`;
           emit({ lv: 'ERROR', t: `✕ ${why}` });
           await updateJob(jobId, { status: 'failed', error: why, completedAt: new Date() });
           emit({}, 'done');

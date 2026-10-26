@@ -374,7 +374,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
         <div className="ov-gate">
           <div className="ov-gate-hdr">◇ Validation Gate — Required Before Any Action</div>
           <div className="ov-gate-body">
-            MAVEN drafts. An engineer verifies against the graph before a spec or code change
+            MKP drafts. An engineer verifies against the graph before a spec or code change
             proceeds. Nothing here is auto-applied.
           </div>
           <div className="ov-gate-rev">Reviewed by: — awaiting engineer sign-off —</div>
@@ -388,7 +388,7 @@ export default function OverviewDashboard({ program: p, onTabChange }: Props) {
             className="ov-gate-btn2"
             onClick={() =>
               alert(
-                'Prototype note: This action is illustrative — in the real MAVEN build, this triggers the engineer review and sign-off workflow.'
+                'Prototype note: This action is illustrative — in the real MKP build, this triggers the engineer review and sign-off workflow.'
               )
             }
           >

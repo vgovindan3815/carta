@@ -164,7 +164,7 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
         }}>
           <div style={{ fontSize: 12, color: '#92400E' }}>
-            <strong>{notFoundProg}</strong> was identified through analysis but is not yet in the MAVEN registry.
+            <strong>{notFoundProg}</strong> was identified through analysis but is not yet in the platform registry.
             Upload its CAST report or connect a GitHub repository to add it.
           </div>
           <button onClick={() => setNotFoundProg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#92400E', flexShrink: 0 }}>✕</button>
@@ -189,7 +189,7 @@ export default function ChangeImpact({ program: p, onTabChange }: Props) {
               <span className="badge-dot" />
               Traced · graph-grounded
             </span>
-            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Generated: {today} · MAVEN</div>
+            <div style={{ fontSize: 11, color: 'var(--text-3)' }}>Generated: {today} · MKP</div>
           </div>
         </div>
       </div>

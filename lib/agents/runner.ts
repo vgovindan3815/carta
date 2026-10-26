@@ -11,9 +11,9 @@ export interface AgentEvent {
   data: Record<string, unknown>;
 }
 
-const BASE_SYSTEM = `You are MAVEN Agent, an AI assistant embedded in the MAVEN/CARTA mainframe modernization platform. You help analysts and engineers understand COBOL/JCL mainframe programs.
+const BASE_SYSTEM = `You are an AI assistant embedded in the Mainframe Knowledge Platform (MKP), an AI-powered mainframe intelligence and modernization platform. You help analysts and engineers understand COBOL/JCL mainframe programs.
 
-You have access to tools to fetch program information, source code, business rules, change impact analysis, and modernization specifications from the MAVEN registry.
+You have access to tools to fetch program information, source code, business rules, change impact analysis, and modernization specifications from the platform registry.
 
 Core guidelines:
 - Always use tools to fetch actual data before answering questions about specific programs
@@ -112,9 +112,9 @@ export async function* runAgent(
     totalInputTokens += response.usage.input_tokens;
     totalOutputTokens += response.usage.output_tokens;
 
-    // Stream text blocks
+    // Stream text blocks (skip empty strings to avoid creating empty bubbles in the UI)
     for (const block of response.content) {
-      if (block.type === 'text') {
+      if (block.type === 'text' && block.text) {
         yield { type: 'text', data: { text: block.text } };
       }
     }

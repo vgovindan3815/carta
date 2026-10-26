@@ -11,7 +11,7 @@ interface Props {
 
 function demoNote() {
   alert(
-    'Prototype note: This action is illustrative — in the real MAVEN build, this triggers the engineer review and sign-off workflow.'
+    'Prototype note: This action is illustrative — in the real MKP build, this triggers the engineer review and sign-off workflow.'
   );
 }
 
@@ -221,7 +221,7 @@ export default function ModernizationSpec({ program: p, onRefreshed }: Props) {
             <div className="draft-banner-text">
               <h3>Draft — requires engineer validation before use</h3>
               <p>
-                MAVEN-generated from the deterministic dependency graph and extracted business
+                MKP-generated from the deterministic dependency graph and extracted business
                 rules. An engineer must review and sign off before this brief informs any
                 code change or modernisation task.
               </p>
