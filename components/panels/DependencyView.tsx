@@ -167,9 +167,12 @@ function CodeInspector({
     const para = program.internalFlow?.paragraphs.find(p => p.name === paraName);
     const heroSource = loadedSource[program.name];
     const allLines = heroSource ? heroSource.split('\n') : null;
-    // 1-based line range of this paragraph
-    const hlStart = para ? para.lineStart - 1 : -1; // 0-based index
-    const hlEnd   = para ? para.lineEnd   - 1 : -1;
+    // Use paragraph bounds when available; fall back to the lineStart/lineEnd on the inspected object
+    // (set by the Mermaid text-search fallback for statement/condition nodes)
+    const hlStart = para ? para.lineStart - 1
+      : (inspected.lineStart != null ? inspected.lineStart - 1 : -1);
+    const hlEnd   = para ? para.lineEnd   - 1
+      : (inspected.lineEnd   != null ? inspected.lineEnd   - 1 : hlStart >= 0 ? hlStart + 4 : -1);
 
     return (
       <div style={{ padding: 12, fontSize: 12, display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -180,6 +183,11 @@ function CodeInspector({
         {para && (
           <div style={{ color: '#6B7280', fontSize: 11, marginBottom: 8, flexShrink: 0 }}>
             Lines {para.lineStart}–{para.lineEnd} · {para.sectionName ?? 'no section'} · {para.lineEnd - para.lineStart + 1} lines
+          </div>
+        )}
+        {!para && hlStart >= 0 && (
+          <div style={{ color: '#6B7280', fontSize: 11, marginBottom: 8, flexShrink: 0 }}>
+            Around line {hlStart + 1} — nearest match in source
           </div>
         )}
         {!heroSource && loading !== program.name && (
@@ -222,7 +230,7 @@ function CodeInspector({
             })}
           </pre>
         )}
-        {heroSource && !para && <div style={{ color: '#9CA3AF', fontSize: 11 }}>Paragraph not found in internal flow data.</div>}
+        {heroSource && !para && hlStart < 0 && <div style={{ color: '#9CA3AF', fontSize: 11 }}>No direct paragraph mapping — showing full source.</div>}
       </div>
     );
   }
@@ -695,32 +703,63 @@ export default function DependencyView({ program: p }: Props) {
         const { svg } = await mermaid.render(uid, mermaidDef);
         if (!cancelled && mermaidRef.current) {
           mermaidRef.current.innerHTML = svg;
-          // Wire click-to-inspect: clicking a Mermaid CFG node shows its source in the Code Inspector
-          const paragraphs = paragraphsRef.current;
+          // Wire click-to-inspect on every Mermaid CFG node
           mermaidRef.current.querySelectorAll<HTMLElement>('.node').forEach(nodeEl => {
             nodeEl.style.cursor = 'pointer';
             nodeEl.addEventListener('click', (e) => {
               e.stopPropagation();
-              // Extract visible text from label, collapsing whitespace
+
+              // Always read the live ref so we never use a stale snapshot
+              const paragraphs = paragraphsRef.current;
+
+              // Label text from DOM
               const rawText = (nodeEl.textContent ?? '').trim().replace(/\s+/g, ' ');
               const up = rawText.toUpperCase();
 
-              // 1. Exact paragraph name match
-              let match = paragraphs.find(par => par.name === up);
+              // Node ID embedded in Mermaid's generated element id: "flowchart-VALIDATE-INPUT-0" → "VALIDATE-INPUT"
+              const idAttrMatch = nodeEl.id?.match(/^flowchart-(.+)-\d+$/);
+              const nodeIdUp = idAttrMatch ? idAttrMatch[1].toUpperCase() : '';
 
-              // 2. Strip leading verb (PERFORM, CALL) and take first token
+              // 1. Exact paragraph name match (by label text or by Mermaid node ID)
+              let match = paragraphs.find(par => par.name === up || par.name === nodeIdUp);
+
+              // 2. Strip leading verb and match first token
               if (!match) {
-                const stripped = up.replace(/^(PERFORM|CALL|EXEC)\s+/, '').split(/[\s.(]/)[0];
+                const stripped = up.replace(/^(PERFORM|CALL|EXEC|GO\s+TO)\s+/, '').split(/[\s.(]/)[0];
                 if (stripped) match = paragraphs.find(par => par.name === stripped);
               }
 
-              // 3. Any paragraph name contained in the label text
-              if (!match) match = paragraphs.find(par => up.includes(par.name));
+              // 3. Any paragraph name contained in the label or node ID
+              if (!match) {
+                match = paragraphs.find(par =>
+                  (par.name.length > 3 && up.includes(par.name)) ||
+                  (par.name.length > 3 && nodeIdUp.includes(par.name))
+                );
+              }
 
               if (match) {
                 setInspected({ id: `para:${match.name}`, type: 'para', lineStart: match.lineStart, lineEnd: match.lineEnd });
                 if (loadedSourceRef.current[p.name] === undefined) loadSource(p.name);
+                return;
               }
+
+              // 4. No paragraph match — search source text for the label and highlight the found line
+              const src = loadedSourceRef.current[p.name];
+              if (src) {
+                const needle = rawText.replace(/['"()\[\]{}]/g, '').trim();
+                if (needle.length > 4) {
+                  const srcLines = src.split('\n');
+                  const lineIdx = srcLines.findIndex(l => l.toUpperCase().includes(needle.toUpperCase()));
+                  if (lineIdx >= 0) {
+                    setInspected({ id: `para:${rawText}`, type: 'para', lineStart: lineIdx + 1, lineEnd: Math.min(lineIdx + 5, srcLines.length) });
+                    return;
+                  }
+                }
+              }
+
+              // 5. Fall back to showing hero source (loads it if needed)
+              setInspected({ id: p.name, type: 'hero' });
+              if (loadedSourceRef.current[p.name] === undefined) loadSource(p.name);
             });
           });
         }
