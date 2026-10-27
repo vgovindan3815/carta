@@ -295,7 +295,7 @@ function CodeInspector({
         <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: '#92400E', background: '#FEF3C7', border: '1.5px solid #D97706', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>{id}</div>
         <div style={{ color: '#B45309', marginBottom: 8, fontSize: 11 }}>Unresolved reference — source not in analysis bundle</div>
         <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 6, padding: '8px 10px', fontSize: 11, color: '#78350F' }}>
-          This program is called by <strong>{p.name}</strong> but its source file was not included in the repository. It may be an external dependency, a copylib module, or a program in another project.
+          This program is called by <strong>{program.name}</strong> but its source file was not included in the repository. It may be an external dependency, a copylib module, or a program in another project.
         </div>
       </div>
     );
@@ -588,7 +588,7 @@ function buildMermaidDef(nodes: GraphNode[], edges: GraphEdge[]): string {
     else if (n.type === 'data' || n.type === 'cpy') lines.push(`  ${sid}[(${lbl})]:::data`);
     else if (n.type === 'asm')                      lines.push(`  ${sid}[[${lbl}]]:::asm`);
     else if (n.type === 'jcl' || n.type === 'proc') lines.push(`  ${sid}[/${lbl}/]:::jcl`);
-    else if (n.type === 'missing')                  lines.push(`  ${sid}{{${lbl}}}:::missing`);
+    else if (n.type === 'missing')                  lines.push(`  ${sid}["⚠ ${lbl}"]:::missing`);
     else                                             lines.push(`  ${sid}[${lbl}]:::prog`);
   }
   for (const e of edges) {

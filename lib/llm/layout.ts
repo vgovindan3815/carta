@@ -7,7 +7,8 @@ export function layoutCircular(
   H = 468
 ): CircularLayout {
   const hero = nodes.find((n) => n.type === 'hero') ?? nodes[0];
-  const progs = nodes.filter((n) => n.type === 'prog' || n.type === 'asm');
+  const progs = nodes.filter((n) => n.type === 'prog' || n.type === 'asm' || n.type === 'missing'
+    || n.type === 'jcl' || n.type === 'proc' || n.type === 'cpy' || n.type === 'sys');
   const datas = nodes.filter((n) => n.type === 'data');
 
   const cx = W / 2;

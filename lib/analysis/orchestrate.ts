@@ -4,7 +4,7 @@ import { parsePliFile } from '../parser/pli';
 import { parseCobolV2 } from '../../packages/mavenkg-engine/src/parsers/cobol';
 import { parseJclV2 } from '../../packages/mavenkg-engine/src/parsers/jcl';
 import type { ArtifactReport } from '../../packages/mavenkg-engine/src/output';
-import { createLLMProvider } from '../llm/index';
+import { createLLMProvider, layoutCircular } from '../llm/index';
 
 import type { LLMConfig } from '../llm/types';
 import {
@@ -90,14 +90,21 @@ function mapEngineReportToParsed(report: ArtifactReport, source: string): Parsed
   const language: ParsedCobolProgram['language'] =
     lang === 'PLI' ? 'PLI' : lang === 'HLASM' ? 'HLASM' : 'COBOL';
 
+  const rawNodes = report.nodes as ParsedCobolProgram['graph']['nodes'];
+  const rawEdges = report.edges as ParsedCobolProgram['graph']['edges'];
+
+  // Engine nodes have no cx/cy — run circular layout so the dep graph renders correctly.
+  const layout = layoutCircular(rawNodes, rawEdges);
+  const positionedNodes = layout.nodes as ParsedCobolProgram['graph']['nodes'];
+
   return {
     name: report.name,
     language,
     loc: report.loc,
     source,
     graph: {
-      nodes: report.nodes as ParsedCobolProgram['graph']['nodes'],
-      edges: report.edges as ParsedCobolProgram['graph']['edges'],
+      nodes: positionedNodes,
+      edges: rawEdges,
       coveragePct: report.coveragePct,
     },
     internalFlow,
