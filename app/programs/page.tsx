@@ -592,6 +592,7 @@ function ProgramsPageContent() {
   const [loadingIds, setLoadingIds]     = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId]     = useState<string | null>(null);
   const [showNewForm, setShowNewForm]   = useState(false);
+  const [projectsPanelCollapsed, setProjectsPanelCollapsed] = useState(false);
   const [query, setQuery]               = useState('');
   const [toast, setToast]               = useState<{ msg: string; kind: 'ok' | 'err' } | null>(null);
   const [sourceViewer, setSourceViewer] = useState<string | null>(null);
@@ -717,64 +718,124 @@ function ProgramsPageContent() {
 
         {/* ── LEFT SIDEBAR ─────────────────────────────────────────────── */}
         <aside style={{
-          width: 290, flexShrink: 0,
-          background: '#fff', borderRight: '1px solid #E5E7EB',
-          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+          width: projectsPanelCollapsed ? 40 : 290,
+          flexShrink: 0,
+          background: '#fff',
+          borderRight: '1px solid #E5E7EB',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          transition: 'width 0.2s ease',
+          position: 'relative',
         }}>
 
-          {/* Sidebar header */}
-          <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontWeight: 800, fontSize: 13, color: '#1F3864', letterSpacing: 0.5, textTransform: 'uppercase' }}>Projects</div>
+          {projectsPanelCollapsed ? (
+            /* ── Collapsed strip ── */
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 12, gap: 4, flex: 1 }}>
+              {/* Expand button */}
               <button
-                onClick={() => { setShowNewForm(v => !v); }}
+                onClick={() => setProjectsPanelCollapsed(false)}
+                title="Expand projects"
+                aria-label="Expand projects panel"
                 style={{
-                  background: showNewForm ? '#FEE2E2' : '#EBF4FF',
-                  border: 'none', borderRadius: 6, padding: '5px 11px',
-                  fontSize: 12, fontWeight: 700,
-                  color: showNewForm ? '#DC2626' : '#1F3864', cursor: 'pointer',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: '#6B7280', fontSize: 14, padding: '6px 0', width: '100%',
+                  display: 'flex', justifyContent: 'center',
                 }}
               >
-                {showNewForm ? '✕ Cancel' : '+ New'}
+                ▶
               </button>
+              {/* Project folder icons */}
+              {projects.map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => { setSelected(p); setProjectsPanelCollapsed(false); }}
+                  title={p.projectName}
+                  aria-label={`Open project: ${p.projectName}`}
+                  style={{
+                    background: selectedProject?.id === p.id ? '#EBF4FF' : 'none',
+                    border: 'none', cursor: 'pointer',
+                    color: selectedProject?.id === p.id ? '#1F3864' : '#9CA3AF',
+                    fontSize: 16, padding: '6px 0', width: '100%',
+                    display: 'flex', justifyContent: 'center',
+                    borderRadius: 4,
+                  }}
+                >
+                  📁
+                </button>
+              ))}
             </div>
-          </div>
-
-          {/* New project form */}
-          {showNewForm && (
-            <NewProjectForm
-              onDone={(msg) => { showToast(msg, 'ok'); setShowNewForm(false); fetchProjects(); }}
-              onError={(msg) => showToast(msg, 'err')}
-            />
-          )}
-
-          {/* Project list */}
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {projects.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', color: '#9CA3AF' }}>
-                <div style={{ fontSize: 36, marginBottom: 10 }}>📁</div>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6, color: '#6B7280' }}>No projects yet</div>
-                <div style={{ fontSize: 13, lineHeight: 1.6 }}>Connect a GitHub repo, upload CAST reports, or drop COBOL files.</div>
+          ) : (
+            /* ── Expanded panel ── */
+            <>
+              {/* Sidebar header */}
+              <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F3F4F6' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ fontWeight: 800, fontSize: 13, color: '#1F3864', letterSpacing: 0.5, textTransform: 'uppercase' }}>Projects</div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button
+                      onClick={() => { setShowNewForm(v => !v); }}
+                      style={{
+                        background: showNewForm ? '#FEE2E2' : '#EBF4FF',
+                        border: 'none', borderRadius: 6, padding: '5px 11px',
+                        fontSize: 12, fontWeight: 700,
+                        color: showNewForm ? '#DC2626' : '#1F3864', cursor: 'pointer',
+                      }}
+                    >
+                      {showNewForm ? '✕ Cancel' : '+ New'}
+                    </button>
+                    <button
+                      onClick={() => { setProjectsPanelCollapsed(true); setShowNewForm(false); }}
+                      title="Collapse projects"
+                      aria-label="Collapse projects panel"
+                      style={{
+                        background: 'none', border: '1px solid #E5E7EB', borderRadius: 6,
+                        padding: '5px 8px', fontSize: 12, color: '#9CA3AF', cursor: 'pointer',
+                      }}
+                    >
+                      ◀
+                    </button>
+                  </div>
+                </div>
               </div>
-            ) : (
-              projects.map(p => {
-                const s = statsFor(p.id);
-                return (
-                  <SidebarProject
-                    key={p.id}
-                    project={p}
-                    selected={selectedProject?.id === p.id}
-                    programCount={s.programCount}
-                    graphCount={s.graphCount}
-                    docCount={s.docCount}
-                    onSelect={() => setSelected(prev => prev?.id === p.id ? null : p)}
-                    onDelete={() => handleDelete(p)}
-                    deleting={deletingId === p.id}
-                  />
-                );
-              })
-            )}
-          </div>
+
+              {/* New project form */}
+              {showNewForm && (
+                <NewProjectForm
+                  onDone={(msg) => { showToast(msg, 'ok'); setShowNewForm(false); fetchProjects(); }}
+                  onError={(msg) => showToast(msg, 'err')}
+                />
+              )}
+
+              {/* Project list */}
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {projects.length === 0 ? (
+                  <div style={{ padding: '32px 16px', textAlign: 'center', color: '#9CA3AF' }}>
+                    <div style={{ fontSize: 36, marginBottom: 10 }}>📁</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6, color: '#6B7280' }}>No projects yet</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.6 }}>Connect a GitHub repo, upload CAST reports, or drop COBOL files.</div>
+                  </div>
+                ) : (
+                  projects.map(p => {
+                    const s = statsFor(p.id);
+                    return (
+                      <SidebarProject
+                        key={p.id}
+                        project={p}
+                        selected={selectedProject?.id === p.id}
+                        programCount={s.programCount}
+                        graphCount={s.graphCount}
+                        docCount={s.docCount}
+                        onSelect={() => setSelected(prev => prev?.id === p.id ? null : p)}
+                        onDelete={() => handleDelete(p)}
+                        deleting={deletingId === p.id}
+                      />
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </aside>
 
         {/* ── MAIN CONTENT ─────────────────────────────────────────────── */}

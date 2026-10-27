@@ -89,50 +89,69 @@ export function TopBar({ pathname, userEmail, onMenuClick }: TopBarProps) {
 
       {/* Right actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        {userEmail && (
-          <span style={{
-            fontSize: 12,
-            color: 'var(--text-secondary)',
-            background: 'var(--surface-subtle)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 20,
-            padding: '4px 12px',
-            maxWidth: 200,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}>
-            {userEmail}
-          </span>
+        {userEmail ? (
+          <>
+            <span style={{
+              fontSize: 12,
+              color: 'var(--text-secondary)',
+              background: 'var(--surface-subtle)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 20,
+              padding: '4px 12px',
+              maxWidth: 200,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}>
+              {userEmail}
+            </span>
+            <button
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              aria-label="Sign out"
+              style={{
+                background: 'none',
+                border: '1px solid var(--border-default)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-secondary)',
+                fontSize: 12,
+                fontWeight: 600,
+                padding: '6px 14px',
+                cursor: 'pointer',
+                fontFamily: 'var(--font-body)',
+                transition: 'background 0.12s, color 0.12s, border-color 0.12s',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.06)';
+                (e.currentTarget as HTMLElement).style.color = 'var(--mkp-red-600)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.3)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.background = 'none';
+                (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+                (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)';
+              }}
+            >
+              Sign out
+            </button>
+          </>
+        ) : (
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}
+            style={{
+              background: 'linear-gradient(135deg, #1C7293, #4DAAC7)',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600,
+              padding: '6px 14px',
+              textDecoration: 'none',
+              display: 'inline-block',
+            }}
+          >
+            Sign in
+          </Link>
         )}
-        <button
-          onClick={() => signOut({ callbackUrl: '/login' })}
-          aria-label="Sign out"
-          style={{
-            background: 'none',
-            border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-sm)',
-            color: 'var(--text-secondary)',
-            fontSize: 12,
-            fontWeight: 600,
-            padding: '6px 14px',
-            cursor: 'pointer',
-            fontFamily: 'var(--font-body)',
-            transition: 'background 0.12s, color 0.12s, border-color 0.12s',
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLElement).style.background = 'rgba(220,38,38,0.06)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--mkp-red-600)';
-            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(220,38,38,0.3)';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLElement).style.background = 'none';
-            (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
-            (e.currentTarget as HTMLElement).style.borderColor = 'var(--border-default)';
-          }}
-        >
-          Sign out
-        </button>
       </div>
     </header>
   );

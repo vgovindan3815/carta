@@ -2,6 +2,7 @@
 import { signIn } from 'next-auth/react';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useApiKey } from '@/hooks/useApiKey';
 
 function LoginForm() {
   const [email, setEmail]         = useState('');
@@ -12,6 +13,12 @@ function LoginForm() {
   const router                    = useRouter();
   const searchParams              = useSearchParams();
   const callbackUrl               = searchParams.get('callbackUrl') ?? '/';
+  const { acknowledgeGuest }      = useApiKey();
+
+  function handleContinueAsGuest() {
+    acknowledgeGuest();
+    router.push(callbackUrl);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -150,6 +157,45 @@ function LoginForm() {
       >
         {loading ? 'Signing in…' : 'Sign in'}
       </button>
+
+      {/* Divider */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0 16px' }}>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+        <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>or</span>
+        <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.1)' }} />
+      </div>
+
+      {/* Guest option */}
+      <button
+        type="button"
+        onClick={handleContinueAsGuest}
+        style={{
+          width: '100%',
+          background: 'none',
+          border: '1px solid rgba(255,255,255,0.15)',
+          color: 'rgba(255,255,255,0.6)',
+          borderRadius: 8,
+          fontSize: 14,
+          padding: '10px',
+          cursor: 'pointer',
+          fontFamily: 'inherit',
+          transition: 'border-color 0.15s, color 0.15s',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.35)';
+          e.currentTarget.style.color = 'rgba(255,255,255,0.85)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)';
+          e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+        }}
+      >
+        Continue as Guest
+      </button>
+
+      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', textAlign: 'center', margin: '12px 0 0', lineHeight: 1.5 }}>
+        Some features require an account or your own LLM API key.
+      </p>
     </form>
   );
 }

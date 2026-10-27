@@ -45,6 +45,8 @@ export function useApiKey() {
 
   const acknowledgeGuest = useCallback(() => {
     sessionStorage.setItem(GUEST_ACK_STORAGE, '1');
+    // Cookie lets server middleware detect guest mode across navigations
+    document.cookie = 'mkp_guest=1; path=/; SameSite=Lax';
     setState(prev => ({ ...prev, isGuest: true }));
   }, []);
 

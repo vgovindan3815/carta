@@ -31,7 +31,14 @@ export default async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Standard NextAuth token check for everything else
+  // 3. Guest cookie pass: non-admin page routes for users who acknowledged guest mode
+  const isPageRoute = !pathname.startsWith('/api/');
+  const isAdminRoute = pathname.startsWith('/admin');
+  if (isPageRoute && !isAdminRoute && req.cookies.get('mkp_guest')?.value === '1') {
+    return NextResponse.next();
+  }
+
+  // 4. Standard NextAuth token check for everything else
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
   if (!token) {
@@ -71,9 +78,13 @@ export const config = {
     // Exclude /api/auth/* — NextAuth handles its own endpoints; intercepting them breaks
     // the client-side session fetch (CLIENT_FETCH_ERROR) for unauthenticated users.
     '/api/((?!auth/).*)',
+    '/',
     '/programs/:path*',
     '/agents/:path*',
     '/scopes/:path*',
     '/admin/:path*',
+    '/context/:path*',
+    '/architecture/:path*',
+    '/settings/:path*',
   ],
 };
