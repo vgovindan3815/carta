@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getProject, getSourceConnectionsForProject, listP1ScansForProject } from '@/lib/db/queries';
 import Link from 'next/link';
 import { ScanButton } from '@/components/ScanButton';
+import { UploadReportButton } from '@/components/UploadReportButton';
 
 export default async function ProjectPage({ params }: { params: Promise<{ id: string }> }) {
   if (!FF_PROJECTS) redirect('/');
@@ -50,7 +51,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ id: st
               </p>
             )}
           </div>
-          <ScanButton projectId={id} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            <ScanButton projectId={id} />
+            <UploadReportButton projectId={id} projectName={project.name} />
+          </div>
         </div>
 
         {/* Status cards */}

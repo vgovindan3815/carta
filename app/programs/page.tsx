@@ -359,7 +359,17 @@ function ProgramTable({
 }
 
 // ── New project form ─────────────────────────────────────────────────────────
-function NewProjectForm({ onDone, onError }: { onDone: (msg: string) => void; onError: (msg: string) => void }) {
+function NewProjectForm({
+  onDone,
+  onError,
+  selectedProjectId,
+  selectedProjectName,
+}: {
+  onDone: (msg: string) => void;
+  onError: (msg: string) => void;
+  selectedProjectId?: string | null;
+  selectedProjectName?: string | null;
+}) {
   const { startScan } = useScan();
   const [tab, setTab]               = useState<'github' | 'cast' | 'upload'>('github');
   const [connecting, setConnecting] = useState(false);
@@ -368,6 +378,7 @@ function NewProjectForm({ onDone, onError }: { onDone: (msg: string) => void; on
   const [pat, setPat]               = useState('');
   const [castFile, setCastFile]     = useState<File | null>(null);
   const [castName, setCastName]     = useState('');
+  const [castIntoSelected, setCastIntoSelected] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
   const [uploadName, setUploadName] = useState('');
 
@@ -396,11 +407,17 @@ function NewProjectForm({ onDone, onError }: { onDone: (msg: string) => void; on
     try {
       const fd = new FormData();
       fd.append('file', castFile);
-      fd.append('name', castName || castFile.name.replace(/\.[^.]+$/, ''));
+      if (castIntoSelected && selectedProjectId) {
+        fd.append('repoId', selectedProjectId);
+        fd.append('name', selectedProjectName || castName || castFile.name.replace(/\.[^.]+$/, ''));
+      } else {
+        fd.append('name', castName || castFile.name.replace(/\.[^.]+$/, ''));
+      }
       const res  = await fetch('/api/cast', { method: 'POST', body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Upload failed');
-      onDone(`Imported ${data.imported} of ${data.total} programs`);
+      const dest = castIntoSelected && selectedProjectName ? ` into "${selectedProjectName}"` : '';
+      onDone(`Imported ${data.imported} of ${data.total} programs${dest}`);
     } catch (err: unknown) {
       onError(err instanceof Error ? err.message : 'Upload failed');
     } finally { setConnecting(false); }
@@ -464,11 +481,39 @@ function NewProjectForm({ onDone, onError }: { onDone: (msg: string) => void; on
 
       {tab === 'cast' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <input placeholder="Project name" value={castName} onChange={e => setCastName(e.target.value)} style={inp} />
+          {selectedProjectId && (
+            <div style={{ display: 'flex', border: '1.5px solid #E5E7EB', borderRadius: 6, overflow: 'hidden', fontSize: 12 }}>
+              <button
+                type="button"
+                onClick={() => setCastIntoSelected(false)}
+                style={{
+                  flex: 1, padding: '6px 4px', border: 'none', cursor: 'pointer', fontWeight: 700,
+                  background: !castIntoSelected ? '#1F3864' : '#F9FAFB',
+                  color: !castIntoSelected ? '#fff' : '#6B7280',
+                }}
+              >
+                New project
+              </button>
+              <button
+                type="button"
+                onClick={() => setCastIntoSelected(true)}
+                style={{
+                  flex: 1, padding: '6px 4px', border: 'none', cursor: 'pointer', fontWeight: 700,
+                  background: castIntoSelected ? '#1C7293' : '#F9FAFB',
+                  color: castIntoSelected ? '#fff' : '#6B7280',
+                }}
+              >
+                Add to "{selectedProjectName}"
+              </button>
+            </div>
+          )}
+          {!castIntoSelected && (
+            <input placeholder="Project name" value={castName} onChange={e => setCastName(e.target.value)} style={inp} />
+          )}
           <input type="file" accept=".xml,.json" onChange={e => setCastFile(e.target.files?.[0] ?? null)} style={inp} />
           {castFile && <div style={{ fontSize: 12, color: '#059669' }}>✓ {castFile.name}</div>}
           <button disabled={!castFile || connecting} onClick={handleCast} style={sub(!castFile || connecting)}>
-            {connecting ? 'Uploading…' : 'Upload CAST Report →'}
+            {connecting ? 'Uploading…' : castIntoSelected ? `Import into "${selectedProjectName}" →` : 'Upload CAST Report →'}
           </button>
         </div>
       )}
@@ -804,6 +849,8 @@ function ProgramsPageContent() {
                 <NewProjectForm
                   onDone={(msg) => { showToast(msg, 'ok'); setShowNewForm(false); fetchProjects(); }}
                   onError={(msg) => showToast(msg, 'err')}
+                  selectedProjectId={selectedProject?.id}
+                  selectedProjectName={selectedProject?.projectName}
                 />
               )}
 

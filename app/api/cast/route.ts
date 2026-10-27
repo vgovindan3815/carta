@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { XMLParser } from 'fast-xml-parser';
-import { createRepo, upsertProgram, createJob, updateJob, saveDepGraph, saveBizRules, saveChangeImpact, saveModSpec } from '@/lib/db/queries';
+import { createRepo, getRepo, upsertProgram, createJob, updateJob, saveDepGraph, saveBizRules, saveChangeImpact, saveModSpec } from '@/lib/db/queries';
 import { layoutCircular } from '@/lib/llm';
 import type { GraphNode, GraphEdge, CircularLayout } from '@/lib/parser/types';
 
@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const projectName = (formData.get('name') as string | null) || 'CAST Import';
+    const repoId = formData.get('repoId') as string | null;
 
     if (!file) return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
 
@@ -48,14 +49,21 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No programs found in report' }, { status: 422 });
     }
 
-    // Create a synthetic "CAST" repo entry to group the import
-    const repo = await createRepo({
-      projectName,
-      githubUrl: `cast://import/${encodeURIComponent(file.name)}`,
-      owner: 'cast-import',
-      repo: file.name.replace(/\.[^.]+$/, ''),
-      branch: 'deterministic',
-    });
+    // Use existing repo if repoId provided, otherwise create a synthetic one
+    let repo: Awaited<ReturnType<typeof createRepo>>;
+    if (repoId) {
+      const existing = await getRepo(repoId);
+      if (!existing) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+      repo = existing;
+    } else {
+      repo = await createRepo({
+        projectName,
+        githubUrl: `cast://import/${encodeURIComponent(file.name)}`,
+        owner: 'cast-import',
+        repo: file.name.replace(/\.[^.]+$/, ''),
+        branch: 'deterministic',
+      });
+    }
 
     let imported = 0;
     const errors: string[] = [];
