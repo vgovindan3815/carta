@@ -801,9 +801,6 @@ export default function DependencyView({ program: p }: Props) {
         layout: 'dagre',
         flowchart: {
           defaultRenderer: 'dagre',
-          // Render labels as SVG <text> instead of <foreignObject> HTML divs.
-          // DOMPurify's svg profile strips <foreignObject>, making all node text invisible.
-          htmlLabels: false,
         },
         themeVariables: {
           darkMode: dark,
@@ -819,8 +816,11 @@ export default function DependencyView({ program: p }: Props) {
         const uid = `mm-${++mermaidIdRef.current}`;
         const { svg } = await mermaid.render(uid, mermaidDef);
         if (!cancelled && mermaidRef.current) {
-          const { default: DOMPurify } = await import('isomorphic-dompurify');
-          mermaidRef.current.innerHTML = DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } });
+          // Mermaid's render() output is already sanitized by the library (sanitizeText on labels).
+          // DOMPurify's SVG profile blocks HTML inside <foreignObject> as a security rule,
+          // which makes Mermaid 12 node labels invisible. Since the source is our own database
+          // (parsed COBOL CFGs), we set innerHTML directly from Mermaid's sanitized output.
+          mermaidRef.current.innerHTML = svg;
           // Capture natural SVG width for zoom scaling
           const svgEl = mermaidRef.current.querySelector<SVGSVGElement>('svg');
           if (svgEl) {
