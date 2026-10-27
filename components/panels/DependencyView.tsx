@@ -1142,6 +1142,37 @@ export default function DependencyView({ program: p }: Props) {
           ))}
         </div>
 
+        {/* Missing artifacts panel — shown for engine graphs with unresolved references */}
+        {isEngine && (() => {
+          const missingEdges = cEdges.filter((e) => (e as { confidenceLevel?: string }).confidenceLevel === 'MISSING');
+          if (!missingEdges.length) return null;
+          const uniqueTargets = Array.from(new Set(missingEdges.map((e) => e.to))).sort();
+          return (
+            <div style={{ marginTop: 12, padding: '12px 16px', background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: 8 }}>
+              <div style={{ fontWeight: 700, fontSize: 12, color: '#92400E', marginBottom: 8 }}>
+                ⚠ {uniqueTargets.length} unresolved reference{uniqueTargets.length !== 1 ? 's' : ''} — called but not found in source bundle
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {uniqueTargets.map((name) => (
+                  <span
+                    key={name}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 6,
+                      padding: '3px 8px', fontSize: 11, fontFamily: 'Consolas,monospace', color: '#78350F',
+                    }}
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11, color: '#B45309' }}>
+                These programs are called by {p.name} but their source files were not included in the analysis bundle. Add their source to resolve them.
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Legend */}
         <div className="graph-legend" style={{ marginTop: 8 }}>
           {Object.entries(NC).filter(([t]) => t !== 'para' || showParas).map(([type, c]) => (

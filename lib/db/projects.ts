@@ -186,6 +186,71 @@ export async function getRepo(id: string): Promise<typeof schema.repos.$inferSel
 
 export { deleteProject as deleteRepo };
 
+// ---------------------------------------------------------------------------
+// Bridge: repos ↔ projects (Phase 2 kg population)
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the repo whose projectId matches (e.g. when UploadReportButton sends
+ * a projects.id as repoId).
+ */
+export async function getRepoByProjectId(
+  projectId: string,
+): Promise<typeof schema.repos.$inferSelect | undefined> {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(schema.repos)
+    .where(eq(schema.repos.projectId, projectId))
+    .limit(1);
+  return row;
+}
+
+/**
+ * Ensure the given repo is linked to a projects row, creating one if needed.
+ * Returns the projects.id to use for kg_nodes / kg_edges / evidence_records.
+ */
+export async function upsertProjectForRepo(repoId: string): Promise<string | null> {
+  const db = getDb();
+  const [repo] = await db
+    .select()
+    .from(schema.repos)
+    .where(eq(schema.repos.id, repoId))
+    .limit(1);
+  if (!repo) return null;
+
+  if (repo.projectId) return repo.projectId;
+
+  // Try to find an existing project whose name matches the repo name
+  const [existing] = await db
+    .select()
+    .from(schema.projects)
+    .where(eq(schema.projects.name, repo.repo))
+    .limit(1);
+
+  const projectId = existing
+    ? existing.id
+    : await (async () => {
+        const [created] = await db
+          .insert(schema.projects)
+          .values({
+            name: repo.projectName !== 'Default Project' ? repo.projectName : repo.repo,
+            description: `Auto-linked from repo ${repo.owner}/${repo.repo}`,
+            createdBy: 'cast-import',
+          })
+          .returning();
+        return created.id;
+      })();
+
+  // Link the repo to the project for future lookups
+  await db
+    .update(schema.repos)
+    .set({ projectId })
+    .where(eq(schema.repos.id, repoId));
+
+  return projectId;
+}
+
 export async function recordAuditEvent(event: {
   action: string;
   targetType: string;

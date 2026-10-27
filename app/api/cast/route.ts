@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { XMLParser } from 'fast-xml-parser';
-import { createRepo, getRepo, upsertProgram, createJob, updateJob, saveDepGraph, saveBizRules, saveChangeImpact, saveModSpec } from '@/lib/db/queries';
+import { createRepo, getRepo, getRepoByProjectId, upsertProjectForRepo, upsertProgram, createJob, updateJob, saveDepGraph, saveBizRules, saveChangeImpact, saveModSpec } from '@/lib/db/queries';
+import { upsertKgNode, upsertKgEdge, addEvidence } from '@/lib/db/queries';
 import { layoutCircular } from '@/lib/llm';
 import type { GraphNode, GraphEdge, CircularLayout } from '@/lib/parser/types';
 
@@ -39,8 +40,14 @@ export async function POST(req: NextRequest) {
 
     // Parse programs array from the report
     let programs: CastProgram[];
+    let engineVersion: string | undefined;
     if (ext === 'json') {
       programs = parseJson(text);
+      // Detect mavenkg-engine v2 report (has top-level engineVersion field)
+      try {
+        const raw = JSON.parse(text) as Record<string, unknown>;
+        if (typeof raw.engineVersion === 'string') engineVersion = raw.engineVersion;
+      } catch { /* ignore */ }
     } else {
       programs = parseXml(text);
     }
@@ -49,10 +56,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No programs found in report' }, { status: 422 });
     }
 
-    // Use existing repo if repoId provided, otherwise create a synthetic one
+    // Use existing repo if repoId provided, otherwise create a synthetic one.
+    // repoId may be a repos.id OR a projects.id (sent by UploadReportButton on the
+    // /projects page) — try both tables so either form works.
     let repo: Awaited<ReturnType<typeof createRepo>>;
     if (repoId) {
-      const existing = await getRepo(repoId);
+      const byRepo = await getRepo(repoId);
+      const existing = byRepo ?? await getRepoByProjectId(repoId);
       if (!existing) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       repo = existing;
     } else {
@@ -154,12 +164,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Phase 2 — Knowledge Graph population for engine v2 uploads
+    let kgProjectId: string | undefined;
+    if (engineVersion) {
+      try {
+        const pid = await upsertProjectForRepo(repo.id);
+        if (pid) {
+          kgProjectId = pid;
+          await importEngineKg(pid, programs, engineVersion);
+        }
+      } catch (e) {
+        console.error('[POST /api/cast] kg import error', e);
+        // Non-fatal — dep_graphs were already saved
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       imported,
       total: programs.length,
-      projectId: repo.id,
+      projectId: kgProjectId ?? repo.id,
       projectName,
+      kgPopulated: !!kgProjectId,
       errors: errors.length ? errors : undefined,
     });
   } catch (e) {
@@ -333,4 +359,67 @@ function buildEdges(prog: CastProgram): GraphEdge[] {
     ...(e.confidenceLevel !== undefined && { confidenceLevel: e.confidenceLevel as GraphEdge['confidenceLevel'] }),
     ...(e.evidenceLine !== undefined && { evidenceLine: e.evidenceLine }),
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 — Knowledge Graph population
+// ---------------------------------------------------------------------------
+
+async function importEngineKg(
+  projectId: string,
+  programs: CastProgram[],
+  analyzerVersion: string,
+): Promise<void> {
+  for (const prog of programs) {
+    // Upsert the source node
+    const srcNode = await upsertKgNode({
+      projectId,
+      nodeType: prog.language.toUpperCase(),
+      canonicalKey: prog.name,
+      attributes: { language: prog.language, loc: prog.loc, domain: prog.domain ?? null },
+    });
+
+    for (const e of prog.edges ?? []) {
+      const clvl = e.confidenceLevel;
+      const dstType = clvl === 'MISSING' ? 'MISSING' : (e.type === 'data' ? 'DATA' : 'PROGRAM');
+
+      // Upsert the destination node
+      const dstNode = await upsertKgNode({
+        projectId,
+        nodeType: dstType,
+        canonicalKey: e.to,
+        attributes: clvl === 'MISSING' ? { missing: true } : undefined,
+      });
+
+      // Upsert the edge
+      const kgEdge = await upsertKgEdge({
+        projectId,
+        srcNodeId: srcNode.id,
+        dstNodeId: dstNode.id,
+        relType: e.type ?? 'call',
+        discriminator: e.label ?? 'default',
+        attributes: {
+          confidence: e.confidence ?? 100,
+          ...(clvl ? { confidenceLevel: clvl } : {}),
+          ...(e.evidenceLine != null ? { evidenceLine: e.evidenceLine } : {}),
+        },
+      });
+
+      // Add evidence record for edges that have source line information
+      if (e.evidenceLine != null) {
+        await addEvidence({
+          projectId,
+          nodeOrEdgeId: kgEdge.id,
+          nodeOrEdgeKind: 'edge',
+          analyzerId: 'mavenkg-engine',
+          analyzerVersion,
+          lineStart: e.evidenceLine,
+          lineEnd: e.evidenceLine,
+          construct: e.type ?? 'call',
+          confidence: e.confidence ?? 100,
+          attributes: clvl ? { confidenceLevel: clvl } : undefined,
+        });
+      }
+    }
+  }
 }
