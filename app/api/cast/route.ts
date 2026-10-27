@@ -182,8 +182,13 @@ interface CastProgram {
 
 function parseJson(text: string): CastProgram[] {
   const data = JSON.parse(text);
-  // Support both { programs: [...] } and top-level array
-  const list: unknown[] = Array.isArray(data) ? data : (data.programs ?? []);
+  // Support:
+  //   - top-level array                 (CAST export, --format mkp)
+  //   - { programs: [...] }             (legacy CAST JSON)
+  //   - { artifacts: [...] }            (mavenkg-engine full report)
+  const list: unknown[] = Array.isArray(data)
+    ? data
+    : (data.programs ?? data.artifacts ?? []);
   return list.map((p: unknown) => {
     const item = p as Record<string, unknown>;
     return {
@@ -197,7 +202,13 @@ function parseJson(text: string): CastProgram[] {
       nodes: Array.isArray(item.nodes) ? (item.nodes as CastProgram['nodes']) : [],
       edges: Array.isArray(item.edges) ? (item.edges as CastProgram['edges']) : [],
     };
-  }).filter((p) => p.name);
+  }).filter((p) => {
+    if (!p.name) return false;
+    // Skip SQL DDL files and copybook-only artifacts — they are data definitions,
+    // not programs.  MKP's program model expects COBOL / JCL / PLI / HLASM units.
+    const lang = p.language.toUpperCase();
+    return !['SQL', 'COPYBOOK', 'CSD', 'CTLCARD', 'UNKNOWN'].includes(lang);
+  });
 }
 
 // ---------------------------------------------------------------------------
