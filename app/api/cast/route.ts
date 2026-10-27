@@ -181,7 +181,15 @@ interface CastProgram {
   desc?: string;
   coveragePct?: number;
   nodes?: Array<{ id: string; label: string; sub?: string; type?: string }>;
-  edges?: Array<{ from?: string; to: string; type?: string; label?: string; confidence?: number }>;
+  edges?: Array<{
+    from?: string;
+    to: string;
+    type?: string;
+    label?: string;
+    confidence?: number;
+    confidenceLevel?: string;
+    evidenceLine?: number;
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,7 +216,16 @@ function parseJson(text: string): CastProgram[] {
       desc: item.desc ? String(item.desc) : undefined,
       coveragePct: item.coveragePct !== undefined ? Number(item.coveragePct) : 100,
       nodes: Array.isArray(item.nodes) ? (item.nodes as CastProgram['nodes']) : [],
-      edges: Array.isArray(item.edges) ? (item.edges as CastProgram['edges']) : [],
+      edges: Array.isArray(item.edges)
+        ? (item.edges as CastProgram['edges'])?.map((e) => {
+            const edge = e as Record<string, unknown>;
+            return {
+              ...e,
+              confidenceLevel: edge.confidenceLevel ? String(edge.confidenceLevel) : undefined,
+              evidenceLine: edge.evidenceLine !== undefined ? Number(edge.evidenceLine) : undefined,
+            } as NonNullable<CastProgram['edges']>[number];
+          })
+        : [],
     };
   }).filter((p) => {
     if (!p.name) return false;
@@ -313,5 +330,7 @@ function buildEdges(prog: CastProgram): GraphEdge[] {
     type: (e.type as GraphEdge['type']) ?? 'call',
     label: e.label ?? e.type ?? 'CALL',
     confidence: e.confidence ?? 100,
+    ...(e.confidenceLevel !== undefined && { confidenceLevel: e.confidenceLevel as GraphEdge['confidenceLevel'] }),
+    ...(e.evidenceLine !== undefined && { evidenceLine: e.evidenceLine }),
   }));
 }

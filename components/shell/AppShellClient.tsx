@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { SideNav } from './SideNav';
 import { TopBar } from './TopBar';
 
@@ -13,7 +14,12 @@ interface Props {
 
 const SKIP_NAV_ROUTES = new Set(['/login']);
 
-export function AppShellClient({ children, userEmail, isAdmin }: Props) {
+export function AppShellClient({ children, userEmail: serverEmail, isAdmin }: Props) {
+  // useSession() is reactive — it updates after client-side signIn/signOut without
+  // requiring a full page reload (the root layout doesn't re-render on navigation).
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email ?? serverEmail;
+  const effectiveIsAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin' || isAdmin;
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -58,7 +64,7 @@ export function AppShellClient({ children, userEmail, isAdmin }: Props) {
           <SideNav
             collapsed={collapsed}
             onToggle={() => setCollapsed(v => !v)}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
             pathname={pathname}
             onNavClick={() => setDrawerOpen(false)}
           />

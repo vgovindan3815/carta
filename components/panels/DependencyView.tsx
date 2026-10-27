@@ -596,8 +596,11 @@ export default function DependencyView({ program: p }: Props) {
   const router = useRouter();
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const isCast = p.pipelineStatus?.graphSource === 'cast';
-  const [viewMode, setViewMode] = useState<'structural' | 'impact'>(isCast ? 'structural' : 'impact');
+  const graphSource = p.pipelineStatus?.graphSource;
+  const isCast = graphSource === 'cast';
+  const isEngine = graphSource === 'engine';
+  const isDeterministic = isCast || isEngine;
+  const [viewMode, setViewMode] = useState<'structural' | 'impact'>(isDeterministic ? 'structural' : 'impact');
   const [showParas, setShowParas] = useState(false);
   const [userPos, setUserPos] = useState<Record<string, { cx: number; cy: number }>>({});
   const [inspected, setInspected] = useState<{ id: string; type: string; lineStart?: number; lineEnd?: number } | null>(null);
@@ -931,14 +934,14 @@ export default function DependencyView({ program: p }: Props) {
         <div className="dep-header" style={{ flexWrap: 'wrap', gap: 8 }}>
           <h2 style={{ margin: 0 }}>{p.graph.title ?? `${p.name} Dependency Graph`}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span className={`badge ${isCast ? 'badge-deterministic' : 'badge-llm'}`}>
+            <span className={`badge ${isDeterministic ? 'badge-deterministic' : 'badge-llm'}`}>
               <span className="badge-dot" />
-              {isCast ? 'CAST — deterministic' : 'LLM — inferred'}
+              {isEngine ? 'Engine — deterministic' : isCast ? 'CAST — deterministic' : 'LLM — inferred'}
             </span>
             {/* Structural / Impact toggle */}
             <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', border: '1.5px solid #E5E7EB', fontSize: 11, fontWeight: 700 }}>
               <button onClick={() => { setViewMode('structural'); setUserPos({}); }} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: viewMode === 'structural' ? '#1F3864' : '#F9FAFB', color: viewMode === 'structural' ? '#fff' : '#6B7280' }}>
-                {isCast ? 'CAST Structural' : 'Structural'}
+                {isEngine ? 'Engine Structural' : isCast ? 'CAST Structural' : 'Structural'}
               </button>
               <button onClick={() => { setViewMode('impact'); setUserPos({}); }} style={{ padding: '4px 10px', border: 'none', cursor: 'pointer', background: viewMode === 'impact' ? '#E07B39' : '#F9FAFB', color: viewMode === 'impact' ? '#fff' : '#6B7280', borderLeft: '1.5px solid #E5E7EB' }}>
                 + Impact Radius
@@ -1044,13 +1047,32 @@ export default function DependencyView({ program: p }: Props) {
                   const rawLabel = e.sourcePara ? `¶${e.sourcePara}` : (e.label ?? EDGE_LABELS[e.type] ?? e.type);
                   const lbl = rawLabel.length > 32 ? rawLabel.slice(0, 30) + '…' : rawLabel;
                   const lw = lbl.length * 5 + 12;
+                  // Engine evidence: abbreviated confidence level pill
+                  const clvl = (e as { confidenceLevel?: string }).confidenceLevel;
+                  const eline = (e as { evidenceLine?: number }).evidenceLine;
+                  const clvlAbbr: Record<string, string> = { DETERMINISTIC: 'DET', RESOLVED: 'RES', CANDIDATE: 'CAND', UNRESOLVED: 'UNRES', MISSING: 'MISS', EXTERNAL: 'EXT' };
+                  const clvlColor: Record<string, string> = { DETERMINISTIC: '#059669', RESOLVED: '#2563EB', CANDIDATE: '#D97706', UNRESOLVED: '#DC2626', MISSING: '#6B7280', EXTERNAL: '#7C3AED' };
+                  const tooltipText = [
+                    `${e.from} → ${e.to}`,
+                    `Type: ${e.type}${e.label ? ` (${e.label})` : ''}`,
+                    clvl ? `Confidence: ${clvl}` : '',
+                    eline != null ? `Source line: ${eline}` : '',
+                  ].filter(Boolean).join('\n');
                   return (
                     <g key={i}>
+                      <title>{tooltipText}</title>
                       <path d={d} fill="none" stroke={col} strokeWidth={1.8} strokeDasharray={da} markerEnd={`url(#arr-${e.type})`} opacity={e.type === 'dyn' ? 0.55 : 0.75} />
                       {lbl && <>
                         <rect x={lx - lw / 2} y={ly - 8} width={lw} height={13} rx={3} fill="white" fillOpacity={0.9} stroke={col} strokeWidth={0.5} />
                         <text x={lx} y={ly + 1} textAnchor="middle" dominantBaseline="middle" fontFamily="Consolas,monospace" fontSize={7.5} fill={col} fontWeight={700}>{lbl}</text>
                       </>}
+                      {/* Engine confidence pill — shown when confidenceLevel is present */}
+                      {clvl && (
+                        <g transform={`translate(${lx},${ly + 9})`}>
+                          <rect x={-(clvlAbbr[clvl]?.length ?? 3) * 3.5 - 4} y={-5} width={(clvlAbbr[clvl]?.length ?? 3) * 7 + 8} height={10} rx={3} fill={clvlColor[clvl] ?? '#6B7280'} fillOpacity={0.9} />
+                          <text textAnchor="middle" dominantBaseline="middle" fontFamily="Consolas,monospace" fontSize={6} fill="#fff" fontWeight={800}>{clvlAbbr[clvl] ?? clvl}{eline != null ? `:${eline}` : ''}</text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}

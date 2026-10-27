@@ -21,6 +21,9 @@ export interface GraphEdge {
   td?: string; // to-direction for rect graph
   confidence?: number; // 0-100, for dynamic calls
   sourcePara?: string; // paragraph that contains this dependency
+  // Engine v2 evidence fields (populated from mavenkg-engine uploads)
+  confidenceLevel?: 'DETERMINISTIC' | 'RESOLVED' | 'CANDIDATE' | 'UNRESOLVED' | 'MISSING' | 'EXTERNAL';
+  evidenceLine?: number; // source line number in the original file
 }
 
 export interface ScanIssue {
@@ -111,7 +114,7 @@ export interface PipelineStatus {
   github: PipelineStepStatus;
   llm: PipelineStepStatus;
   docs: PipelineStepStatus;
-  graphSource: 'cast' | 'llm' | 'parser';
+  graphSource: 'engine' | 'cast' | 'llm' | 'parser';
 }
 
 export interface ProgramData {

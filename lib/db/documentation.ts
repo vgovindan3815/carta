@@ -237,14 +237,18 @@ export async function getProgramFullData(name: string): Promise<(ProgramData & {
   const hasCastDepGraph = isCastRepo || depGraphJob?.tokensUsed === 0;
   const hasFullLLM = !!(bizRule && changeImpact);
 
-  const graphSource: 'cast' | 'parser' | 'llm' =
-    hasCastDepGraph ? 'cast' : isGitHubRepo ? 'parser' : 'llm';
+  // Detect mavenkg-engine v2 upload: at least one edge carries a confidenceLevel field
+  const rawEdges = (depGraph.edges ?? []) as Array<{ confidenceLevel?: string }>;
+  const isEngineGraph = rawEdges.some((e) => e.confidenceLevel != null);
+
+  const graphSource: 'engine' | 'cast' | 'parser' | 'llm' =
+    isEngineGraph ? 'engine' : hasCastDepGraph ? 'cast' : isGitHubRepo ? 'parser' : 'llm';
 
   const pipelineStatus = {
-    cast:   isCastRepo   ? 'success' : 'fail',
+    cast:   (isCastRepo || isEngineGraph) ? 'success' : 'fail',
     github: isGitHubRepo ? 'success' : 'skip',
-    llm:    hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
-    docs:   hasFullLLM   ? 'success' : (hasCastDepGraph ? 'skip' : 'fail'),
+    llm:    hasFullLLM   ? 'success' : (hasCastDepGraph || isEngineGraph ? 'skip' : 'fail'),
+    docs:   hasFullLLM   ? 'success' : (hasCastDepGraph || isEngineGraph ? 'skip' : 'fail'),
     graphSource,
   } as ProgramData['pipelineStatus'];
 
