@@ -10,7 +10,9 @@
 
 export type ArtifactLanguage =
   | 'COBOL' | 'JCL' | 'PROC' | 'PLI' | 'HLASM' | 'EASYTRIEVE'
-  | 'REXX' | 'CLIST' | 'COPYBOOK' | 'UNKNOWN';
+  | 'REXX' | 'CLIST' | 'COPYBOOK' | 'SQL' | 'CSD' | 'CTLCARD'
+  | 'SKIP'   // non-mainframe files to ignore
+  | 'UNKNOWN';
 
 export interface ClassificationResult {
   language: ArtifactLanguage;
@@ -22,15 +24,38 @@ export interface ClassificationResult {
 // ─── Extension map ─────────────────────────────────────────────────────────────
 
 const EXTENSION_MAP: Record<string, ArtifactLanguage> = {
+  // COBOL source
   cbl: 'COBOL', cob: 'COBOL', cobol: 'COBOL',
+  // JCL / PROC
   jcl: 'JCL', job: 'JCL',
   proc: 'PROC', prc: 'PROC',
+  // PL/I
   pli: 'PLI', pl1: 'PLI', pls: 'PLI',
-  asm: 'HLASM', hlasm: 'HLASM', mac: 'HLASM',
+  // Assembler — .mlc is Micro Focus HLASM convention
+  asm: 'HLASM', hlasm: 'HLASM', mac: 'HLASM', mlc: 'HLASM',
+  // BMS — CICS Basic Mapping Support screen maps
+  bms: 'CSD',
+  // Command/script files in DDL folders — skip
+  cmd: 'SKIP',
+  // Easytrieve
   ezt: 'EASYTRIEVE', ezy: 'EASYTRIEVE',
+  // REXX / CLIST
   rex: 'REXX', rexx: 'REXX', rxe: 'REXX',
   clist: 'CLIST', clst: 'CLIST',
-  cpy: 'COPYBOOK', copy: 'COPYBOOK', cpb: 'COPYBOOK',
+  // Copybooks — .inc is the IBM open-source convention (BankDemo uses it)
+  cpy: 'COPYBOOK', copy: 'COPYBOOK', cpb: 'COPYBOOK', inc: 'COPYBOOK',
+  // DB2 SQL / DDL
+  sql: 'SQL', ddl: 'SQL', dml: 'SQL',
+  // CICS CSD export (resource definitions — treated as metadata, not parsed for deps)
+  csd: 'CSD',
+  // Utility control cards (SORT, IDCAMS, etc.)
+  ctl: 'CTLCARD', ctlcard: 'CTLCARD',
+  // Non-mainframe — skip entirely
+  py: 'SKIP', java: 'SKIP', js: 'SKIP', ts: 'SKIP',
+  md: 'SKIP', txt: 'SKIP', pdf: 'SKIP', xml: 'SKIP', json: 'SKIP',
+  html: 'SKIP', htm: 'SKIP', css: 'SKIP', sh: 'SKIP', bat: 'SKIP',
+  mfdirset: 'SKIP', settings: 'SKIP', jar: 'SKIP', class: 'SKIP',
+  zip: 'SKIP', gz: 'SKIP', log: 'SKIP', csv: 'SKIP',
 };
 
 // ─── Content signatures ────────────────────────────────────────────────────────

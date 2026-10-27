@@ -14,9 +14,9 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { classify, isCopybook } from './classifier';
 import { parseCobolV2 } from './parsers/cobol';
-import { parseJclV2, type ParsedJclResult } from './parsers/jcl';
+import { parseJclV2 } from './parsers/jcl';
+import { parseSqlDdl } from './parsers/sql';
 import type { EngineReport, ArtifactReport, AnalysisMetrics } from './output';
-import type { ProcDefinition } from './parsers/jcl';
 
 const ENGINE_VERSION = '2.0.0';
 
@@ -77,6 +77,9 @@ function analyze(args: CliArgs): EngineReport {
   const knownCopybooks = new Set<string>();
   const knownPrograms = new Set<string>();
   const knownProcs = new Set<string>();
+  const knownDatasets = new Set<string>();
+
+  let skippedCount = 0;
 
   for (const filepath of allFiles) {
     const rel = path.relative(sourceRoot, filepath);
@@ -85,17 +88,28 @@ function analyze(args: CliArgs): EngineReport {
     const cl = classify(rel, content);
 
     switch (cl.language) {
+      case 'SKIP': skippedCount++; break;
       case 'COPYBOOK': knownCopybooks.add(basename); break;
       case 'PROC':     knownProcs.add(basename); break;
       case 'COBOL':
         if (!isCopybook(rel, content ?? undefined)) knownPrograms.add(basename);
         else knownCopybooks.add(basename);
         break;
+      case 'SQL': {
+        // Pre-parse SQL DDL to populate known datasets
+        const sqlContent = readFileSafe(filepath);
+        if (sqlContent) {
+          const { definedEntities } = parseSqlDdl(sqlContent, rel);
+          for (const e of definedEntities) knownDatasets.add(e);
+        }
+        break;
+      }
     }
   }
 
   if (args.verbose) {
-    console.log(`Registry: ${knownPrograms.size} programs, ${knownCopybooks.size} copybooks, ${knownProcs.size} procs`);
+    console.log(`Registry: ${knownPrograms.size} programs, ${knownCopybooks.size} copybooks, ${knownProcs.size} procs, ${knownDatasets.size} DB2 tables`);
+    if (skippedCount > 0) console.log(`Skipped:  ${skippedCount} non-mainframe files (.py, .java, .md, etc.)`);
   }
 
   // ── Second pass: parse each artifact ─────────────────────────────────────
@@ -121,6 +135,10 @@ function analyze(args: CliArgs): EngineReport {
     if (!content) continue;
 
     const cl = classify(rel, content);
+
+    // Skip non-mainframe files silently
+    if (cl.language === 'SKIP') continue;
+
     metrics.artifactsIngested++;
 
     try {
@@ -128,12 +146,16 @@ function analyze(args: CliArgs): EngineReport {
 
       if (cl.language === 'COBOL' && !isCopybook(rel, content)) {
         result = parseCobolV2(content, rel, { knownCopybooks, knownPrograms, artifactId: rel });
-      } else if (cl.language === 'JCL') {
-        result = parseJclV2(content, rel, { knownPrograms, knownProcs, artifactId: rel });
+      } else if (cl.language === 'JCL' || cl.language === 'PROC') {
+        result = parseJclV2(content, rel, { knownPrograms, knownProcs, knownDatasets, artifactId: rel });
+      } else if (cl.language === 'SQL') {
+        result = parseSqlDdl(content, rel, rel);
       }
-      // PROC files: parse similarly to JCL (they ARE JCL)
-      else if (cl.language === 'PROC') {
-        result = parseJclV2(content, rel, { knownPrograms, knownProcs, artifactId: rel });
+      // COPYBOOK, CSD, CTLCARD, UNKNOWN — count but don't parse for deps
+      else {
+        if (args.verbose) process.stdout.write(`  [${cl.language}] ${rel}\n`);
+        metrics.artifactsParsed++;
+        continue;
       }
 
       if (result) {

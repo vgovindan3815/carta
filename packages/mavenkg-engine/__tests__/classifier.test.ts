@@ -40,8 +40,13 @@ describe('Artifact Classifier', () => {
       expect(r.language).toBe('PROC');
     });
 
-    it('returns UNKNOWN for unrecognised content', () => {
+    it('returns SKIP for non-mainframe extension', () => {
       const r = classify('config.xml', '<config></config>');
+      expect(r.language).toBe('SKIP');
+    });
+
+    it('returns UNKNOWN for truly unrecognised extension with no content match', () => {
+      const r = classify('config.xyz', 'random binary data 12345');
       expect(r.language).toBe('UNKNOWN');
     });
   });
