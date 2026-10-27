@@ -1,6 +1,9 @@
-import type { SseLogLine, ParsedCobolProgram, GraphNode, GraphEdge } from '../parser/types';
+import type { SseLogLine, ParsedCobolProgram, InternalFlow, PerformEdge } from '../parser/types';
 import { parseCobolFile } from '../parser/cobol';
 import { parsePliFile } from '../parser/pli';
+import { parseCobolV2 } from '../../packages/mavenkg-engine/src/parsers/cobol';
+import { parseJclV2 } from '../../packages/mavenkg-engine/src/parsers/jcl';
+import type { ArtifactReport } from '../../packages/mavenkg-engine/src/output';
 import { createLLMProvider } from '../llm/index';
 
 import type { LLMConfig } from '../llm/types';
@@ -60,6 +63,48 @@ async function emit(
 }
 
 // ---------------------------------------------------------------------------
+// Engine adapter — maps ArtifactReport → ParsedCobolProgram
+// ---------------------------------------------------------------------------
+
+function mapEngineReportToParsed(report: ArtifactReport, source: string): ParsedCobolProgram {
+  const performEdges: PerformEdge[] = (report.internalFlow?.cfgEdges ?? [])
+    .filter((e) => e.edgeType === 'PERFORM' || e.edgeType === 'LOOP_BACK')
+    .map((e) => ({
+      from: e.from,
+      to: e.to,
+      type: 'perform' as const,
+      isLoop: e.edgeType === 'LOOP_BACK',
+      condition: e.condition,
+    }));
+
+  const internalFlow: InternalFlow | undefined = report.internalFlow
+    ? {
+        paragraphs: report.internalFlow.paragraphs,
+        sections: report.internalFlow.sections,
+        performEdges,
+        entryParagraph: report.internalFlow.entryParagraph,
+      }
+    : undefined;
+
+  const lang = report.language.toUpperCase();
+  const language: ParsedCobolProgram['language'] =
+    lang === 'PLI' ? 'PLI' : lang === 'HLASM' ? 'HLASM' : 'COBOL';
+
+  return {
+    name: report.name,
+    language,
+    loc: report.loc,
+    source,
+    graph: {
+      nodes: report.nodes as ParsedCobolProgram['graph']['nodes'],
+      edges: report.edges as ParsedCobolProgram['graph']['edges'],
+      coveragePct: report.coveragePct,
+    },
+    internalFlow,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Main pipeline
 // ---------------------------------------------------------------------------
 
@@ -102,7 +147,19 @@ export async function runAnalysisPipeline(
     await emit(jobId, info(`Starting deterministic analysis of <span class="hl">${programName}</span>…`), onEvent);
 
     const isPli = /\.(pl1|pli)$/i.test(filename) || (await getProgramById(programId))?.language?.toUpperCase() === 'PLI';
-    const parsed = isPli ? parsePliFile(filename, source) : parseCobolFile(filename, source);
+    const isJcl = /\.(jcl|proc)$/i.test(filename);
+
+    let parsed: ParsedCobolProgram;
+    if (isPli) {
+      parsed = parsePliFile(filename, source);
+    } else if (isJcl) {
+      const engineResult = parseJclV2(source, filename, { knownPrograms: new Set(allProgramNames) });
+      parsed = mapEngineReportToParsed(engineResult.report, source);
+    } else {
+      // COBOL / HLASM — use deterministic engine v2
+      const engineResult = parseCobolV2(source, filename, { knownPrograms: new Set(allProgramNames) });
+      parsed = mapEngineReportToParsed(engineResult.report, source);
+    }
 
     await emit(jobId, info(`Detected language: <span class="hl">${parsed.language}</span> · LOC: <span class="hl">${parsed.loc.toLocaleString()}</span>`), onEvent);
 
@@ -356,18 +413,22 @@ export async function runAnalysisPipeline(
     await updateJob(jobId, { progressPct: 90 });
 
     // -----------------------------------------------------------------------
-    // Phase 2d — LLM Mermaid CFG (non-blocking — failure does not abort pipeline)
+    // Phase 2d — LLM Mermaid CFG (skipped when engine provides internalFlow)
     // -----------------------------------------------------------------------
-    try {
-      await emit(jobId, info('Generating <span class="hl">Mermaid control-flow graph</span>…'), onEvent);
-      const { mermaid, tokensUsed: mermaidTokens } = await generateMermaidCFG(source, programName, parsed.language);
-      if (mermaid && mermaid.startsWith('flowchart')) {
-        await updateDepGraphMermaid(depGraphId, mermaid);
-        totalTokensUsed += mermaidTokens;
-        await emit(jobId, done(`Mermaid CFG saved — <span class="hl">${mermaid.split('\n').length} nodes/edges</span>`), onEvent);
+    if (!parsed.internalFlow?.performEdges.length) {
+      try {
+        await emit(jobId, info('Generating <span class="hl">Mermaid control-flow graph</span>…'), onEvent);
+        const { mermaid, tokensUsed: mermaidTokens } = await generateMermaidCFG(source, programName, parsed.language);
+        if (mermaid && mermaid.startsWith('flowchart')) {
+          await updateDepGraphMermaid(depGraphId, mermaid);
+          totalTokensUsed += mermaidTokens;
+          await emit(jobId, done(`Mermaid CFG saved — <span class="hl">${mermaid.split('\n').length} nodes/edges</span>`), onEvent);
+        }
+      } catch {
+        await emit(jobId, warn('Mermaid CFG generation skipped (non-fatal)'), onEvent);
       }
-    } catch {
-      await emit(jobId, warn('Mermaid CFG generation skipped (non-fatal)'), onEvent);
+    } else {
+      await emit(jobId, info('CFG from deterministic engine — skipping LLM Mermaid generation'), onEvent);
     }
 
     // Modernization Brief is generated on-demand via POST /api/programs/[name]/refresh

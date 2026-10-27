@@ -1,4 +1,4 @@
-export type NodeType = 'hero' | 'prog' | 'data' | 'asm' | 'jcl' | 'proc' | 'cpy' | 'sys' | 'impact' | 'para';
+export type NodeType = 'hero' | 'prog' | 'data' | 'asm' | 'jcl' | 'proc' | 'cpy' | 'sys' | 'impact' | 'para' | 'missing';
 export type EdgeType = 'call' | 'data' | 'cics' | 'dyn' | 'jcl' | 'proc' | 'copy' | 'impact' | 'perform';
 
 export interface GraphNode {
