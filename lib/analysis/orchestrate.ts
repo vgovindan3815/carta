@@ -413,22 +413,18 @@ export async function runAnalysisPipeline(
     await updateJob(jobId, { progressPct: 90 });
 
     // -----------------------------------------------------------------------
-    // Phase 2d — LLM Mermaid CFG (skipped when engine provides internalFlow)
+    // Phase 2d — LLM Mermaid CFG (non-blocking — failure does not abort pipeline)
     // -----------------------------------------------------------------------
-    if (!parsed.internalFlow?.performEdges.length) {
-      try {
-        await emit(jobId, info('Generating <span class="hl">Mermaid control-flow graph</span>…'), onEvent);
-        const { mermaid, tokensUsed: mermaidTokens } = await generateMermaidCFG(source, programName, parsed.language);
-        if (mermaid && mermaid.startsWith('flowchart')) {
-          await updateDepGraphMermaid(depGraphId, mermaid);
-          totalTokensUsed += mermaidTokens;
-          await emit(jobId, done(`Mermaid CFG saved — <span class="hl">${mermaid.split('\n').length} nodes/edges</span>`), onEvent);
-        }
-      } catch {
-        await emit(jobId, warn('Mermaid CFG generation skipped (non-fatal)'), onEvent);
+    try {
+      await emit(jobId, info('Generating <span class="hl">Mermaid control-flow graph</span>…'), onEvent);
+      const { mermaid, tokensUsed: mermaidTokens } = await generateMermaidCFG(source, programName, parsed.language);
+      if (mermaid && mermaid.startsWith('flowchart')) {
+        await updateDepGraphMermaid(depGraphId, mermaid);
+        totalTokensUsed += mermaidTokens;
+        await emit(jobId, done(`Mermaid CFG saved — <span class="hl">${mermaid.split('\n').length} nodes/edges</span>`), onEvent);
       }
-    } else {
-      await emit(jobId, info('CFG from deterministic engine — skipping LLM Mermaid generation'), onEvent);
+    } catch {
+      await emit(jobId, warn('Mermaid CFG generation skipped (non-fatal)'), onEvent);
     }
 
     // Modernization Brief is generated on-demand via POST /api/programs/[name]/refresh

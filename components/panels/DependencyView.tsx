@@ -21,8 +21,9 @@ const NC: Record<string, { fill: string; stroke: string; tx: string; sub: string
   proc:   { fill: '#E0F2FE', stroke: '#0891B2', tx: '#0C4A6E', sub: '#0891B2' },
   cpy:    { fill: '#F0FDF4', stroke: '#059669', tx: '#065F46', sub: '#059669' },
   sys:    { fill: '#F9FAFB', stroke: '#9CA3AF', tx: '#6B7280', sub: '#9CA3AF' },
-  impact: { fill: '#FFF7ED', stroke: '#E07B39', tx: '#92400E', sub: '#D97706' },
-  para:   { fill: '#EEF2FF', stroke: '#6366F1', tx: '#3730A3', sub: '#6366F1' },
+  impact:  { fill: '#FFF7ED', stroke: '#E07B39', tx: '#92400E', sub: '#D97706' },
+  para:    { fill: '#EEF2FF', stroke: '#6366F1', tx: '#3730A3', sub: '#6366F1' },
+  missing: { fill: '#FEF3C7', stroke: '#D97706', tx: '#92400E', sub: '#B45309' },
 };
 const EDGE_LABELS: Record<string, string> = {
   call: 'CALL', data: 'DATA', cics: 'CICS', dyn: 'DYN', jcl: 'JCL',
@@ -32,7 +33,7 @@ const NODE_TYPE_LABELS: Record<string, string> = {
   hero: 'Hero program', prog: 'COBOL program', data: 'DB2 / dataset',
   asm: 'Assembler module', jcl: 'JCL job', proc: 'JCL procedure',
   cpy: 'Copybook', sys: 'IBM system utility', impact: 'Impacted program',
-  para: 'Paragraph',
+  para: 'Paragraph', missing: 'Unresolved reference',
 };
 const SYSTEM_PROGRAMS = new Set(['IEFBR14','IDCAMS','SORT','DFSORT','IEBGENER','IEBCOPY',
   'IEBUPDTE','IEHPROGM','IKJEFT01','DSNUTILB','DSNTIAD','DSNUPROC','ICETOOL','IEBPTPCH',
@@ -283,6 +284,19 @@ function CodeInspector({
             </div>
           </div>
         )}
+      </div>
+    );
+  }
+
+  // Unresolved / missing artifact node
+  if (type === 'missing') {
+    return (
+      <div style={{ padding: 12, fontSize: 12 }}>
+        <div style={{ fontFamily: 'Consolas,monospace', fontWeight: 800, color: '#92400E', background: '#FEF3C7', border: '1.5px solid #D97706', borderRadius: 6, padding: '6px 10px', marginBottom: 8 }}>{id}</div>
+        <div style={{ color: '#B45309', marginBottom: 8, fontSize: 11 }}>Unresolved reference — source not in analysis bundle</div>
+        <div style={{ background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 6, padding: '8px 10px', fontSize: 11, color: '#78350F' }}>
+          This program is called by <strong>{p.name}</strong> but its source file was not included in the repository. It may be an external dependency, a copylib module, or a program in another project.
+        </div>
       </div>
     );
   }
@@ -574,6 +588,7 @@ function buildMermaidDef(nodes: GraphNode[], edges: GraphEdge[]): string {
     else if (n.type === 'data' || n.type === 'cpy') lines.push(`  ${sid}[(${lbl})]:::data`);
     else if (n.type === 'asm')                      lines.push(`  ${sid}[[${lbl}]]:::asm`);
     else if (n.type === 'jcl' || n.type === 'proc') lines.push(`  ${sid}[/${lbl}/]:::jcl`);
+    else if (n.type === 'missing')                  lines.push(`  ${sid}{{${lbl}}}:::missing`);
     else                                             lines.push(`  ${sid}[${lbl}]:::prog`);
   }
   for (const e of edges) {
@@ -588,6 +603,7 @@ function buildMermaidDef(nodes: GraphNode[], edges: GraphEdge[]): string {
   lines.push('  classDef asm fill:#EDE9FE,color:#4C1D95,stroke:#7C3AED');
   lines.push('  classDef jcl fill:#FFF7ED,color:#92400E,stroke:#E07B39');
   lines.push('  classDef data fill:#EBF5EE,color:#065F46,stroke:#059669');
+  lines.push('  classDef missing fill:#FEF3C7,color:#92400E,stroke:#D97706,stroke-dasharray:4 2');
   return lines.join('\n');
 }
 
