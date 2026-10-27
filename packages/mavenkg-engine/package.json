@@ -1,0 +1,32 @@
+{
+  "name": "@maven/kg-engine",
+  "version": "0.1.0",
+  "description": "Deterministic Mainframe Knowledge Graph Engine",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mavenkg": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "analyze": "ts-node src/cli.ts",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": ["**/__tests__/**/*.test.ts"],
+    "transform": {
+      "^.+\\.tsx?$": ["ts-jest", { "tsconfig": { "module": "commonjs" } }]
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.15",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}
