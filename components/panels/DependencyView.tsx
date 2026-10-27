@@ -799,7 +799,12 @@ export default function DependencyView({ program: p }: Props) {
         // Mermaid 12 defaults to ELK which fails on hierarchy-crossing edges.
         // Force Dagre to avoid the UnsupportedGraphException.
         layout: 'dagre',
-        flowchart: { defaultRenderer: 'dagre' },
+        flowchart: {
+          defaultRenderer: 'dagre',
+          // Render labels as SVG <text> instead of <foreignObject> HTML divs.
+          // DOMPurify's svg profile strips <foreignObject>, making all node text invisible.
+          htmlLabels: false,
+        },
         themeVariables: {
           darkMode: dark,
           fontSize: '12px',
