@@ -507,6 +507,11 @@ function fixMermaidSubroutineEdges(mermaid: string): string {
     '"' + content.replace(/\{/g, '(').replace(/\}/g, ')') + '"'
   );
 
+  // Pass 4a: strip { } wrappers that LLMs place around rectangle node labels
+  // e.g. main_process[{"Evaluate screen op"}] → main_process["Evaluate screen op"]
+  // Mermaid 12 tokenises { immediately after [ as DIAMOND_START → parse error.
+  fixed = fixed.replace(/\[\{([^{}\n]*)\}\]/g, '[$1]');
+
   // Pass 5: rename reserved Mermaid keywords used as node IDs
   // 'end' closes subgraph blocks so the parser rejects it as a node ID.
   // LLMs frequently use 'end', 'start', 'style', 'default' etc. as node names.
